@@ -1,0 +1,1289 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1024">
+<title>階層項目預約 — 完整流程原型</title>
+<style>
+  :root{
+    --green:#3FBA88; --green-dark:#29A379; --green-pale:#ECF8F3; --pale2:#D6F0E5;
+    --orange:#EB5514; --red:#CE4949; --line:#06C755;
+    --ink:#333333; --ink-strong:#131313; --sub:#676767; --sub2:#858585;
+    --bd:#DCDCDC; --bd-soft:#F0F0F0; --bg-soft:#F9F9F9; --bg-soft2:#F5F5F5;
+    --r8:8px; --r12:12px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    color:var(--ink); background:#fff; -webkit-font-smoothing:antialiased;}
+  .page{width:1024px; margin:0 auto; background:#fff;}
+  img{display:block; max-width:100%;}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  /* ---------- Header ---------- */
+  .hdr{display:flex; align-items:center; justify-content:space-between;
+       height:56px; padding:0 20px; border-bottom:1px solid var(--bd-soft);
+       position:sticky; top:0; background:#fff; z-index:20;}
+  .hdr .brand{font-size:16px; font-weight:500; color:var(--ink-strong);}
+  .hdr .actions{display:flex; gap:10px;}
+  .btn-ghost{display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 14px;
+       border:1px solid var(--bd); border-radius:100px; font-size:14px; font-weight:500;
+       color:var(--ink); background:#fff; cursor:pointer;}
+  .btn-ghost svg{width:15px; height:15px;}
+
+  .hero img{width:1024px; height:341px; object-fit:cover;}
+
+  /* ---------- select screen ---------- */
+  .body{padding:24px 20px 0;}
+  .cols{display:flex; gap:24px; align-items:flex-start;}
+  .main{flex:1 1 auto; min-width:0;}
+  .side{width:256px; flex:0 0 256px;}
+  .store-head{display:flex; align-items:center; gap:10px; margin-bottom:14px;}
+  .store-name{font-size:24px; font-weight:500; color:var(--ink-strong);}
+  .pill-sel{display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 12px;
+       border:1px solid var(--bd); border-radius:100px; font-size:14px; font-weight:500; color:var(--sub); cursor:pointer;}
+  .meta{display:flex; flex-direction:column; gap:9px; margin-bottom:14px;}
+  .meta .row{display:flex; align-items:center; gap:8px; font-size:14px;}
+  .meta .row svg{width:16px; height:16px; color:var(--sub); flex:0 0 16px;}
+  .meta .link{color:var(--sub); text-decoration:underline; margin-left:4px; cursor:pointer;}
+  .social{display:flex; align-items:center; gap:10px; margin-bottom:16px;}
+  .social .lbl{font-size:14px; color:var(--sub); margin-right:2px;}
+  .social img{width:24px; height:24px; border-radius:6px;}
+  .social .globe{width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; color:var(--sub);}
+  .desc{font-size:14px; line-height:1.9; margin-bottom:18px;}
+  .notice{background:var(--green-pale); border-radius:var(--r8); padding:14px 16px; margin-bottom:20px;}
+  .notice .t{font-size:16px; font-weight:500; color:var(--green-dark); margin-bottom:6px;}
+  .notice .c{font-size:16px;}
+  .rules{font-size:16px; line-height:2; margin-bottom:22px;}
+  .rules ol{margin-left:1.4em;}
+  .acc-title{font-size:18px; font-weight:500; margin-bottom:12px;}
+  .acc{border:1px solid var(--bd); border-radius:var(--r8); overflow:hidden;}
+  .acc .item{border-bottom:1px solid var(--bd-soft);}
+  .acc .item:last-child{border-bottom:0;}
+  .acc .head{display:flex; align-items:center; justify-content:space-between; height:48px;
+       padding:0 16px; font-size:16px; font-weight:500; cursor:pointer; user-select:none;}
+  .acc .head svg{width:18px; height:18px; color:var(--sub); transition:transform .2s;}
+  .acc .item.open .head svg{transform:rotate(180deg);}
+  .acc .panel{display:none; padding:4px 16px 16px;}
+  .acc .item.open .panel{display:block;}
+  .tags{display:flex; flex-wrap:wrap; gap:14px 20px; padding:4px 0;}
+  .tag{display:inline-flex; align-items:center; gap:6px; font-size:14px;}
+  .tag svg{width:15px; height:15px; color:var(--green);}
+  .panel .p-txt{font-size:14px; line-height:1.8; color:var(--sub); margin-top:6px;}
+  .book-card{border:1px solid var(--bd); border-radius:var(--r12); padding:20px 18px; position:sticky; top:80px;}
+  .book-card .n{font-size:18px; font-weight:500; color:var(--ink-strong); margin-bottom:16px;}
+  .btn-primary{display:flex; align-items:center; justify-content:center; width:100%; height:44px;
+       background:var(--green); color:#fff; border:0; border-radius:var(--r8); font-size:16px; font-weight:500; cursor:pointer;}
+  .btn-primary:hover{background:var(--green-dark);}
+
+  .band{background:var(--bg-soft); padding:28px 20px 32px; margin-top:28px;}
+  .band-title{font-size:24px; font-weight:500; color:var(--ink-strong); margin-bottom:18px;}
+  .band-grid{display:grid; grid-template-columns:1fr; gap:20px; align-items:start;}
+  .band-grid.two{grid-template-columns:1fr 420px;}
+  .band-grid.solo .dt{max-width:680px; margin:0 auto;}
+  /* prototype flow switcher (not part of Figma) */
+  .flowbar{display:flex; align-items:center; gap:12px; padding:10px 20px; background:#FFF7E6; border-bottom:1px dashed #E4B961; font-size:13px; color:#8A6D3B;}
+  .flowbar .lab{font-weight:500; white-space:nowrap;}
+  .flowbar .ftabs{display:flex; gap:8px;}
+  .flowbar .ft{padding:5px 14px; border:1px solid #E4B961; border-radius:100px; background:#fff; color:#8A6D3B; font-size:13px; cursor:pointer;}
+  .flowbar .ft.on{background:var(--green); border-color:var(--green); color:#fff;}
+  .items-flat .flat-item{display:flex; align-items:center; gap:12px; height:60px; padding:0 18px; background:#fff;
+       border:1px solid var(--bd); border-radius:var(--r12); margin-bottom:12px; cursor:pointer;}
+  .items-flat .flat-item.sel{border-color:var(--green);}
+  .items-flat .flat-item .radio{width:20px; height:20px; border-radius:100px; border:2px solid var(--bd); flex:0 0 20px; position:relative;}
+  .items-flat .flat-item.sel .radio{border-color:var(--green);}
+  .items-flat .flat-item.sel .radio::after{content:""; position:absolute; inset:3px; border-radius:100px; background:var(--green);}
+  .items-flat .flat-item .pname{font-size:18px; font-weight:500;}
+  .parent{background:#fff; border:1px solid var(--bd); border-radius:var(--r12); margin-bottom:12px; cursor:pointer;}
+  .parent.sel{border-color:var(--green);}
+  .parent .head{display:flex; align-items:center; gap:12px; height:60px; padding:0 18px;}
+  .radio{width:20px; height:20px; border-radius:100px; border:2px solid var(--bd); flex:0 0 20px; position:relative;}
+  .parent.sel .radio{border-color:var(--green);}
+  .parent.sel .radio::after{content:""; position:absolute; inset:3px; border-radius:100px; background:var(--green);}
+  .parent .pname{font-size:18px; font-weight:500;}
+  .children{display:none; border-top:1px solid var(--bd-soft); padding:6px 18px 14px 50px;}
+  .parent.sel .children{display:block;}
+  .children .sub-h{font-size:16px; color:var(--sub); padding:12px 0 6px;}
+  .child{display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--bd-soft);}
+  .child:last-child{border-bottom:0;}
+  .child .cn{font-size:16px; font-weight:500;}
+  .btn-sel{height:32px; padding:0 18px; border:1px solid var(--green); border-radius:var(--r8);
+       background:#fff; color:var(--green-dark); font-size:14px; font-weight:500; cursor:pointer; white-space:nowrap;}
+  .btn-sel.chosen{background:var(--green); color:#fff; border-color:var(--green); display:inline-flex; align-items:center; gap:5px;}
+  .btn-sel.chosen svg{width:14px; height:14px;}
+  .dt{display:none; background:#fff; border:1px solid var(--bd); border-radius:var(--r12); padding:22px 20px;}
+  .dt.show{display:block;}
+  .dt-title{font-size:22px; font-weight:500; color:var(--ink-strong); margin-bottom:16px;}
+  .dt-sub{display:flex; align-items:center; gap:7px; font-size:16px; font-weight:500; margin:6px 0 12px;}
+  .dt-sub svg{width:17px; height:17px;}
+  .cap{font-size:13px; color:var(--sub); margin-bottom:10px;}
+  .stepper{display:flex; align-items:center; justify-content:space-between; padding:10px 0;}
+  .stepper .lab{font-size:16px;}
+  .step-ctrl{display:flex; align-items:center; gap:16px;}
+  .step-ctrl button{width:26px; height:26px; border:1px solid var(--bd); background:#fff; border-radius:100px;
+       color:var(--sub); font-size:16px; cursor:pointer; line-height:1;}
+  .step-ctrl .val{min-width:16px; text-align:center; font-size:16px;}
+  .dt-hint{background:var(--bg-soft2); border-radius:var(--r8); font-size:13px; color:var(--sub); padding:9px 12px; margin:8px 0 6px;}
+  .dt-select,.f-select{width:100%; height:44px; border:1px solid var(--bd); border-radius:var(--r8); padding:0 14px;
+       font-size:15px; font-family:inherit; color:var(--ink); background:#fff; appearance:none;
+       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23676767' stroke-width='2'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+       background-repeat:no-repeat; background-position:right 14px center;}
+  .tabs{display:flex; gap:18px; border-bottom:1px solid var(--bd-soft); margin:6px 0 14px;}
+  .tabs .tab{font-size:14px; color:var(--sub); padding:6px 2px 10px; cursor:pointer; position:relative;}
+  .tabs .tab.on{color:var(--green-dark); font-weight:500;}
+  .tabs .tab.on::after{content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--green);}
+  .chips{display:grid; grid-template-columns:repeat(5,1fr); gap:9px;}
+  .chip{height:34px; border:1px solid var(--bd); border-radius:var(--r8); background:#fff; font-size:14px; cursor:pointer;}
+  .chip:hover:not(.dis){border-color:var(--green);}
+  .chip.dis{background:var(--bg-soft2); color:#C4C4C4; cursor:not-allowed;}
+  .chip.on{background:var(--green); color:#fff; border-color:var(--green);}
+  .other-bar{display:flex; align-items:center; justify-content:center; gap:7px; height:44px;
+       border:1px solid var(--bd); border-radius:var(--r8); margin-top:14px; font-size:14px; color:var(--sub); cursor:pointer;}
+  .other-bar svg{width:15px; height:15px;}
+  .cta-wrap{margin-top:22px;}
+  .btn-cta{display:flex; align-items:center; justify-content:center; width:100%; height:52px; border:0;
+       border-radius:var(--r8); font-size:16px; font-weight:500; cursor:not-allowed; background:#E4E4E4; color:#9B9B9B;}
+  .btn-cta.on{background:var(--green); color:#fff; cursor:pointer;}
+  .btn-cta.on:hover{background:var(--green-dark);}
+  .cta-note{text-align:center; font-size:13px; color:var(--sub); margin-top:8px;}
+  .cta-note.hide{display:none;}
+
+  .sec{padding:26px 20px 6px;}
+  .sec-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .sec-head .t{font-size:18px; font-weight:500;}
+  .arrows{display:flex; gap:10px;}
+  .arrows button{width:26px; height:26px; border:0; background:none; cursor:pointer; color:var(--sub);}
+  .menu-row{display:flex; gap:16px; overflow:hidden;}
+  .menu-row .card img{width:232px; height:290px; object-fit:cover; border-radius:var(--r8);}
+  .review-row{display:flex; gap:16px; overflow:hidden;}
+  .review{flex:0 0 232px; border:1px solid var(--bd-soft); border-radius:var(--r12); overflow:hidden;}
+  .review > img{width:232px; height:170px; object-fit:cover;}
+  .review .rb{padding:12px 14px 16px;}
+  .review .who{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+  .review .who img{width:30px; height:30px; border-radius:100px;}
+  .review .who span{font-size:16px; font-weight:500;}
+  .review .txt{font-size:14px; line-height:1.7; color:var(--sub);
+       display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  .review .date{font-size:14px; color:var(--sub2); margin-top:10px;}
+
+  /* ---------- form screen ---------- */
+  .form-wrap{display:flex; gap:24px; padding:28px 20px;}
+  .form-side{width:340px; flex:0 0 340px;}
+  .side-card{background:var(--bg-soft); border:1px solid var(--bd-soft); border-radius:var(--r12); overflow:hidden;}
+  .side-card .sc-head{padding:16px 18px; font-size:18px; font-weight:500; color:var(--ink-strong);
+       background:#F2F2F2; border-bottom:1px solid var(--bd-soft);}
+  .side-card .sc-body{padding:16px 18px; display:flex; flex-direction:column; gap:12px;}
+  .sc-row{display:flex; align-items:center; gap:9px; font-size:16px;}
+  .sc-row svg{width:17px; height:17px; color:var(--sub);}
+  .btn-outline{display:flex; align-items:center; justify-content:center; width:100%; height:44px;
+       border:1px solid var(--green); border-radius:var(--r8); background:#fff; color:var(--green-dark);
+       font-size:15px; font-weight:500; cursor:pointer; margin:4px 18px 18px; width:calc(100% - 36px);}
+  .form-main{flex:1 1 auto; min-width:0;}
+  .form-card{border:1px solid var(--bd); border-radius:var(--r12); padding:26px 28px;}
+  .form-card h2{font-size:22px; font-weight:500; color:var(--ink-strong); margin-bottom:20px;}
+  .field{margin-bottom:18px;}
+  .field > label{display:block; font-size:14px; font-weight:500; margin-bottom:8px;}
+  .req{color:var(--ink);}
+  .f-input,.f-area{width:100%; border:1px solid var(--bd); border-radius:var(--r8); padding:12px 14px;
+       font-size:15px; font-family:inherit; color:var(--ink);}
+  .f-area{min-height:76px; resize:vertical;}
+  .name-row{display:flex; align-items:center; gap:18px;}
+  .name-row .f-input{flex:0 0 300px;}
+  .radios{display:flex; gap:20px;}
+  .radios label{display:inline-flex; align-items:center; gap:7px; font-size:15px; color:var(--sub); cursor:pointer;}
+  .rd{width:18px; height:18px; border-radius:100px; border:2px solid var(--bd); display:inline-block; position:relative;}
+  .radios input{display:none;}
+  .radios input:checked + .rd{border-color:var(--green);}
+  .radios input:checked + .rd::after{content:""; position:absolute; inset:3px; border-radius:100px; background:var(--green);}
+  .ans-chips{display:flex; gap:12px;}
+  .ans{height:34px; padding:0 16px; border:1px solid var(--bd); border-radius:var(--r8); background:#fff;
+       font-size:14px; color:var(--ink); cursor:pointer;}
+  .ans.on{border-color:var(--green); color:var(--green-dark); background:var(--green-pale);}
+  .form-div{border:0; border-top:1px solid var(--bd-soft); margin:20px 0;}
+  .agree{display:flex; align-items:flex-start; gap:10px; font-size:15px;}
+  .cbox{width:18px; height:18px; border:1.5px solid var(--bd); border-radius:4px; flex:0 0 18px; margin-top:1px;
+       cursor:pointer; display:inline-flex; align-items:center; justify-content:center;}
+  .cbox.on{background:var(--green); border-color:var(--green);}
+  .cbox svg{width:12px; height:12px; color:#fff; display:none;}
+  .cbox.on svg{display:block;}
+  .terms{font-size:13px; color:var(--sub); text-align:center; margin:18px 0 12px;}
+  .terms a{color:var(--green-dark); text-decoration:underline;}
+
+  /* ---------- pay / success screens ---------- */
+  .center-col{max-width:590px; margin:0 auto; padding:24px 20px 0;}
+  .warn{color:var(--red); font-size:20px; font-weight:500; text-align:center; line-height:1.6; margin-bottom:20px;}
+  .succ-title{color:var(--green-dark); font-size:20px; font-weight:500; text-align:center; margin:20px 0;}
+  .ic-body.muted .big-date,.ic-body.muted .big-time,.ic-body.muted .big-people{color:#B4B4B4;}
+  .status-badge{background:var(--bg-soft2); color:var(--sub); text-align:center; font-size:20px; font-weight:600; padding:14px; border-radius:var(--r8); margin:8px 0;}
+  .st-pay-amt{text-align:center; color:var(--red); font-size:15px; font-weight:500; margin:6px 0 14px;}
+  .proto-nav select{border:0; background:#444; color:#fff; padding:5px 8px; border-radius:100px; font-size:12px; cursor:pointer; max-width:150px;}
+  /* form validation */
+  .ferr{display:none; color:var(--red); font-size:13px; margin-top:6px;}
+  .ferr.show{display:block;}
+  .f-input.err,.f-area.err{border-color:var(--red);}
+  .cta-note.err{color:var(--red);}
+  /* toast */
+  .toast{position:fixed; left:50%; bottom:40px; transform:translateX(-50%) translateY(20px); background:#2E2E2E; color:#fff; padding:12px 22px; border-radius:100px; font-size:14px; z-index:90; opacity:0; pointer-events:none; transition:.25s; display:flex; align-items:center; gap:8px;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast svg{width:16px; height:16px; color:#5AD59A;}
+  /* date / time picker */
+  .pick-wrap{position:relative;}
+  .picker-pop{position:absolute; left:0; top:100%; z-index:5; background:#fff; border:1px solid var(--bd); border-radius:8px; box-shadow:0 10px 28px rgba(0,0,0,.14); padding:12px; margin-top:4px;}
+  .cal-head{display:flex; align-items:center; justify-content:space-between; padding:2px 6px 10px;}
+  .cal-head .mo{font-size:15px; font-weight:600;}
+  .cal-head button{border:0; background:none; cursor:pointer; color:var(--sub); font-size:15px; padding:2px 7px;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,34px); gap:2px; text-align:center;}
+  .cal-grid .wd{font-size:12px; color:var(--sub); padding:4px 0;}
+  .cal-grid .d{padding:8px 0; font-size:14px; border-radius:6px; cursor:pointer;}
+  .cal-grid .d.past{color:#ccc; cursor:default;}
+  .cal-grid .d:not(.past):hover{background:var(--green-pale);}
+  .cal-grid .d.sel{background:var(--green); color:#fff;}
+  .timepick{display:flex; border:1px solid var(--bd); border-radius:8px; overflow:hidden;}
+  .timecol{width:64px; height:200px; overflow-y:auto;}
+  .timecol .ti{padding:8px 0; text-align:center; font-size:14px; cursor:pointer;}
+  .timecol .ti:hover{background:var(--green-pale);}
+  .timecol .ti.sel{background:var(--green-pale); font-weight:600;}
+  .tp-ok{display:block; width:100%; margin-top:8px; height:34px; background:var(--green); color:#fff; border:0; border-radius:6px; cursor:pointer;}
+  .info-card{border:1px solid var(--bd-soft); border-radius:var(--r12); overflow:hidden; margin-bottom:20px;}
+  .ic-head{background:var(--pale2); padding:16px 20px;}
+  .ic-head .s{font-size:18px; font-weight:500; color:var(--ink-strong); margin-bottom:6px;}
+  .ic-head .a{display:flex; align-items:center; gap:7px; font-size:14px; color:var(--ink);}
+  .ic-head .a svg{width:15px; height:15px; color:var(--green);}
+  .ic-body{padding:22px 20px;}
+  .big-date{text-align:center; font-size:22px; font-weight:500; color:var(--green-dark);}
+  .big-time{text-align:center; font-size:30px; font-weight:600; color:var(--orange); margin:6px 0;}
+  .big-people{text-align:center; font-size:17px; margin-bottom:6px;}
+  .dash{border:0; border-top:1.5px dashed #93D6BB; margin:16px 0;}
+  .code{text-align:center; font-size:15px; color:var(--sub);}
+  .code b{color:var(--ink); font-weight:500; margin-left:8px; letter-spacing:1px;}
+  .note-box{background:var(--bg-soft2); border-radius:var(--r8); font-size:13px; color:var(--sub); padding:10px 14px; text-align:center; margin:14px 0 4px;}
+  .pay-amt{text-align:center; color:var(--red); font-size:15px; font-weight:500; margin:6px 0 14px;}
+  .btn-pay{display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px;
+       background:var(--green); color:#fff; border:0; border-radius:var(--r8); font-size:16px; font-weight:500; cursor:pointer; margin-bottom:10px;}
+  .btn-pay:hover{background:var(--green-dark);}
+  .btn-pay svg{width:16px; height:16px;}
+  .btn-cancel{display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px;
+       background:#fff; color:var(--sub); border:1px solid var(--bd); border-radius:var(--r8); font-size:16px; cursor:pointer;}
+  .remark-card{border:1px solid var(--bd-soft); border-radius:var(--r12); padding:20px; margin-bottom:20px;}
+  .remark-card h3{font-size:18px; font-weight:500; color:var(--ink-strong); margin-bottom:14px;}
+  .rk{margin-bottom:14px;}
+  .rk .q{font-size:13px; color:var(--sub); margin-bottom:4px;}
+  .rk .a{font-size:15px; font-weight:500;}
+  .contact-card{border:1px solid var(--bd-soft); border-radius:var(--r12); padding:20px; margin-bottom:20px;}
+  .contact-card h3{font-size:18px; font-weight:500; color:var(--ink-strong); margin-bottom:14px;}
+  .cc-row{display:flex; align-items:center; gap:10px; font-size:15px; padding:6px 0;}
+  .cc-row svg{width:17px; height:17px; color:var(--green);}
+  .cc-note{background:var(--bg-soft2); border-radius:var(--r8); font-size:13px; color:var(--sub); padding:10px 14px; margin-top:12px;}
+  .cc-note a{text-decoration:underline;}
+  .succ-actions{display:flex; gap:14px; margin-bottom:20px;}
+  .succ-actions button{flex:1; height:48px; border-radius:var(--r8); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;}
+  .succ-actions .edit{background:#fff; border:1px solid var(--bd); color:var(--ink);}
+  .succ-actions .cancel{background:var(--red); border:0; color:#fff;}
+  .succ-actions svg{width:16px; height:16px;}
+  .line-sec{background:var(--green-pale); border-radius:var(--r12); padding:22px; margin-bottom:8px;}
+  .line-inner{background:#fff; border-radius:var(--r8); padding:22px; text-align:center;}
+  .qr{width:150px; height:150px; margin:0 auto 14px;}
+  .line-inner p{font-size:14px; color:var(--sub); line-height:1.7; margin-bottom:14px;}
+  .btn-line{display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:46px;
+       background:var(--line); color:#fff; border:0; border-radius:var(--r8); font-size:15px; font-weight:500; cursor:pointer;}
+  .btn-line svg{width:18px; height:18px;}
+  .mini-menu{padding:20px 0 0;}
+  .mini-menu .sec-head{margin-bottom:12px;}
+  .mini-row{display:flex; gap:16px; overflow:hidden;}
+  .mini-row img{width:calc(50% - 8px); height:280px; object-fit:cover; border-radius:var(--r8);}
+
+  /* ===== admin console (商家後台) ===== */
+  body.admin-mode .hdr, body.admin-mode .footer{display:none;}
+  body.admin-mode .page{width:100%;}
+  #screen-admin .admin-shell{display:flex; min-height:100vh; width:1024px; margin:0 auto; border-left:1px solid var(--bd-soft); border-right:1px solid var(--bd-soft);}
+  .rail{width:66px; flex:0 0 66px; border-right:1px solid var(--bd-soft); padding:14px 0; display:flex; flex-direction:column; align-items:center; gap:2px;}
+  .rail .logo{width:36px; height:36px; border-radius:10px; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; margin-bottom:12px;}
+  .rail .ri{display:flex; flex-direction:column; align-items:center; gap:3px; width:58px; padding:8px 0; border-radius:8px; font-size:10px; color:var(--sub); cursor:pointer;}
+  .rail .ri svg{width:20px; height:20px;}
+  .rail .ri.on{color:var(--green-dark);}
+  .rail .ri.on svg{color:var(--green);}
+  .subnav{width:184px; flex:0 0 184px; border-right:1px solid var(--bd-soft); padding:14px 0;}
+  .subnav .grp{font-size:13px; font-weight:600; color:var(--green-dark); padding:12px 20px 6px; display:flex; align-items:center; gap:6px;}
+  .subnav .grp svg{width:14px;height:14px;}
+  .subnav .ni{font-size:14px; color:var(--ink); padding:9px 20px; cursor:pointer;}
+  .subnav .ni:hover{background:var(--bg-soft);}
+  .subnav .ni.on{background:var(--bg-soft2); font-weight:500;}
+  .admin-main{flex:1; padding:22px 34px 60px; min-width:0;}
+  .am-title{font-size:20px; font-weight:600; color:var(--ink-strong);}
+  .am-desc{font-size:14px; color:var(--sub); margin:6px 0 16px;}
+  .am-hr{border:0; border-top:1px solid var(--bd-soft); margin:0 0 20px;}
+  .am-sec-title{font-size:17px; font-weight:600; margin:22px 0 14px;}
+  .am-panel{border:1px solid var(--bd-soft); border-radius:var(--r12); padding:18px 20px; margin-bottom:16px;}
+  .am-toggle-row{display:flex; align-items:center; justify-content:space-between;}
+  .am-toggle-row .t{font-size:16px; font-weight:500;}
+  .sw{width:44px; height:24px; border-radius:100px; background:var(--green); position:relative; cursor:pointer; flex:0 0 44px;}
+  .sw::after{content:""; position:absolute; top:3px; left:23px; width:18px; height:18px; border-radius:100px; background:#fff; transition:left .15s;}
+  .sw.off{background:#CFCFCF;}
+  .sw.off::after{left:3px;}
+  .am-card{display:flex; align-items:center; justify-content:space-between; border:1px solid var(--bd); border-radius:var(--r8); padding:14px 16px; margin-top:12px;}
+  .am-card .c-t{font-size:15px; font-weight:500;}
+  .am-card .c-d{font-size:13px; color:var(--sub); margin-top:3px;}
+  .am-card .c-act{color:var(--sub); cursor:pointer; display:flex; align-items:center; gap:4px; flex:0 0 auto;}
+  .am-card .c-act svg{width:18px; height:18px;}
+  .edit-ic,.chev-ic{display:inline-block; width:18px; height:18px; cursor:pointer; flex:0 0 18px;}
+  .edit-ic{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23676767' stroke-width='2'%3E%3Cpath d='M4 20h4L18 10l-4-4L4 16v4z'/%3E%3Cpath d='M13 7l4 4'/%3E%3C/svg%3E") no-repeat center/contain;}
+  .chev-ic{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23676767' stroke-width='2'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") no-repeat center/contain;}
+  .am-crumb{display:flex; align-items:center; gap:8px; font-size:15px; color:var(--sub); margin-bottom:18px;}
+  .am-crumb .bk{color:var(--sub); cursor:pointer;}
+  .am-crumb .cur{color:var(--ink-strong); font-weight:600;}
+  .am-banner{border:1px solid var(--bd); border-radius:var(--r8); padding:22px; text-align:center; position:relative;}
+  .am-banner .ph{height:150px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#B7B7B7; gap:8px; font-size:13px;}
+  .am-banner .ph svg{width:44px; height:44px;}
+  .am-banner .bn-name{font-size:17px; font-weight:500; color:var(--ink); border-top:1px solid var(--bd-soft); padding-top:14px; margin-top:6px;}
+  .am-banner .edit-ic{position:absolute; top:14px; right:14px;}
+  .grp-lab{font-size:16px; font-weight:600; margin:22px 0 10px;}
+  .chk-grp{margin-bottom:8px;}
+  .chk-grp .gl{font-size:14px; color:var(--sub); margin:10px 0 8px;}
+  .chk-row{display:flex; flex-wrap:wrap; gap:14px 24px;}
+  .chk{display:inline-flex; align-items:center; gap:8px; font-size:15px; cursor:pointer;}
+  .chk .bx{width:18px; height:18px; border:1.5px solid var(--bd); border-radius:4px; display:inline-flex; align-items:center; justify-content:center;}
+  .chk .bx svg{width:12px;height:12px;color:#fff;display:none;}
+  .chk.on .bx{background:var(--green); border-color:var(--green);}
+  .chk.on .bx svg{display:block;}
+  .am-copy .cbtn{width:56px; align-self:stretch; border:1px solid var(--bd); border-radius:var(--r8); display:flex; align-items:center; justify-content:center; color:var(--sub); cursor:pointer; margin-left:10px;}
+  .amodal-ov{display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:60; align-items:center; justify-content:center;}
+  .amodal-ov.show{display:flex;}
+  .amodal{width:640px; background:#fff; border-radius:var(--r12); overflow:hidden;}
+  .amodal .m-h{text-align:center; font-size:18px; font-weight:600; padding:22px; border-bottom:1px solid var(--bd-soft);}
+  .amodal .m-b{padding:26px; min-height:180px;}
+  .amodal .m-f{display:flex; justify-content:flex-end; gap:12px; padding:18px 26px; border-top:1px solid var(--bd-soft);}
+  .amodal .m-cancel{height:44px; padding:0 28px; border:1px solid var(--bd); border-radius:var(--r8); background:#fff; cursor:pointer;}
+  .amodal .m-save{height:44px; padding:0 34px; border:0; border-radius:var(--r8); background:var(--green); color:#fff; font-weight:500; cursor:pointer;}
+  .m-label{font-size:15px; font-weight:600; margin-bottom:8px;}
+  .m-field{margin-bottom:20px;}
+  .m-inline{display:flex; align-items:center; gap:10px; font-size:15px; flex-wrap:wrap;}
+  .m-sel{height:40px; border:1px solid var(--bd); border-radius:var(--r8); padding:0 30px 0 12px; font-family:inherit; font-size:15px; color:var(--ink); background:#fff; appearance:none; min-width:64px;
+       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23676767' stroke-width='2'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center;}
+  .m-note{background:var(--bg-soft); border-radius:var(--r8); padding:12px 14px; font-size:13px; color:var(--sub); line-height:1.8; margin-top:8px;}
+  /* prototype global nav */
+  .proto-nav{position:fixed; right:16px; bottom:16px; z-index:80; display:flex; align-items:center; gap:6px;
+       background:#2B2B2B; color:#fff; padding:7px 10px; border-radius:100px; font-size:12px; box-shadow:0 4px 14px rgba(0,0,0,.25);}
+  .proto-nav button{border:0; background:#444; color:#fff; padding:5px 12px; border-radius:100px; font-size:12px; cursor:pointer;}
+  .proto-nav button.on{background:var(--green);}
+
+  /* ---------- footer ---------- */
+  .footer{background:var(--bg-soft2); margin-top:30px; padding:22px 20px 26px; text-align:center;}
+  .footer .links{display:flex; align-items:center; justify-content:center; gap:8px; font-size:13px; color:var(--sub); margin-bottom:10px; flex-wrap:wrap;}
+  .footer .links .strong{font-size:14px; font-weight:500; color:var(--ink);}
+  .footer .links .div{color:var(--bd);}
+  .footer .powered{display:flex; align-items:center; justify-content:center; gap:6px; font-size:13px; color:var(--sub2); margin-top:12px;}
+  .footer .powered img{height:16px;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Shared header -->
+  <header class="hdr">
+    <div class="brand">找活燒烤–北門店</div>
+    <div class="actions">
+      <button class="btn-ghost" id="btn-query"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><span data-zh="查詢預約" data-en="Find Booking">查詢預約</span></button>
+      <button class="btn-ghost" id="btn-lang"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg><span data-zh="EN" data-en="繁中">EN</span></button>
+    </div>
+  </header>
+
+  <!-- ============ SCREEN 1: SELECT ============ -->
+  <div class="screen active" id="screen-select">
+    <div class="flowbar">
+      <span class="lab">🔧 原型流程切換：</span>
+      <div class="ftabs">
+        <span class="ft" data-f="basic">① 基本人數預約</span>
+        <span class="ft" data-f="item">② 預約項目預約</span>
+        <span class="ft" data-f="hier">③ 階層項目預約</span>
+      </div>
+    </div>
+    <div class="hero"><img src="assets/6bc5a984b6f0909522c6.png" alt="店家橫幅"></div>
+    <div class="body">
+      <div class="cols">
+        <div class="main">
+          <div class="store-head">
+            <div class="store-name">找活燒烤–北門店</div>
+            <span class="pill-sel">其他分店 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span>
+          </div>
+          <div class="meta">
+            <div class="row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>台北市信義區松高路11號2樓 <a class="link">查看地圖</a></div>
+            <div class="row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h4l2 5-3 2a12 12 0 006 6l2-3 5 2v4a2 2 0 01-2 2A17 17 0 013 6a2 2 0 012-2z"/></svg>02-2345-6789</div>
+            <div class="row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>每週一～五 11:00-22:00</div>
+          </div>
+          <div class="social"><span class="lbl">社群連結</span>
+            <img src="assets/b5df097670e09111519b.png" alt="LINE"><img src="assets/550242a1a87a1fe6d347.png" alt="IG"><img src="assets/af6f06778b34a6b78441.png" alt="FB">
+            <span class="globe"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg></span>
+          </div>
+          <p class="desc">以台灣在地食材打造的創意料理，每日精選時令菜色，提供輕鬆愉快的用餐體驗。無論是家庭聚餐或商務宴客，都能找到適合的座位。</p>
+          <div class="notice"><div class="t">重要公告</div><div class="c">限時優惠活動：三人同行一人免費</div></div>
+          <div class="rules"><div>訂位須知：</div><ol>
+            <li>僅接受現金付費。</li><li>低消$250/人 （含8歲以上兒童一樣需符合店家低消之規則）。</li>
+            <li>餐廳內空間擁擠局限，如需使用兒童座椅、餐具，請於預約時備註。</li><li>訂位人數最多：6位。超過人數請來電詢問。</li>
+            <li>用餐時間為90分鐘（依訂位時間算起，如無下一組訂位則無時間限制到打烊）。</li>
+            <li>訂位保留15分鐘，15分鐘後有現場客人我們將讓出您的訂位桌。</li>
+            <li>如遇天災或不可抗之因素或意外（如颱風、停水、停電），或無法履行上述之約定，我們將保留取消或更改預約之權利。</li></ol></div>
+          <div class="acc-title">其他注意事項</div>
+          <div class="acc" id="acc">
+            <div class="item"><div class="head">餐點服務 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div><div class="panel"><div class="tags"><span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>全素</span></div></div></div>
+            <div class="item"><div class="head">內部環境 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div><div class="panel"><div class="tags">
+              <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>寵物友善</span><span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>親子友善</span><span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>高齡友善</span><span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>Wifi</span><span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>兒童座椅</span><span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>無障礙空間</span></div></div></div>
+            <div class="item"><div class="head">店內交易方式 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div><div class="panel"><div class="tags">
+              <span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>現金</span><span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>信用卡</span><span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>Apple Pay</span><span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>Google Pay</span><span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>LINE Pay</span><span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>街口支付</span><span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>全支付</span><span class="tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5 9-11"/></svg>悠遊卡</span></div></div></div>
+            <div class="item"><div class="head">停車資訊 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div><div class="panel"><div class="p-txt">Lorem ipsum dolor sit amet consectetur. Risus quam fringilla at sodales tempus sit elit sem iaculis.</div></div></div>
+            <div class="item"><div class="head">交通資訊 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div><div class="panel"><div class="p-txt">Lorem ipsum dolor sit amet consectetur. Risus quam fringilla at sodales tempus sit elit sem iaculis.</div></div></div>
+            <div class="item"><div class="head">其他說明 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div><div class="panel"><div class="p-txt">Lorem ipsum dolor sit amet consectetur. Risus quam fringilla at sodales tempus sit elit sem iaculis.</div></div></div>
+          </div>
+        </div>
+        <aside class="side"><div class="book-card"><div class="n">找活燒烤–北門店</div><button class="btn-primary" id="cta-top" data-zh="立即預約" data-en="Book Now">立即預約</button></div></aside>
+      </div>
+    </div>
+
+    <section class="band" id="booking">
+      <div class="band-title" id="bandTitle" data-zh="選擇預約項目" data-en="Select Item">選擇預約項目</div>
+      <div id="band-msg" style="display:none; background:#fff; border:1px solid var(--bd); border-radius:var(--r12); padding:48px 24px; text-align:center; color:var(--sub); font-size:16px; line-height:1.8"></div>
+      <div class="band-grid" id="bandGrid">
+        <div class="items" id="items-hier">
+          <div class="parent sel" data-p="0">
+            <div class="head"><span class="radio"></span><span class="pname">精緻主廚特餐</span></div>
+            <div class="children"><div class="sub-h">選擇子項目</div>
+              <div class="child"><span class="cn">早午時光</span><button class="btn-sel" data-c="早午時光">選擇</button></div>
+              <div class="child"><span class="cn">精緻午茶</span><button class="btn-sel" data-c="精緻午茶">選擇</button></div>
+              <div class="child"><span class="cn">晚安佳餚</span><button class="btn-sel" data-c="晚安佳餚">選擇</button></div>
+            </div>
+          </div>
+          <div class="parent" data-p="1">
+            <div class="head"><span class="radio"></span><span class="pname">自助吧吃到飽</span></div>
+            <div class="children"><div class="sub-h">選擇子項目</div>
+              <div class="child"><span class="cn">平日午間吃到飽</span><button class="btn-sel" data-c="平日午間吃到飽">選擇</button></div>
+              <div class="child"><span class="cn">假日晚間吃到飽</span><button class="btn-sel" data-c="假日晚間吃到飽">選擇</button></div>
+            </div>
+          </div>
+          <div class="parent" data-p="2">
+            <div class="head"><span class="radio"></span><span class="pname">星空酒吧</span></div>
+            <div class="children"><div class="sub-h">選擇子項目</div>
+              <div class="child"><span class="cn">調酒暢飲</span><button class="btn-sel" data-c="調酒暢飲">選擇</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="items-flat" id="items-flat" style="display:none">
+          <div class="flat-item" data-i="精緻主廚特餐"><span class="radio"></span><span class="pname">精緻主廚特餐</span></div>
+          <div class="flat-item" data-i="自助吧吃到飽"><span class="radio"></span><span class="pname">自助吧吃到飽</span></div>
+          <div class="flat-item" data-i="星空酒吧"><span class="radio"></span><span class="pname">星空酒吧</span></div>
+        </div>
+        <div class="dt" id="dt">
+          <div class="dt-title" data-zh="選擇人數、日期與時段" data-en="Party Size, Date &amp; Time">選擇人數、日期與時段</div>
+          <div class="dt-sub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>預約人數</div>
+          <div class="cap">可接受 1–6 位訂位（含大人與小孩）</div>
+          <div class="stepper"><span class="lab">大人</span><div class="step-ctrl"><button data-step="adult" data-d="-1">−</button><span class="val" id="adult">2</span><button data-step="adult" data-d="1">+</button></div></div>
+          <div class="stepper"><span class="lab">小孩</span><div class="step-ctrl"><button data-step="child" data-d="-1">−</button><span class="val" id="child">0</span><button data-step="child" data-d="1">+</button></div></div>
+          <div class="dt-hint">*超過 6 人的訂位，請使用電話預約</div>
+          <div class="dt-sub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M9 3v4M15 3v4"/></svg>日期</div>
+          <select class="dt-select" id="dateSel"><option>2026/06/16 星期二</option><option>2026/06/17 星期三</option><option>2026/06/18 星期四</option></select>
+          <div class="dt-sub" style="margin-top:16px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>可預約時間</div>
+          <div class="tabs"><span class="tab on">全時段</span><span class="tab">上午</span><span class="tab">下午</span><span class="tab">晚上</span><span class="tab">午夜</span></div>
+          <div class="chips" id="chips">
+            <button class="chip">09:30</button><button class="chip">10:00</button><button class="chip">10:30</button><button class="chip">11:00</button><button class="chip">11:30</button>
+            <button class="chip dis">12:00</button><button class="chip dis">12:30</button><button class="chip">13:00</button><button class="chip">13:30</button><button class="chip">14:00</button>
+            <button class="chip">14:30</button><button class="chip">17:30</button><button class="chip dis">18:00</button><button class="chip">18:30</button><button class="chip dis">19:00</button>
+            <button class="chip">19:30</button><button class="chip">20:00</button><button class="chip">20:30</button><button class="chip">21:00</button><button class="chip">22:00</button>
+            <button class="chip">23:00</button><button class="chip">00:00</button><button class="chip">01:00</button><button class="chip">02:00</button><button class="chip" style="visibility:hidden"></button>
+          </div>
+          <div class="other-bar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>沒有適合的時段？看看其他分店</div>
+        </div>
+      </div>
+      <div class="cta-wrap" id="ctaWrap" style="display:none">
+        <button class="btn-cta" id="ctaMain" data-zh="填寫預約資訊" data-en="Fill in Details" disabled>填寫預約資訊</button>
+        <div class="cta-note" id="ctaNote">請先選擇一個可預約時段</div>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><div class="t">菜單</div><div class="arrows"><button>‹</button><button>›</button></div></div>
+      <div class="menu-row">
+        <div class="card"><img src="assets/fcd5084b4bad387464db.png" alt=""></div><div class="card"><img src="assets/1645a56dba4ff55196e1.png" alt=""></div>
+        <div class="card"><img src="assets/3e24989adf05a8bbb71e.png" alt=""></div><div class="card"><img src="assets/c092a6c5622e4bfb411e.png" alt=""></div>
+      </div>
+    </section>
+    <section class="sec">
+      <div class="sec-head"><div class="t">MENU美食客分享</div><div class="arrows"><button>‹</button><button>›</button></div></div>
+      <div class="review-row">
+        <div class="review"><img src="assets/f5ee621e2d481c336924.png" alt=""><div class="rb"><div class="who"><img src="assets/f1fcd87d36d4bd339fc0.png" alt=""><span>胖寶</span></div><div class="txt">Lorem ipsum dolor sit amet consectetur. In tortor lacus male</div><div class="date">2026-06-26</div></div></div>
+        <div class="review"><img src="assets/f2a1222264a5a7191612.png" alt=""><div class="rb"><div class="who"><img src="assets/0902f4906008da18e55c.png" alt=""><span>胖寶</span></div><div class="txt">Lorem ipsum dolor sit amet consectetur. In tortor lacus male</div><div class="date">2026-06-26</div></div></div>
+        <div class="review"><img src="assets/d95a2e3f279b9672e5e8.png" alt=""><div class="rb"><div class="who"><img src="assets/d36c0207bc1ee945adfa.png" alt=""><span>胖寶</span></div><div class="txt">Lorem ipsum dolor sit amet consectetur. In tortor lacus male</div><div class="date">2026-06-26</div></div></div>
+        <div class="review"><img src="assets/ea82f1aafa308c0ba667.png" alt=""><div class="rb"><div class="who"><img src="assets/d081d0d82c9827049ab9.png" alt=""><span>胖寶</span></div><div class="txt">Lorem ipsum dolor sit amet consectetur. In tortor lacus male</div><div class="date">2026-06-26</div></div></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ SCREEN 2: FORM ============ -->
+  <div class="screen" id="screen-form">
+    <div class="form-wrap">
+      <div class="form-side">
+        <div class="side-card">
+          <div class="sc-head">找活燒烤–北門店</div>
+          <div class="sc-body">
+            <div class="sc-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg><span id="f-people">2大人</span></div>
+            <div class="sc-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M9 3v4M15 3v4"/></svg><span id="f-date">2026/06/16 星期二</span></div>
+            <div class="sc-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span id="f-time">18:30</span></div>
+          </div>
+          <button class="btn-outline" id="btn-change">變更預約內容</button>
+        </div>
+      </div>
+      <div class="form-main">
+        <div class="form-card">
+          <h2>填寫預約資訊</h2>
+          <div class="field"><label>姓名<span class="req">*</span></label>
+            <div class="name-row"><input class="f-input" id="f-name" data-req="請輸入姓名" placeholder="王小明">
+              <div class="radios">
+                <label><input type="radio" name="salut" checked><span class="rd"></span>先生</label>
+                <label><input type="radio" name="salut"><span class="rd"></span>小姐</label>
+                <label><input type="radio" name="salut"><span class="rd"></span>其他</label>
+              </div></div>
+            <div class="ferr" id="e-name">請輸入姓名</div>
+          </div>
+          <div class="field"><label>手機號碼<span class="req">*</span></label><input class="f-input" id="f-phone" data-req="請輸入手機號碼" placeholder="0912-345-678"><div class="ferr" id="e-phone">請輸入手機號碼</div></div>
+          <div class="field"><label>Email<span class="req">*</span></label><input class="f-input" id="f-email" data-req="請輸入 email" placeholder="example@email.com"><div class="ferr" id="e-email">請輸入 email</div></div>
+          <div class="field"><label>問卷問答題<span class="req">*</span></label><input class="f-input" id="f-q" data-req="請輸入內容" placeholder="請輸入"><div class="ferr" id="e-q">請輸入內容</div></div>
+          <div class="field"><label>問卷選擇題</label><div class="ans-chips"><button class="ans on">答案A</button><button class="ans">答案B</button><button class="ans">答案C</button></div></div>
+          <div class="field"><label>問卷數量統計</label><select class="f-select"><option>大人x1</option><option>大人x2</option></select></div>
+          <div class="field"><label>特殊需求 / 備註</label><textarea class="f-area" placeholder="例如：需要兒童椅 1張、慶生蛋糕、過敏原資訊（堅果過敏）等"></textarea></div>
+          <hr class="form-div">
+          <div class="agree"><span class="cbox" id="agree"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span><span>我已閱讀並同意預約規則，並確認以上資訊填寫正確<span class="req">*</span></span></div>
+        </div>
+        <div class="terms">選擇繼續即表示您同意 MENU店+ 的<a>《服務條款》</a>和<a>《隱私權政策》</a></div>
+        <button class="btn-cta on" id="btn-confirm">確認預約</button>
+        <div class="cta-note hide" id="confirmNote">請勾選核取方塊以繼續操作</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 3: PAY ============ -->
+  <div class="screen" id="screen-pay">
+    <div class="center-col">
+      <div class="warn">請於 2026-06-16 22:59 前完成訂金付款，<br>逾時系統將自動取消預約。</div>
+      <div class="info-card">
+        <div class="ic-head"><div class="s">找活燒烤–北門店</div><div class="a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>台北市信義區松高路11號2樓</div></div>
+        <div class="ic-body">
+          <div class="big-date" id="p-date">2026/06/16 星期二</div>
+          <div class="big-time" id="p-time">18:30</div>
+          <div class="big-people" id="p-people">2大人 + 0小孩</div>
+          <hr class="dash"><div class="code">預約代碼<b>30690</b></div>
+          <div class="note-box">請於預約時段準時到達，逾時10分鐘將取消訂位</div>
+          <hr class="dash">
+          <div class="pay-amt">需預先付款 NT$400</div>
+          <button class="btn-pay" id="btn-goPay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-9 9M5 5v14h14v-6"/></svg>前往付款</button>
+          <button class="btn-cancel" id="btn-payCancel"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>取消預約</button>
+        </div>
+      </div>
+      <div class="contact-card">
+        <h3>預約聯絡資訊</h3>
+        <div class="cc-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>廖文強</div>
+        <div class="cc-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h4l2 5-3 2a12 12 0 006 6l2-3 5 2v4a2 2 0 01-2 2A17 17 0 013 6a2 2 0 012-2z"/></svg>0987654321</div>
+        <div class="cc-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>test@mail.com</div>
+        <div class="cc-note">預約及訂金資訊將傳送至您的 LINE/簡訊與 email。<a>未收到通知？</a></div>
+      </div>
+      <div class="line-sec"><div class="line-inner">
+        <div class="qr" id="qr1"></div>
+        <p>掃描 QR code 將 MENU店+ LINE官方帳號加入好友，協助管理您的預約！</p>
+        <button class="btn-line"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 5.6 2 10c0 4 3.6 7.3 8.5 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c-.1.3-.2 1 1 .5s6.3-3.7 8.6-6.4C22.3 12.7 22 11.4 22 10c0-4.4-4.5-8-10-8z"/></svg>加入 LINE 好友管理預約紀錄</button>
+      </div></div>
+      <div class="mini-menu"><div class="sec-head"><div class="t">菜單</div><div class="arrows"><button>‹</button><button>›</button></div></div>
+        <div class="mini-row"><img src="assets/fcd5084b4bad387464db.png" alt=""><img src="assets/1645a56dba4ff55196e1.png" alt=""></div></div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 4: SUCCESS ============ -->
+  <div class="screen" id="screen-success">
+    <div class="center-col">
+      <div class="succ-title">您已預約成功！</div>
+      <div class="info-card">
+        <div class="ic-head"><div class="s">找活燒烤–北門店</div><div class="a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>台北市信義區松高路11號2樓</div></div>
+        <div class="ic-body">
+          <div class="big-date" id="s-date">2026/06/16 星期二</div>
+          <div class="big-time" id="s-time">18:30</div>
+          <div class="big-people" id="s-people">2大人 + 0小孩</div>
+          <hr class="dash"><div class="code">預約代碼<b>30690</b></div>
+          <div class="note-box">請於預約時段準時到達，逾時10分鐘將取消訂位</div>
+        </div>
+      </div>
+      <div class="remark-card">
+        <h3>預約備註</h3>
+        <div class="rk"><div class="q">問卷問答題題目</div><div class="a">顧客填寫答案</div></div>
+        <div class="rk"><div class="q">問卷選擇題</div><div class="a">答案A、答案B</div></div>
+        <div class="rk"><div class="q">問卷數量統計</div><div class="a">大人x1</div></div>
+        <div class="rk" style="margin-bottom:0"><div class="q">特殊需求/備註</div><div class="a">顧客填寫備註內容</div></div>
+      </div>
+      <div class="contact-card">
+        <h3>預約聯絡資訊</h3>
+        <div class="cc-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>廖文強</div>
+        <div class="cc-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h4l2 5-3 2a12 12 0 006 6l2-3 5 2v4a2 2 0 01-2 2A17 17 0 013 6a2 2 0 012-2z"/></svg>0987654321</div>
+        <div class="cc-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>test@mail.com</div>
+        <div class="cc-note">預約資訊將傳送至您的 LINE/簡訊與 email。<a>未收到通知？</a></div>
+      </div>
+      <div class="succ-actions">
+        <button class="edit" id="btn-succEdit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L18 10l-4-4L4 16v4z"/><path d="M13 7l4 4"/></svg>修改預約</button>
+        <button class="cancel" id="btn-succCancel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>取消預約</button>
+      </div>
+      <div class="line-sec"><div class="line-inner">
+        <div class="qr" id="qr2"></div>
+        <p>掃描 QR code 將 MENU店+ LINE官方帳號加入好友，協助管理您的預約！</p>
+        <button class="btn-line"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 5.6 2 10c0 4 3.6 7.3 8.5 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c-.1.3-.2 1 1 .5s6.3-3.7 8.6-6.4C22.3 12.7 22 11.4 22 10c0-4.4-4.5-8-10-8z"/></svg>加入 LINE 好友管理預約紀錄</button>
+      </div></div>
+      <div class="mini-menu"><div class="sec-head"><div class="t">菜單</div><div class="arrows"><button>‹</button><button>›</button></div></div>
+        <div class="mini-row"><img src="assets/fcd5084b4bad387464db.png" alt=""><img src="assets/1645a56dba4ff55196e1.png" alt=""></div></div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: STATUS (generic 各狀態) ============ -->
+  <div class="screen" id="screen-status">
+    <div class="center-col">
+      <div id="st-banner" style="display:none"></div>
+      <div class="info-card">
+        <div class="ic-head"><div class="s">找活燒烤–北門店</div><div class="a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>台北市信義區松高路11號2樓</div></div>
+        <div class="ic-body" id="st-body">
+          <div class="big-date" id="sx-date">2026/06/16 星期二</div>
+          <div class="big-time" id="sx-time">18:30</div>
+          <div class="big-people" id="sx-people">2大人 + 2小孩</div>
+          <div class="status-badge" id="st-badge" style="display:none"></div>
+          <hr class="dash"><div class="code">預約代碼<b>30690</b></div>
+          <div class="note-box" id="st-note">請於預約時段準時到達，逾時10分鐘將取消訂位</div>
+          <div id="st-pay" style="display:none"></div>
+        </div>
+      </div>
+      <div class="remark-card" id="st-remark">
+        <h3>預約備註</h3>
+        <div class="rk"><div class="q">問卷問答題題目</div><div class="a">顧客填寫答案</div></div>
+        <div class="rk"><div class="q">問卷選擇題</div><div class="a">答案A、答案B</div></div>
+        <div class="rk"><div class="q">問卷數量統計</div><div class="a">大人x1</div></div>
+        <div class="rk" style="margin-bottom:0"><div class="q">特殊需求/備註</div><div class="a">顧客填寫備註內容</div></div>
+      </div>
+      <div class="contact-card">
+        <h3>預約聯絡資訊</h3>
+        <div class="cc-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>廖文強</div>
+        <div class="cc-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h4l2 5-3 2a12 12 0 006 6l2-3 5 2v4a2 2 0 01-2 2A17 17 0 013 6a2 2 0 012-2z"/></svg>0987654321</div>
+        <div class="cc-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>test@mail.com</div>
+      </div>
+      <div id="st-actions"></div>
+      <div class="line-sec"><div class="line-inner">
+        <div class="qr" id="qr3"></div>
+        <p>掃描 QR code 將 MENU店+ LINE官方帳號加入好友，協助管理您的預約！</p>
+        <button class="btn-line"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 5.6 2 10c0 4 3.6 7.3 8.5 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c-.1.3-.2 1 1 .5s6.3-3.7 8.6-6.4C22.3 12.7 22 11.4 22 10c0-4.4-4.5-8-10-8z"/></svg>加入 MENU店+ LINE 好友</button>
+      </div></div>
+      <div class="mini-menu"><div class="sec-head"><div class="t">菜單</div><div class="arrows"><button>‹</button><button>›</button></div></div>
+        <div class="mini-row"><img src="assets/fcd5084b4bad387464db.png" alt=""><img src="assets/1645a56dba4ff55196e1.png" alt=""></div></div>
+    </div>
+  </div>
+
+  <!-- 查詢預約 modal (customer) -->
+  <div class="amodal-ov" id="q-modal"><div class="amodal" style="width:420px"><div class="m-b" style="padding:26px">
+    <div style="text-align:center; font-size:18px; font-weight:600; margin-bottom:4px">查詢預約</div>
+    <div style="text-align:center; font-size:14px; color:var(--sub); margin-bottom:18px">輸入下列資訊即可查詢預約詳情。</div>
+    <div class="m-field"><div class="m-label">預約手機號碼 *</div><input class="f-input" id="q-phone" style="width:100%" placeholder="0912-345-678"></div>
+    <div class="m-field"><div class="m-label">預約代碼 *</div><input class="f-input" id="q-code" style="width:100%" placeholder="請輸入預約代碼"><div class="ferr" id="e-query">請輸入手機號碼與預約代碼</div></div>
+    <button class="m-save" id="q-submit" style="width:100%; height:48px; margin-top:2px">查詢</button>
+    <hr style="border:0; border-top:1px solid var(--bd-soft); margin:20px 0 14px">
+    <div style="text-align:center; font-size:13px; color:var(--sub); line-height:1.7; margin-bottom:12px">忘記預約代碼？<br>加入 MENU店+ LINE 官方帳號，查詢預約、排隊進度更方便！</div>
+    <button class="btn-line" style="height:46px"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 5.6 2 10c0 4 3.6 7.3 8.5 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c-.1.3-.2 1 1 .5s6.3-3.7 8.6-6.4C22.3 12.7 22 11.4 22 10c0-4.4-4.5-8-10-8z"/></svg>加入 MENU店+ LINE 好友</button>
+  </div></div></div>
+
+  <!-- 取消預約 confirm popup -->
+  <div class="amodal-ov" id="cancel-confirm"><div class="amodal" style="width:380px">
+    <div style="text-align:center; padding:32px 26px 8px; font-size:18px; font-weight:600">確定取消預約嗎？</div>
+    <div class="m-f" style="justify-content:center; border-top:0; padding-top:10px">
+      <button class="m-cancel" data-close>保留預約</button>
+      <button class="m-save" id="do-cancel" style="background:var(--red)">取消預約</button>
+    </div>
+  </div></div>
+
+  <!-- ============ SCREEN 5: ADMIN 後台設定 ============ -->
+  <div class="screen" id="screen-admin">
+    <div class="admin-shell">
+      <!-- left icon rail -->
+      <div class="rail">
+        <div class="logo">店</div>
+        <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 9V5h16v4M6 9v10h12V9"/></svg>預約</div>
+        <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/></svg>排班</div>
+        <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>月曆</div>
+        <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>顧客</div>
+        <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5h16v10H8l-4 4z"/></svg>推播</div>
+        <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8l8 5 8-5M4 8v9h16V8l-8-5z"/></svg>公告</div>
+        <div class="ri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8h16v9H4zM4 8l3-4h10l3 4"/></svg>優惠券</div>
+        <div class="ri on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2"/></svg>設定</div>
+      </div>
+      <!-- second-level nav -->
+      <div class="subnav">
+        <div class="grp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 3-3 3-3-3z"/></svg>帳號設定</div>
+        <div class="ni">商家基本資訊</div><div class="ni">肚肚POS串接設定</div><div class="ni">通知點數管理</div>
+        <div class="grp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="15" rx="2"/></svg>預約設定</div>
+        <div class="ni">預約規則</div><div class="ni">例外預約規則</div><div class="ni">自動排位規則</div>
+        <div class="ni on">顧客預約頁</div><div class="ni">後台操作偏好</div><div class="ni">預約通知</div>
+        <div class="ni">預約追蹤</div><div class="ni">訂金管理</div><div class="ni">自訂預約問卷</div>
+        <div class="ni">店內空間配置</div><div class="ni">透過Google預訂</div>
+        <div class="grp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>排隊設定</div>
+        <div class="ni">線上排隊設定</div><div class="ni">排隊組別</div><div class="ni">排隊通知</div>
+      </div>
+      <!-- main content -->
+      <div class="admin-main">
+        <div id="am-view-main">
+        <div class="am-title">顧客預約頁</div>
+        <div class="am-desc">您可以設定是否開放線上預約，以及顧客在預約時需看到的內容與預約規範。</div>
+        <hr class="am-hr">
+
+        <div class="am-sec-title">自訂顧客預約頁</div>
+        <div class="am-panel">
+          <div class="am-toggle-row"><span class="t">顧客預約頁開放狀態</span><span class="sw" data-sw></span></div>
+          <div class="am-card"><div><div class="c-t">開放預約排程</div><div class="c-d">設定後將於您設定的時間開放線上預約</div></div>
+            <span class="c-act" data-modal="m-schedule"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L18 10l-4-4L4 16v4z"/><path d="M13 7l4 4"/></svg></span></div>
+        </div>
+        <div class="am-panel">
+          <div class="am-card" style="cursor:pointer" data-view="content"><div><div class="c-t">顧客預約頁內容</div><div class="c-d">設定顧客進行線上預約時的頁面內容，如商家公告、預約說明等</div></div>
+            <span class="c-act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></div>
+          <div class="am-card am-copy"><div style="flex:1"><div class="c-t">顧客預約頁網址</div><div class="c-d">booking.menushop.tw/findlife</div></div>
+            <span class="c-act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-9 9M5 5v14h14v-6"/></svg></span>
+            <span class="cbtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></span></div>
+        </div>
+
+        <div class="am-sec-title">設定線上預約規則</div>
+        <div class="am-panel">
+          <div class="am-card"><div><div class="c-t">預約開放期間</div><div class="c-d">預約日前30天開放預約，最晚需於前1天2小時完成預約</div></div>
+            <span class="c-act" data-modal="m-period"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L18 10l-4-4L4 16v4z"/><path d="M13 7l4 4"/></svg></span></div>
+        </div>
+        <div class="am-panel">
+          <div class="am-toggle-row"><div><div class="c-t" style="font-size:16px">允許顧客修改預約</div><div class="c-d">開啟後，顧客完成預約後可自行修改預約內容。已套用訂金規則的預約除外</div></div><span class="sw" data-sw></span></div>
+        </div>
+        <div class="am-panel">
+          <div class="am-card"><div><div class="c-t">顧客可修改預約期限</div><div class="c-d">修改期限：預約日前1天1小時</div></div>
+            <span class="c-act" data-modal="m-deadline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L18 10l-4-4L4 16v4z"/><path d="M13 7l4 4"/></svg></span></div>
+        </div>
+        </div><!-- /am-view-main -->
+
+        <div id="am-view-content" style="display:none">
+          <div class="am-crumb"><span class="bk" data-view="main">顧客預約頁</span> <span class="chev-ic" style="width:14px;height:14px"></span> <span class="cur">顧客預約頁內容</span></div>
+          <div class="grp-lab">商家介紹</div>
+          <div class="am-panel">
+            <div class="am-banner"><span class="edit-ic" data-modal="m-banner"></span>
+              <div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M4 17l5-4 4 3 3-2 4 3"/></svg>Image will appear here</div>
+              <div class="bn-name">找活燒烤–北門店</div>
+            </div>
+            <div class="am-card"><div><div class="c-t">商家簡介</div><div class="c-d">未填寫</div></div><span class="edit-ic" data-edit data-t="商家簡介"></span></div>
+            <div class="am-card"><div><div class="c-t">營業時間</div><div class="c-d">未填寫</div></div><span class="edit-ic" data-edit data-t="營業時間"></span></div>
+            <div class="am-card"><div><div class="c-t">社群連結</div><div class="c-d">未填寫</div></div><span class="edit-ic" data-modal="m-social"></span></div>
+            <div class="am-card"><div class="c-t">顯示商家電話</div><span class="sw" data-sw></span></div>
+          </div>
+          <div class="grp-lab">顧客須知</div>
+          <div class="am-panel">
+            <div class="am-card"><div><div class="c-t">重要公告</div><div class="c-d">未填寫</div></div><span class="edit-ic" data-edit data-t="重要公告"></span></div>
+            <div class="am-card"><div><div class="c-t">預約說明</div><div class="c-d">未填寫</div></div><span class="edit-ic" data-edit data-t="預約說明"></span></div>
+          </div>
+          <div class="grp-lab">其他注意事項</div>
+          <div class="am-panel">
+            <div class="am-card"><div><div class="c-t">商家標記</div><div class="c-d">未填寫</div></div><span class="edit-ic" data-modal="m-tags"></span></div>
+            <div class="am-card"><div><div class="c-t">店內交易方式</div><div class="c-d">未填寫</div></div><span class="edit-ic" data-modal="m-pay"></span></div>
+            <div class="am-card"><div><div class="c-t">收付款規則說明</div><div class="c-d">未填寫</div></div><span class="edit-ic" data-edit data-t="收付款規則說明"></span></div>
+            <div class="am-card"><div><div class="c-t">停車資訊</div><div class="c-d">未填寫</div></div><span class="edit-ic" data-edit data-t="停車資訊"></span></div>
+            <div class="am-card"><div><div class="c-t">交通資訊</div><div class="c-d">未填寫</div></div><span class="edit-ic" data-edit data-t="交通資訊"></span></div>
+            <div class="am-card"><div><div class="c-t">其他說明</div><div class="c-d">未填寫</div></div><span class="edit-ic" data-edit data-t="其他說明"></span></div>
+          </div>
+          <div class="am-panel">
+            <div class="am-card" style="cursor:pointer" data-modal="m-menu"><div><div class="c-t">上傳菜單</div><div class="c-d">已上傳 0 張</div></div><span class="chev-ic"></span></div>
+            <div class="am-card"><div class="c-t">顯示MENU美食客分享</div><span class="sw off" data-sw></span></div>
+          </div>
+          <div class="grp-lab">顧客填寫資訊</div>
+          <div class="am-panel">
+            <div class="am-card"><div><div class="c-t">單筆預約人數</div><div class="c-d">可接受 1–1 人的預約，包含大人與小孩</div></div><span class="edit-ic" data-modal="m-people"></span></div>
+            <div class="am-card"><div><div class="c-t">預約人數說明</div><div class="c-d">未填寫</div></div><span class="edit-ic" data-edit data-t="預約人數說明"></span></div>
+            <div class="am-card"><div><div class="c-t">小孩人數選項</div><div class="c-d">開啟後，顧客可在預約時分別填寫大人與小孩人數</div></div><span class="sw" data-sw></span></div>
+            <div class="am-card"><div><div class="c-t">Email必填</div><div class="c-d">開啟後，顧客在填寫資料時 email 為必填欄位</div></div><span class="sw off" data-sw></span></div>
+            <div class="am-card"><div><div class="c-t">限制電話字元</div><div class="c-d">開啟後，將限制電話號碼必須為 10 碼</div></div><span class="sw off" data-sw></span></div>
+            <div class="am-card"><div><div class="c-t">顧客備註欄位</div><div class="c-d">開啟後，顧客可以自由填寫備註</div></div><span class="sw" data-sw></span></div>
+          </div>
+          <div class="grp-lab">預約完成說明</div>
+          <div class="am-panel">
+            <div class="am-card"><div><div class="c-t">預約完成注意事項</div><div class="c-d">未填寫</div></div><span class="edit-ic" data-edit data-t="預約完成注意事項"></span></div>
+            <div class="am-card"><div><div class="c-t">顯示已安排的預約單位</div><div class="c-d">開啟後，顧客完成預約時可查看已安排的預約單位資訊</div></div><span class="sw off" data-sw></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- admin edit modals -->
+  <div class="amodal-ov" id="m-schedule"><div class="amodal">
+    <div class="m-h">設定開放預約排程</div>
+    <div class="m-b">
+      <div class="m-field pick-wrap"><div class="m-label">開放日期</div><input class="f-input" id="sched-date" readonly placeholder="選擇日期" style="width:100%; cursor:pointer"><div class="picker-pop" id="date-pop" style="display:none"></div></div>
+      <div class="m-field pick-wrap"><div class="m-label">開放時間</div><input class="f-input" id="sched-time" readonly placeholder="選擇時間" style="width:100%; cursor:pointer"><div class="picker-pop" id="time-pop" style="display:none"></div><div class="ferr" id="e-sched">請選擇開放日期與時間</div></div>
+    </div>
+    <div class="m-f"><button class="m-cancel" data-close>取消</button><button class="m-save" id="sched-save">儲存</button></div>
+  </div></div>
+
+  <div class="amodal-ov" id="m-period"><div class="amodal">
+    <div class="m-h">設定預約開放期間</div>
+    <div class="m-b">
+      <div class="m-field"><div class="m-inline">預約日前 <select class="m-sel"><option>30</option><option>14</option><option>7</option></select> 天開放預約</div></div>
+      <div class="m-field"><div class="m-inline">最晚需於預約前 <select class="m-sel"><option>1</option><option>0</option></select> 天 <select class="m-sel"><option>2</option><option>1</option><option>0</option></select> 小時完成預約</div></div>
+    </div>
+    <div class="m-f"><button class="m-cancel" data-close>取消</button><button class="m-save" data-close>儲存</button></div>
+  </div></div>
+
+  <div class="amodal-ov" id="m-deadline"><div class="amodal">
+    <div class="m-h">設定顧客可修改預約期限</div>
+    <div class="m-b">
+      <div class="m-inline">顧客可於預約當日前 <select class="m-sel"><option>1</option><option>2</option><option>3</option></select> 天 <select class="m-sel"><option>0</option><option>1</option><option>2</option></select> 小時內，自行於線上修改預約內容。</div>
+      <div class="m-note">例如：若設定為 1天2小時，如顧客需修改 6月15日13:00 的預約，則需於 6月14日11:00 前進行修改。</div>
+    </div>
+    <div class="m-f"><button class="m-cancel" data-close>取消</button><button class="m-save" data-close>儲存</button></div>
+  </div></div>
+
+  <!-- 3-x edit modals -->
+  <div class="amodal-ov" id="m-text"><div class="amodal">
+    <div class="m-h" id="mt-title">編輯商家簡介</div>
+    <div class="m-b"><div class="m-label" id="mt-label">商家簡介</div>
+      <textarea class="f-area" style="width:100%; min-height:220px" maxlength="100" placeholder="請輸入文字說明"></textarea>
+      <div style="text-align:right; font-size:13px; color:var(--sub); margin-top:6px">0 / 100</div>
+    </div>
+    <div class="m-f"><button class="m-cancel" data-close>取消</button><button class="m-save" data-close>儲存</button></div>
+  </div></div>
+
+  <div class="amodal-ov" id="m-social"><div class="amodal">
+    <div class="m-h">編輯社群連結</div>
+    <div class="m-b">
+      <div class="m-field"><div class="m-label">LINE</div><input class="f-input" style="width:100%" placeholder="請輸入 LINE 連結"></div>
+      <div class="m-field"><div class="m-label">Instagram</div><input class="f-input" style="width:100%" placeholder="請輸入 Instagram 連結"></div>
+      <div class="m-field"><div class="m-label">Facebook</div><input class="f-input" style="width:100%" placeholder="請輸入 Facebook 連結"></div>
+      <div class="m-field"><div class="m-label">官方網站</div><input class="f-input" style="width:100%" placeholder="請輸入官方網站連結"></div>
+    </div>
+    <div class="m-f"><button class="m-cancel" data-close>取消</button><button class="m-save" data-close>儲存</button></div>
+  </div></div>
+
+  <div class="amodal-ov" id="m-tags"><div class="amodal">
+    <div class="m-h">編輯商家標記</div>
+    <div class="m-b">
+      <div class="chk-grp"><div class="gl">餐點服務</div><div class="chk-row">
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>全素</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>蛋奶素</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>五辛素</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>提供低卡料理</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>無麩質</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>生酮友善</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>清真認證</label>
+      </div></div>
+      <div class="chk-grp"><div class="gl">內部環境</div><div class="chk-row">
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>寵物友善</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>親子友善</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>高齡友善</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>Wifi</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>嬰兒座椅</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>無障礙空間</label>
+      </div></div>
+    </div>
+    <div class="m-f"><button class="m-cancel" data-close>取消</button><button class="m-save" data-close>儲存</button></div>
+  </div></div>
+
+  <div class="amodal-ov" id="m-pay"><div class="amodal">
+    <div class="m-h">編輯店內交易方式</div>
+    <div class="m-b">
+      <div class="chk-grp"><div class="gl">一般交易方式</div><div class="chk-row">
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>現金</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>信用卡</label>
+      </div></div>
+      <div class="chk-grp"><div class="gl">行動支付</div><div class="chk-row">
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>Apple Pay</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>Google Pay</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>LINE Pay</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>街口支付</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>全支付</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>悠遊付</label>
+      </div></div>
+      <div class="chk-grp"><div class="gl">儲值卡</div><div class="chk-row">
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>悠遊卡</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>一卡通</label>
+        <label class="chk"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>icash</label>
+      </div></div>
+    </div>
+    <div class="m-f"><button class="m-cancel" data-close>取消</button><button class="m-save" data-close>儲存</button></div>
+  </div></div>
+
+  <div class="amodal-ov" id="m-people"><div class="amodal">
+    <div class="m-h">設定單筆預約人數</div>
+    <div class="m-b">
+      <div class="m-label">可預約人數範圍</div>
+      <div class="m-inline"><input class="f-input" style="width:200px" value="1"> 至 <input class="f-input" style="width:200px" value="1"></div>
+      <label class="chk" style="margin-top:22px"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg></span>隱藏可預約人數</label>
+      <div class="m-note">顧客於線上預約時將無需選擇預約人數，系統會自動以 1 人計算每筆預約的總人數。</div>
+    </div>
+    <div class="m-f"><button class="m-cancel" data-close>取消</button><button class="m-save" data-close>儲存</button></div>
+  </div></div>
+
+  <div class="amodal-ov" id="m-banner"><div class="amodal">
+    <div class="m-h">上傳 Banner</div>
+    <div class="m-b"><div style="border:1.5px dashed var(--bd); border-radius:8px; padding:44px; text-align:center; color:var(--sub)">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="margin-bottom:10px"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+      <div>點擊或拖曳圖片至此上傳</div><div style="font-size:12px; color:var(--sub2); margin-top:6px">建議尺寸 1024 × 340，JPG / PNG</div>
+    </div></div>
+    <div class="m-f"><button class="m-cancel" data-close>取消</button><button class="m-save" data-close>儲存</button></div>
+  </div></div>
+
+  <div class="amodal-ov" id="m-menu"><div class="amodal">
+    <div class="m-h">上傳菜單</div>
+    <div class="m-b"><div style="border:1.5px dashed var(--bd); border-radius:8px; padding:36px; text-align:center; color:var(--sub)">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="margin-bottom:8px"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+      <div>點擊或拖曳圖片上傳菜單（可多張）</div></div>
+      <div style="font-size:13px; color:var(--sub); margin-top:14px">目前已上傳 0 張</div>
+    </div>
+    <div class="m-f"><button class="m-cancel" data-close>取消</button><button class="m-save" data-close>儲存</button></div>
+  </div></div>
+
+  <!-- Shared footer -->
+  <footer class="footer">
+    <div class="links"><span class="strong">關於MENU店+</span><span class="div">｜</span><span>隱私權條款</span><span class="div">｜</span><span>服務條款</span><span class="div">｜</span><span>© 2026 FindLife Inc. All rights reserved.</span></div>
+    <div class="powered">Powered by <img src="assets/53ece3a221e9a5f231aa.png" alt="MENU"></div>
+  </footer>
+
+  <!-- prototype global nav -->
+  <div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-11"/></svg><span id="toast-msg">已儲存</span></div>
+  <div class="proto-nav"><span>🔧</span><button data-nav="customer" class="on">顧客頁</button><button data-nav="admin">後台設定</button>
+    <select id="state-sel" title="跳到狀態">
+      <option value="">跳到狀態…</option>
+      <option value="success">預約成功</option>
+      <option value="pay">待付款</option>
+      <option value="paid">付款完成</option>
+      <option value="review">待審核</option>
+      <option value="card_pending">待綁卡</option>
+      <option value="card_done">綁卡完成</option>
+      <option value="cancelled">已取消</option>
+      <option value="ended">已結束</option>
+      <option value="closed">未開放預約</option>
+      <option value="full">時段已滿</option>
+      <option value="empty">未設定項目</option>
+    </select>
+  </div>
+</div>
+
+<script>
+(function(){
+  var state = {parent:0, child:null, time:null, adult:2, kid:0, date:'2026/06/16 星期二'};
+
+  function go(id){
+    document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+    document.getElementById('screen-'+id).classList.add('active');
+    document.body.classList.toggle('admin-mode', id==='admin');
+    document.querySelectorAll('.proto-nav button').forEach(function(b){
+      b.classList.toggle('on', (id==='admin')===(b.dataset.nav==='admin'));
+    });
+    window.scrollTo(0,0);
+  }
+  function peopleStr(){ return state.adult+'大人'+(state.kid? ' + '+state.kid+'小孩':' + 0小孩'); }
+  function peopleShort(){ return state.adult+'大人'+(state.kid?state.kid+'小孩':''); }
+  function sync(){
+    document.getElementById('f-people').textContent = peopleShort();
+    document.getElementById('f-date').textContent = state.date;
+    document.getElementById('f-time').textContent = state.time||'—';
+    ['p','s'].forEach(function(k){
+      document.getElementById(k+'-date').textContent = state.date;
+      document.getElementById(k+'-time').textContent = state.time||'—';
+      document.getElementById(k+'-people').textContent = peopleStr();
+    });
+  }
+
+  // accordion
+  document.querySelectorAll('#acc .head').forEach(function(h){ h.addEventListener('click',function(){ h.parentElement.classList.toggle('open'); }); });
+
+  // parent select
+  document.querySelectorAll('.parent').forEach(function(p){
+    p.querySelector('.head').addEventListener('click',function(){
+      document.querySelectorAll('.parent').forEach(function(x){x.classList.remove('sel');});
+      p.classList.add('sel'); state.parent=+p.dataset.p; state.child=null; state.time=null;
+      resetChildBtns(); collapseDt();
+    });
+  });
+  function resetChildBtns(){ document.querySelectorAll('.btn-sel').forEach(function(b){ b.classList.remove('chosen'); b.textContent='選擇'; }); }
+  document.querySelectorAll('.btn-sel').forEach(function(b){
+    b.addEventListener('click',function(e){ e.stopPropagation();
+      resetChildBtns(); b.classList.add('chosen');
+      b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12l5 5 9-11"/></svg>已選擇';
+      state.child=b.dataset.c; state.time=null; showDt();
+    });
+  });
+  function showDt(twoCol){
+    var bg=document.getElementById('bandGrid');
+    bg.classList.toggle('two', twoCol!==false);
+    bg.classList.toggle('solo', twoCol===false);
+    document.getElementById('dt').classList.add('show');
+    document.getElementById('ctaWrap').style.display='block';
+    document.querySelectorAll('.chip.on').forEach(function(c){c.classList.remove('on');});
+    state.time=null; updateCta();
+    if(twoCol!==false) document.getElementById('dt').scrollIntoView({behavior:'smooth', block:'center'});
+  }
+  function collapseDt(){
+    var bg=document.getElementById('bandGrid');
+    bg.classList.remove('two'); bg.classList.remove('solo');
+    document.getElementById('dt').classList.remove('show');
+    document.getElementById('ctaWrap').style.display='none';
+  }
+  // steppers
+  document.querySelectorAll('[data-step]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var k=btn.dataset.step==='adult'?'adult':'kid', d=+btn.dataset.d;
+      var total=state.adult+state.kid+d, next=(k==='adult'?state.adult:state.kid)+d;
+      if(next<0) return; if(k==='adult'&&next<1) return; if(d>0&&total>6) return;
+      if(k==='adult') state.adult=next; else state.kid=next;
+      document.getElementById('adult').textContent=state.adult;
+      document.getElementById('child').textContent=state.kid;
+    });
+  });
+  // date
+  document.getElementById('dateSel').addEventListener('change',function(){ state.date=this.value; });
+  // chips
+  document.querySelectorAll('#chips .chip').forEach(function(c){
+    c.addEventListener('click',function(){
+      if(c.classList.contains('dis')||!c.textContent) return;
+      document.querySelectorAll('#chips .chip.on').forEach(function(x){x.classList.remove('on');});
+      c.classList.add('on'); state.time=c.textContent; updateCta();
+    });
+  });
+  // tabs (visual)
+  document.querySelectorAll('.tabs .tab').forEach(function(t){
+    t.addEventListener('click',function(){ document.querySelectorAll('.tabs .tab').forEach(function(x){x.classList.remove('on');}); t.classList.add('on'); });
+  });
+  function updateCta(){
+    var cta=document.getElementById('ctaMain'), note=document.getElementById('ctaNote');
+    if(state.time){cta.classList.add('on'); cta.disabled=false; note.classList.add('hide');}
+    else{cta.classList.remove('on'); cta.disabled=true; note.classList.remove('hide');}
+  }
+
+  // ---- navigation ----
+  document.getElementById('cta-top').addEventListener('click',function(){ document.getElementById('booking').scrollIntoView({behavior:'smooth',block:'start'}); });
+  document.getElementById('ctaMain').addEventListener('click',function(){ if(!state.time) return; sync(); go('form'); });
+
+  // form: answer chips single-select
+  document.querySelectorAll('.ans').forEach(function(a){
+    a.addEventListener('click',function(){ document.querySelectorAll('.ans').forEach(function(x){x.classList.remove('on');}); a.classList.add('on'); });
+  });
+  var agreed=false;
+  document.getElementById('agree').addEventListener('click',function(){ agreed=!agreed; this.classList.toggle('on',agreed); });
+  document.getElementById('btn-change').addEventListener('click',function(){ go('select'); setTimeout(function(){document.getElementById('booking').scrollIntoView();},50); });
+  function validateForm(){
+    var ok=true;
+    document.querySelectorAll('#screen-form [data-req]').forEach(function(inp){
+      var err=document.getElementById('e-'+inp.id.split('-')[1]);
+      var v=inp.value.trim(), bad=!v;
+      if(!bad && inp.id==='f-email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){ bad=true; if(err) err.textContent='email 格式不正確'; }
+      else if(!bad && inp.id==='f-phone' && !/^[0-9\-]{9,}$/.test(v)){ bad=true; if(err) err.textContent='手機號碼格式不正確'; }
+      else if(err) err.textContent=inp.dataset.req;
+      inp.classList.toggle('err',bad);
+      if(err) err.classList.toggle('show',bad);
+      if(bad) ok=false;
+    });
+    return ok;
+  }
+  document.querySelectorAll('#screen-form [data-req]').forEach(function(inp){
+    inp.addEventListener('input',function(){ inp.classList.remove('err'); var e=document.getElementById('e-'+inp.id.split('-')[1]); if(e) e.classList.remove('show'); });
+  });
+  document.getElementById('btn-confirm').addEventListener('click',function(){
+    var note=document.getElementById('confirmNote');
+    var formOk=validateForm();
+    if(!agreed){ note.classList.remove('hide'); note.classList.add('err'); } else note.classList.add('hide');
+    if(!formOk || !agreed) return;
+    sync(); go('pay');
+  });
+
+  // pay nav
+  document.getElementById('btn-goPay').addEventListener('click',function(){ sync(); renderStatus('paid'); });
+  document.getElementById('btn-payCancel').addEventListener('click',function(){ go('select'); });
+  // success nav
+  document.getElementById('btn-succEdit').addEventListener('click',function(){ go('form'); });
+  document.getElementById('btn-succCancel').addEventListener('click',function(){ document.getElementById('cancel-confirm').classList.add('show'); });
+
+  // ---- flat items (② item flow) ----
+  document.querySelectorAll('#items-flat .flat-item').forEach(function(it){
+    it.addEventListener('click',function(){
+      document.querySelectorAll('#items-flat .flat-item').forEach(function(x){x.classList.remove('sel');});
+      it.classList.add('sel'); state.child=it.dataset.i; showDt(true);
+    });
+  });
+  // ---- flow switcher (basic / item / hierarchical) ----
+  function setFlow(f, noScroll){
+    state.flow=f; state.child=null; state.time=null;
+    var _bm=document.getElementById('band-msg'); if(_bm){ _bm.style.display='none'; } document.getElementById('bandGrid').style.display='';
+    document.querySelectorAll('.flowbar .ft').forEach(function(t){t.classList.toggle('on', t.dataset.f===f);});
+    resetChildBtns();
+    document.querySelectorAll('#items-flat .flat-item').forEach(function(x){x.classList.remove('sel');});
+    document.querySelectorAll('.parent').forEach(function(x){x.classList.remove('sel');});
+    var p0=document.querySelector('.parent[data-p="0"]'); if(p0) p0.classList.add('sel');
+    var hier=document.getElementById('items-hier'), flat=document.getElementById('items-flat'), title=document.getElementById('bandTitle');
+    if(f==='basic'){ hier.style.display='none'; flat.style.display='none'; title.style.display='none'; showDt(false); }
+    else if(f==='item'){ hier.style.display='none'; flat.style.display='block'; title.style.display='block'; collapseDt(); }
+    else { hier.style.display='block'; flat.style.display='none'; title.style.display='block'; collapseDt(); }
+    if(!noScroll) window.scrollTo({top:document.getElementById('booking').offsetTop-60, behavior:'smooth'});
+  }
+  document.querySelectorAll('.flowbar .ft').forEach(function(t){ t.addEventListener('click',function(){ setFlow(t.dataset.f); }); });
+  setFlow('basic', true);
+
+  // ---- 查詢預約 / 取消預約 / 中英切換 (1-4~1-7) ----
+  document.getElementById('btn-query').addEventListener('click',function(){ document.getElementById('q-modal').classList.add('show'); });
+  document.getElementById('q-submit').addEventListener('click',function(){
+    var p=document.getElementById('q-phone'), c=document.getElementById('q-code'), e=document.getElementById('e-query');
+    var bad = !p.value.trim() || !c.value.trim();
+    p.classList.toggle('err', !p.value.trim()); c.classList.toggle('err', !c.value.trim());
+    if(bad){ e.classList.add('show'); return; }
+    e.classList.remove('show'); document.getElementById('q-modal').classList.remove('show'); go('success');
+  });
+  ['q-phone','q-code'].forEach(function(id){ document.getElementById(id).addEventListener('input',function(){ this.classList.remove('err'); document.getElementById('e-query').classList.remove('show'); }); });
+  document.getElementById('do-cancel').addEventListener('click',function(){ document.getElementById('cancel-confirm').classList.remove('show'); renderStatus('cancelled'); });
+  var lang='zh';
+  document.getElementById('btn-lang').addEventListener('click',function(){
+    lang = lang==='zh'?'en':'zh';
+    document.querySelectorAll('[data-en]').forEach(function(el){ el.textContent = lang==='en'?el.dataset.en:el.dataset.zh; });
+  });
+
+  // ---- generic status screen (待審核/付款完成/待綁卡/綁卡完成/已取消/已結束) ----
+  function syncStatusPeople(){
+    document.getElementById('sx-date').textContent = state.date;
+    document.getElementById('sx-time').textContent = state.time || '18:30';
+    document.getElementById('sx-people').textContent = state.adult+'大人 + '+state.kid+'小孩';
+  }
+  var STATUS = {
+    review:{banner:['warn','商家正在確認您的預約，<br>最晚將於 2026/06/15 23:59 前確認結果。'], note:true, remark:false, actions:'cancel'},
+    paid:{title:'付款完成，您已預約成功！', note:true, remark:true, actions:'edit_cancel'},
+    card_pending:{banner:['warn','請於 29:59 內完成信用卡授權，<br>逾時系統將自動取消預約。'], note:true, remark:false, pay:['需授權信用卡預綁訂金 NT$400，作為預約保證','授權信用卡','card_done']},
+    card_done:{title:'綁卡完成，您已預約成功！', note:true, remark:true, actions:'edit_cancel'},
+    cancelled:{muted:true, badge:'您的預約已取消', note:false, remark:true, actions:''},
+    ended:{muted:true, badge:'您的預約已結束', note:false, remark:true, actions:''}
+  };
+  function renderStatus(key){
+    var c = STATUS[key]; if(!c) return;
+    syncStatusPeople();
+    var ban=document.getElementById('st-banner');
+    if(c.banner){ ban.className=c.banner[0]; ban.innerHTML=c.banner[1]; ban.style.display='block'; }
+    else if(c.title){ ban.className='succ-title'; ban.textContent=c.title; ban.style.display='block'; }
+    else ban.style.display='none';
+    document.getElementById('st-body').classList.toggle('muted', !!c.muted);
+    var badge=document.getElementById('st-badge');
+    if(c.badge){ badge.textContent=c.badge; badge.style.display='block'; } else badge.style.display='none';
+    document.getElementById('st-note').style.display = c.note?'block':'none';
+    document.getElementById('st-remark').style.display = c.remark?'block':'none';
+    var pay=document.getElementById('st-pay');
+    if(c.pay){ pay.style.display='block'; pay.innerHTML='<hr class="dash"><div class="st-pay-amt">'+c.pay[0]+'</div><button class="btn-pay" id="st-paybtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4h6v6M20 4l-9 9M5 5v14h14v-6"/></svg>'+c.pay[1]+'</button><button class="btn-cancel" id="st-paycancel"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>取消預約</button>'; }
+    else { pay.style.display='none'; pay.innerHTML=''; }
+    var act=document.getElementById('st-actions');
+    if(c.actions==='cancel') act.innerHTML='<button class="btn-cancel" id="st-cancel" style="background:var(--red); color:#fff; border:0; margin-bottom:20px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>取消預約</button>';
+    else if(c.actions==='edit_cancel') act.innerHTML='<div class="succ-actions"><button class="edit" id="st-edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L18 10l-4-4L4 16v4z"/><path d="M13 7l4 4"/></svg>修改預約</button><button class="cancel" id="st-cancel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>取消預約</button></div>';
+    else act.innerHTML='';
+    var pb=document.getElementById('st-paybtn'); if(pb) pb.onclick=function(){ renderStatus(c.pay[2]); };
+    ['st-paycancel','st-cancel'].forEach(function(id){ var b=document.getElementById(id); if(b) b.onclick=function(){ document.getElementById('cancel-confirm').classList.add('show'); }; });
+    var eb=document.getElementById('st-edit'); if(eb) eb.onclick=function(){ go('form'); };
+    go('status');
+  }
+  // booking entry states (未開放/已滿/未設定)
+  function bookingState(key){
+    var msg=document.getElementById('band-msg'), grid=document.getElementById('bandGrid'), cta=document.getElementById('ctaWrap'), title=document.getElementById('bandTitle');
+    var texts={closed:'⏸️ 目前尚未開放線上預約<br><span style="font-size:14px">請稍後再試，或加入 LINE 好友接收開放通知。</span>', full:'😢 本日各時段已額滿<br><span style="font-size:14px">請試試其他日期或查看其他分店。</span>', empty:'🍽️ 商家尚未設定預約項目<br><span style="font-size:14px">請聯繫商家或稍後再試。</span>'};
+    if(texts[key]){ msg.innerHTML=texts[key]; msg.style.display='block'; grid.style.display='none'; cta.style.display='none'; title.style.display='none'; }
+    go('select');
+  }
+  // state jump selector
+  document.getElementById('state-sel').addEventListener('change',function(){
+    var v=this.value; this.value='';
+    if(!v) return;
+    if(v==='success') go('success');
+    else if(v==='pay') go('pay');
+    else if(['closed','full','empty'].indexOf(v)>=0) bookingState(v);
+    else renderStatus(v);
+  });
+
+  // ---- prototype global nav ----
+  document.querySelectorAll('.proto-nav button').forEach(function(b){
+    b.addEventListener('click',function(){ go(b.dataset.nav==='admin'?'admin':'select'); });
+  });
+  // ---- admin toggles + modals + subnav ----
+  document.querySelectorAll('#screen-admin [data-sw]').forEach(function(s){ s.addEventListener('click',function(){ s.classList.toggle('off'); }); });
+  document.querySelectorAll('#screen-admin [data-modal]').forEach(function(el){
+    el.addEventListener('click',function(){ document.getElementById(el.dataset.modal).classList.add('show'); });
+  });
+  document.querySelectorAll('.amodal-ov').forEach(function(ov){
+    ov.addEventListener('click',function(e){ if(e.target===ov || e.target.hasAttribute('data-close')) ov.classList.remove('show'); });
+  });
+  document.querySelectorAll('#screen-admin .subnav .ni').forEach(function(n){
+    n.addEventListener('click',function(){ document.querySelectorAll('#screen-admin .subnav .ni').forEach(function(x){x.classList.remove('on');}); n.classList.add('on'); });
+  });
+  // admin sub-view (顧客預約頁 <-> 顧客預約頁內容)
+  document.querySelectorAll('#screen-admin [data-view]').forEach(function(el){
+    el.addEventListener('click',function(){
+      var v=el.dataset.view;
+      document.getElementById('am-view-main').style.display = v==='main'?'block':'none';
+      document.getElementById('am-view-content').style.display = v==='content'?'block':'none';
+      window.scrollTo(0,0);
+    });
+  });
+  // dynamic text-edit modal
+  document.querySelectorAll('#screen-admin [data-edit]').forEach(function(el){
+    el.addEventListener('click',function(){
+      var t=el.dataset.t||'';
+      document.getElementById('mt-title').textContent='編輯'+t;
+      document.getElementById('mt-label').textContent=t;
+      document.getElementById('m-text').classList.add('show');
+    });
+  });
+  // checkbox toggles in modals
+  document.querySelectorAll('.chk').forEach(function(c){ c.addEventListener('click',function(){ c.classList.toggle('on'); }); });
+
+  // ---- save toast (covers all 儲存/完成 states) ----
+  function showToast(msg){ var t=document.getElementById('toast'); document.getElementById('toast-msg').textContent=msg||'已儲存'; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove('show');},1800); }
+  document.querySelectorAll('.amodal .m-save[data-close]').forEach(function(b){ b.addEventListener('click',function(){ showToast('已儲存'); }); });
+
+  // ---- datepicker + timepicker (開放預約排程) ----
+  var schedDate=null, schedH=null, schedM=null;
+  function pad(n){ return ('0'+n).slice(-2); }
+  function renderCal(y,m){
+    var pop=document.getElementById('date-pop');
+    var first=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate();
+    var today=new Date(); today.setHours(0,0,0,0);
+    var h='<div class="cal-head"><button data-cal="-1">‹</button><span class="mo">'+pad(m+1)+'月 '+y+'</span><button data-cal="1">›</button></div><div class="cal-grid">';
+    ['日','一','二','三','四','五','六'].forEach(function(w){ h+='<div class="wd">'+w+'</div>'; });
+    for(var i=0;i<first;i++) h+='<div></div>';
+    for(var d=1;d<=days;d++){ var dt=new Date(y,m,d); var past=dt<today; var sel=schedDate&&schedDate.getTime()===dt.getTime(); h+='<div class="d'+(past?' past':'')+(sel?' sel':'')+'" data-d="'+d+'">'+d+'</div>'; }
+    pop.innerHTML=h+'</div>';
+    pop.querySelectorAll('[data-cal]').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); var nm=m+ +b.dataset.cal, ny=y; if(nm<0){nm=11;ny--;} if(nm>11){nm=0;ny++;} renderCal(ny,nm); }; });
+    pop.querySelectorAll('.d[data-d]').forEach(function(c){ if(c.classList.contains('past'))return; c.onclick=function(e){ e.stopPropagation(); schedDate=new Date(y,m,+c.dataset.d); document.getElementById('sched-date').value=y+'-'+pad(m+1)+'-'+pad(c.dataset.d); document.getElementById('sched-date').classList.remove('err'); pop.style.display='none'; }; });
+  }
+  function renderTime(){
+    var pop=document.getElementById('time-pop'), hs='', ms='';
+    for(var hh=0;hh<24;hh++) hs+='<div class="ti'+(schedH===hh?' sel':'')+'" data-h="'+hh+'">'+pad(hh)+'</div>';
+    for(var mi=0;mi<60;mi+=5) ms+='<div class="ti'+(schedM===mi?' sel':'')+'" data-m="'+mi+'">'+pad(mi)+'</div>';
+    pop.innerHTML='<div class="timepick"><div class="timecol">'+hs+'</div><div class="timecol">'+ms+'</div></div><button class="tp-ok">OK</button>';
+    pop.querySelectorAll('[data-h]').forEach(function(e){ e.onclick=function(ev){ ev.stopPropagation(); schedH=+e.dataset.h; renderTime(); }; });
+    pop.querySelectorAll('[data-m]').forEach(function(e){ e.onclick=function(ev){ ev.stopPropagation(); schedM=+e.dataset.m; renderTime(); }; });
+    pop.querySelector('.tp-ok').onclick=function(e){ e.stopPropagation(); if(schedH==null)schedH=12; if(schedM==null)schedM=0; document.getElementById('sched-time').value=pad(schedH)+':'+pad(schedM); document.getElementById('sched-time').classList.remove('err'); pop.style.display='none'; };
+  }
+  document.getElementById('sched-date').addEventListener('click',function(e){ e.stopPropagation(); document.getElementById('time-pop').style.display='none'; var pop=document.getElementById('date-pop'); if(pop.style.display==='none'){ var n=new Date(); renderCal(schedDate?schedDate.getFullYear():n.getFullYear(), schedDate?schedDate.getMonth():n.getMonth()); pop.style.display='block'; } else pop.style.display='none'; });
+  document.getElementById('sched-time').addEventListener('click',function(e){ e.stopPropagation(); document.getElementById('date-pop').style.display='none'; var pop=document.getElementById('time-pop'); if(pop.style.display==='none'){ renderTime(); pop.style.display='block'; } else pop.style.display='none'; });
+  document.addEventListener('click',function(){ var d=document.getElementById('date-pop'), t=document.getElementById('time-pop'); if(d)d.style.display='none'; if(t)t.style.display='none'; });
+  document.getElementById('sched-save').addEventListener('click',function(){
+    var d=document.getElementById('sched-date').value, t=document.getElementById('sched-time').value, err=document.getElementById('e-sched');
+    if(!d||!t){ err.classList.add('show'); document.getElementById('sched-date').classList.toggle('err',!d); document.getElementById('sched-time').classList.toggle('err',!t); return; }
+    err.classList.remove('show'); document.getElementById('m-schedule').classList.remove('show'); showToast('已儲存排程');
+  });
+
+  // ---- QR placeholder (decorative) ----
+  function qrSVG(){
+    var cells=[], N=25;
+    function finder(x,y){ cells.push('<rect x="'+x+'" y="'+y+'" width="7" height="7" fill="#111"/><rect x="'+(x+1)+'" y="'+(y+1)+'" width="5" height="5" fill="#fff"/><rect x="'+(x+2)+'" y="'+(y+2)+'" width="3" height="3" fill="#111"/>'); }
+    finder(0,0); finder(18,0); finder(0,18);
+    var seed=7;
+    for(var y=0;y<N;y++){ for(var x=0;x<N;x++){
+      if((x<8&&y<8)||(x>16&&y<8)||(x<8&&y>16)) continue;
+      seed=(seed*1103515245+12345)&0x7fffffff;
+      if((seed>>7)%2===0) cells.push('<rect x="'+x+'" y="'+y+'" width="1" height="1" fill="#111"/>');
+    }}
+    return '<svg viewBox="0 0 25 25" width="150" height="150" style="background:#fff">'+cells.join('')+'<rect x="9.5" y="9.5" width="6" height="6" rx="1" fill="#06C755"/><text x="12.5" y="13.6" font-size="2.6" fill="#fff" text-anchor="middle" font-family="Arial" font-weight="bold">LINE</text></svg>';
+  }
+  document.getElementById('qr1').innerHTML=qrSVG();
+  document.getElementById('qr2').innerHTML=qrSVG();
+  document.getElementById('qr3').innerHTML=qrSVG();
+})();
+</script>
+</body>
+</html>

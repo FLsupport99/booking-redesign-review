@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>顧客預約頁改版 — Review</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"PingFang TC","Noto Sans TC",sans-serif;background:#f4f5f6;color:#222;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px}
+  .hd{text-align:center;margin-bottom:34px}
+  .hd h1{font-size:24px;font-weight:700}
+  .hd p{font-size:14px;color:#888;margin-top:8px}
+  .cards{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;max-width:760px}
+  a.card{width:340px;background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:26px;text-decoration:none;color:inherit;transition:.15s;display:block}
+  a.card:hover{border-color:#3FBA88;box-shadow:0 8px 24px rgba(63,186,136,.12);transform:translateY(-2px)}
+  .card .ic{width:46px;height:46px;border-radius:12px;background:#ECF8F3;color:#29A379;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+  .card .ic svg{width:24px;height:24px}
+  .card h2{font-size:18px;font-weight:600}
+  .card p{font-size:14px;color:#666;line-height:1.7;margin-top:8px}
+  .card .go{margin-top:16px;color:#29A379;font-size:14px;font-weight:500}
+  footer{margin-top:40px;font-size:12px;color:#aaa;text-align:center;line-height:1.7}
+</style></head><body>
+  <div class="hd"><h1>顧客預約頁改版 — Review</h1><p>Figma 定稿 → HTML，供快速檢視與流程確認</p></div>
+  <div class="cards">
+    <a class="card" href="hierarchical_booking.html">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+      <h2>互動原型</h2>
+      <p>可點擊走完整流程：①②③ 預約流程、填資料 → 待付款 → 成功，以及待審核／綁卡／取消等各狀態與商家後台設定。</p>
+      <div class="go">開始操作 →</div>
+    </a>
+    <a class="card" href="design_gallery.html">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+      <h2>設計稿總覽</h2>
+      <p>276 張 Figma 原稿依區塊分類，含各狀態與手機版，可跳轉、放大，一頁掃完全部設計。</p>
+      <div class="go">瀏覽設計稿 →</div>
+    </a>
+  </div>
+  <footer>內部 review 用途 · LINE QR 與付款串接為畫面示意<br>© 2026 FindLife Inc.</footer>
+</body></html>
