@@ -1,0 +1,684 @@
+<!doctype html>
+<!-- MENU店+ 後台模擬器 · 假資料互動 Demo · 維護：FindLife Support -->
+<!-- 畫面依 Figma「2025 Oct. 系統架構演算法優化」刻製；資料層為 sessionStorage mock API -->
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MENU店+ 後台模擬器 — 預約單位</title>
+<style>
+:root{
+  --bg-page:#f9f9f9; --bg-surface:#fff; --bg-selected:#ecf8f3; --bg-tag-on:#d6f0e5;
+  --border-card:#f0f0f0; --border-field:#dcdcdc; --border-on:#3fba88; --border-tag-on:#8cd6b8;
+  --primary:#3fba88; --primary-dark:#29a379; --primary-l2:#d6f0e5; --primary-l3:#ecf8f3;
+  --secondary:#4b9ac3; --emphasis:#f8ba4c; --emphasis-d:#ff991f; --alert:#ce4949; --alert-light:#ef6868;
+  --text-strong:#333; --text-body:rgba(51,51,51,.75); --text-muted:rgba(51,51,51,.6); --text-disabled:rgba(51,51,51,.27);
+  --icon-muted:#676767; --sidebar-bg:#333; --btn-disabled:#dcdcdc;
+  --r-tag:4px; --r-nav:6px; --r-input:7px; --r-btn:8px; --r-card:12px;
+  --font:"PingFang TC","PingFang SC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font);background:#e9eaec;color:var(--text-strong);-webkit-font-smoothing:antialiased}
+button,input,select{font-family:inherit;color:inherit}
+
+.canvas{max-width:1024px;margin:24px auto;background:var(--bg-page);display:flex;box-shadow:0 1px 4px rgba(0,0,0,.12);min-height:768px}
+
+/* ==== 左側 icon rail ==== */
+.sidebar{width:64px;flex:0 0 64px;background:var(--sidebar-bg);display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:16px 4px}
+.sidebar .logo{width:32px;height:32px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:600}
+.nav-list{display:flex;flex-direction:column;gap:2px;margin-top:8px;align-items:center}
+.nav-item{width:56px;height:54px;border-radius:var(--r-nav);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:rgba(255,255,255,.6)}
+.nav-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.6}
+.nav-item span{font-size:10px;line-height:14px;font-weight:500}
+.nav-item:hover{background:#3d3d3d}
+.nav-item.active{color:var(--primary)}
+.sidebar-bottom{display:flex;flex-direction:column;gap:8px;align-items:center;color:rgba(255,255,255,.6);font-size:10px}
+.sidebar-bottom .avatar{width:28px;height:28px;border-radius:50%;background:#555;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px}
+
+/* ==== 設定分類選單 ==== */
+.settings-nav{width:188px;flex:0 0 188px;background:var(--bg-page);padding:24px 8px;display:flex;flex-direction:column;gap:28px;border-right:1px solid var(--border-card);overflow:auto}
+.nav-group-title{display:flex;align-items:center;gap:4px;padding:0 8px;margin-bottom:8px;color:var(--primary);font-size:16px;line-height:20px;font-weight:500}
+.nav-group-title .dot{width:14px;height:14px;border:1px solid var(--primary);border-radius:3px}
+.nav-sub{display:flex;flex-direction:column;gap:2px}
+.nav-sub a{display:block;padding:8px 16px;border-radius:var(--r-nav);font-size:14px;line-height:18px;font-weight:500;color:var(--text-muted);text-decoration:none;cursor:pointer}
+.nav-sub a:hover{background:rgba(0,0,0,.03)}
+.nav-sub a.active{color:var(--text-strong);background:linear-gradient(rgba(236,248,243,.25),rgba(236,248,243,.25)),rgba(0,0,0,.05)}
+
+/* ==== 手機頂欄 ==== */
+.mtopbar{display:none;background:#fff;border-bottom:1px solid var(--border-card);padding:10px 16px;align-items:center;gap:12px;position:sticky;top:0;z-index:60}
+.mtopbar .burger,.mtopbar .acct{width:32px;height:32px;border:0;background:transparent;display:flex;align-items:center;justify-content:center;color:var(--text-strong);cursor:pointer}
+.mtopbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+.mtopbar .mlogo{width:30px;height:30px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.mtopbar .sp{flex:1}
+.drawer-mask{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:70;display:none}
+.drawer-mask.show{display:block}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--bg-page);z-index:71;padding:20px 8px;overflow:auto;transform:translateX(-105%);transition:transform .2s;display:flex;flex-direction:column;gap:28px}
+.drawer.show{transform:none}
+
+/* ==== 主內容 ==== */
+.main{flex:1;display:flex;flex-direction:column;background:var(--bg-page);min-width:0}
+.page-title{padding:30px 20px 0;display:flex;flex-direction:column;gap:4px}
+.crumb{font-size:14px;color:var(--text-body);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.crumb a{color:var(--text-body);text-decoration:none;cursor:pointer}
+.crumb a:hover{color:var(--primary-dark)}
+.crumb .sep svg{width:12px;height:12px;stroke:var(--icon-muted);stroke-width:2;fill:none}
+.crumb .here{color:var(--text-strong);font-weight:500}
+.h1{font-size:24px;line-height:32px;font-weight:500;margin-top:8px}
+.content{padding:24px 20px 60px;display:flex;flex-direction:column;gap:20px}
+
+/* ==== 卡片 ==== */
+.card{background:#fff;border:1px solid var(--border-card);border-radius:var(--r-card);padding:20px;display:flex;flex-direction:column;gap:16px}
+.card .card-head{display:flex;align-items:flex-start;gap:16px}
+.card .ch-main{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.card .ch-title{font-size:18px;line-height:24px;font-weight:500}
+.card .ch-desc{font-size:14px;line-height:20px;color:var(--text-body)}
+.rows{display:flex;flex-direction:column;gap:10px}
+.g-row{display:flex;align-items:center;gap:16px;padding:14px 16px;border:1px solid var(--border-field);border-radius:var(--r-card);background:#fff;cursor:pointer}
+.g-row:hover{border-color:var(--border-on)}
+.g-row.dim{background:#f7f7f7}
+.g-row .gr-main{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.g-row .gr-name{font-size:16px;line-height:22px;font-weight:500;word-break:break-all}
+.g-row .gr-sub{font-size:14px;line-height:20px;color:var(--text-body)}
+.g-row .arrow svg{width:8px;height:14px;stroke:var(--icon-muted);stroke-width:1.6;fill:none}
+
+/* 群組內頁 header 卡 */
+.grp-head-card{background:#fff;border:1px solid var(--border-card);border-radius:var(--r-card);padding:20px;display:flex;align-items:flex-start;gap:16px}
+.grp-head-card .ghc-main{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.grp-head-card .ghc-name{font-size:20px;line-height:28px;font-weight:500;word-break:break-all}
+.grp-head-card .ghc-sub{font-size:14px;line-height:20px;color:var(--text-body)}
+.sec-head{display:flex;align-items:center;gap:16px}
+.sec-head .t{font-size:18px;line-height:24px;font-weight:500;flex:1}
+.unit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.u-card{display:flex;align-items:center;gap:8px;padding:12px 16px;border:1px solid var(--border-field);border-radius:var(--r-card);background:#fff}
+.u-card .uc-main{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.u-card .uc-name{font-size:15px;line-height:21px;font-weight:500;word-break:break-all}
+.u-card .uc-cap{font-size:13px;line-height:18px;color:var(--text-body);display:inline-flex;align-items:center;gap:4px}
+.u-card .uc-cap svg{width:14px;height:14px;stroke:var(--icon-muted);stroke-width:1.6;fill:none}
+
+/* ==== 按鈕 ==== */
+.btn-md{display:inline-flex;align-items:center;gap:6px;height:34px;padding:8px 16px;border-radius:var(--r-btn);font-size:14px;line-height:18px;font-weight:500;cursor:pointer;border:1px solid transparent;background:transparent;white-space:nowrap}
+.btn-md.primary{background:var(--primary);color:#fff}
+.btn-md.primary:hover{background:var(--primary-dark)}
+.btn-md.ghost{background:#fff;border-color:var(--border-field);color:var(--text-body)}
+.btn-md.ghost-green{background:#fff;border-color:var(--primary);color:var(--primary)}
+.btn-md.ghost-red{background:#fff;border-color:var(--alert);color:var(--alert)}
+.btn-md.disabled,.btn-lg.disabled{background:var(--btn-disabled);color:#fff;cursor:not-allowed;border-color:transparent}
+.btn-md svg{width:14px;height:14px;stroke:currentColor;stroke-width:1.8;fill:none}
+.btn-lg{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;padding:10px 24px;border-radius:var(--r-btn);font-size:16px;line-height:20px;font-weight:500;cursor:pointer;border:1px solid transparent;background:transparent}
+.btn-lg.primary{background:var(--primary);color:#fff}
+.btn-lg.ghost{background:#fff;border-color:var(--border-field);color:var(--text-body)}
+.btn-row{display:flex;gap:10px;justify-content:flex-end;align-items:center}
+.icon-btn{width:32px;height:32px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;color:var(--icon-muted);cursor:pointer;background:transparent;border:0}
+.icon-btn:hover{background:rgba(0,0,0,.05)}
+.icon-btn.danger{color:var(--alert)}
+.icon-btn svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.7;fill:none}
+
+/* ==== 表單 ==== */
+.inline-form{border:1px solid var(--border-field);border-radius:var(--r-card);padding:20px;display:flex;flex-direction:column;gap:16px;background:#fff}
+.inline-form .if-title{font-size:16px;line-height:22px;font-weight:500;color:var(--text-muted)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field-label{font-size:14px;line-height:20px;font-weight:500;display:flex;align-items:center;gap:8px}
+.input{height:36px;padding:8px 10px;border:1px solid var(--border-field);border-radius:var(--r-input);background:#fff;font-size:14px;line-height:20px;display:flex;align-items:center;gap:5px}
+.input:focus-within{border-color:var(--border-on)}
+.input input{flex:1;border:0;outline:0;background:transparent;font-size:14px;color:var(--text-strong);min-width:0}
+.input input::placeholder{color:var(--text-disabled)}
+.input.disabled{background:#f5f5f5}
+.input.disabled input{color:var(--text-disabled)}
+.field .hint{font-size:12px;line-height:16px;color:var(--text-muted)}
+.err-msg{display:none;color:var(--alert);font-size:12px;line-height:1.3;letter-spacing:.4px}
+.err-msg.show{display:inline-block}
+.field.has-error .input{border-color:var(--alert)}
+.check{display:flex;align-items:flex-start;gap:8px;cursor:pointer}
+.box{width:20px;height:20px;border-radius:var(--r-tag);border:1px solid var(--border-field);background:#fff;flex:0 0 20px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:1px}
+.box.on{background:var(--primary);border-color:var(--border-field)}
+.box.on::after{content:"";width:10px;height:6px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.ck-label{font-size:14px;line-height:20px;font-weight:500}
+.ck-desc{font-size:12px;line-height:17px;color:var(--text-body);margin-top:2px}
+.sub-field{margin-left:28px;display:none;align-items:center;gap:12px}
+.sub-field.show{display:flex}
+.sub-field .sf-label{font-size:14px;font-weight:500}
+.num-input{width:88px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+select.sel{height:36px;padding:0 10px;border:1px solid var(--border-field);border-radius:var(--r-input);background:#fff;font-size:14px;outline:0;width:100%}
+select.sel:focus{border-color:var(--border-on)}
+
+/* ==== Modal / Toast ==== */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.3);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+.modal-mask.show{display:flex}
+.modal{background:#fff;border-radius:8px;padding:24px;width:480px;max-width:94vw;display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 32px rgba(0,0,0,.2);max-height:90vh;overflow:auto}
+.modal h3{font-size:18px;line-height:24px;font-weight:500}
+.modal .m-body{font-size:14px;line-height:21px;color:var(--text-body);display:flex;flex-direction:column;gap:14px}
+.modal .btn-row .left{margin-right:auto}
+.toast{position:fixed;left:50%;bottom:56px;transform:translateX(-50%);background:rgba(40,40,40,.92);color:#fff;padding:9px 18px;border-radius:100px;font-size:14px;line-height:1.4;letter-spacing:.5px;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:9999;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+.empty{text-align:center;color:var(--text-body);padding:28px 0;font-size:14px}
+
+/* ==== Demo 工具 ==== */
+.demo-fab{position:fixed;right:18px;bottom:18px;z-index:90;display:flex;gap:8px}
+.demo-fab .btn-md{box-shadow:0 2px 10px rgba(0,0,0,.15)}
+
+/* ==== RWD ==== */
+@media (max-width:760px){
+  body{background:var(--bg-page)}
+  .canvas{margin:0;min-height:100vh;box-shadow:none;display:block}
+  .sidebar,.settings-nav{display:none}
+  .mtopbar{display:flex}
+  .page-title{padding:16px 16px 0}
+  .h1{font-size:20px;line-height:28px}
+  .content{padding:16px 16px 80px}
+  .card{padding:16px}
+  .btn-full-m{width:100%;justify-content:center;height:44px;font-size:16px;border-radius:var(--r-btn)}
+  .card .card-head{flex-direction:column}
+  .grid2{grid-template-columns:1fr}
+  .unit-grid{grid-template-columns:1fr}
+  .sec-head{flex-wrap:wrap}
+  .grp-head-card{flex-direction:column}
+  .grp-head-card .btn-md{align-self:flex-start}
+  .modal{width:100%;max-width:100%}
+  .modal-mask{align-items:flex-end;padding:0}
+  .modal{border-radius:12px 12px 0 0}
+}
+</style>
+</head>
+<body>
+
+<!-- 手機頂欄 -->
+<div class="mtopbar">
+  <button class="burger" id="burger" aria-label="選單"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+  <div class="mlogo">店+</div>
+  <div class="sp"></div>
+  <button class="acct" aria-label="帳號"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg></button>
+</div>
+<div class="drawer-mask" id="drawerMask"></div>
+<div class="drawer" id="drawer"></div>
+
+<div class="canvas">
+  <!-- 左側 icon rail -->
+  <div class="sidebar">
+    <div>
+      <div class="logo">店+</div>
+      <div class="nav-list" id="railList"></div>
+    </div>
+    <div class="sidebar-bottom"><div class="avatar">找</div><span>開啟</span></div>
+  </div>
+  <!-- 設定分類 -->
+  <nav class="settings-nav" id="settingsNav"></nav>
+  <!-- 主內容 -->
+  <div class="main">
+    <div class="page-title">
+      <div class="crumb" id="crumb"></div>
+      <div class="h1" id="pageH1"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<!-- Modal 容器 -->
+<div class="modal-mask" id="modalMask"><div class="modal" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+
+<div class="demo-fab">
+  <button class="btn-md ghost" onclick="location.href='index.html'">← Review 入口</button>
+  <button class="btn-md ghost" id="resetBtn">↺ 重置範例</button>
+</div>
+
+<script>
+/* =====================================================
+   假資料層（模擬後端 API）— sessionStorage 持久化
+   ===================================================== */
+const DB_KEY = 'sim_unit_v1';
+const seed = () => ({
+  seq: 100,
+  groups: [
+    { id: 'g_indoor',  name: '室內',     isDefault: false, merge: true,  mergeMax: 2 },
+    { id: 'g_outdoor', name: '戶外',     isDefault: false, merge: true,  mergeMax: 2 },
+    { id: 'g_default', name: '預設群組', isDefault: true,  merge: false, mergeMax: 2 },
+  ],
+  units: [
+    { id: 'u1', gid: 'g_indoor',  name: 'Indoor 1',  min: 1, max: 2 },
+    { id: 'u2', gid: 'g_indoor',  name: 'Indoor 2',  min: 2, max: 4 },
+    { id: 'u3', gid: 'g_outdoor', name: 'Outdoor 1', min: 1, max: 2 },
+    { id: 'u4', gid: 'g_outdoor', name: 'Outdoor 2', min: 2, max: 4 },
+    { id: 'u5', gid: 'g_default', name: 'Default 1', min: 1, max: 2 },
+    { id: 'u6', gid: 'g_default', name: 'Default 2', min: 2, max: 4 },
+  ],
+});
+let db = JSON.parse(sessionStorage.getItem(DB_KEY) || 'null') || seed();
+const persist = () => sessionStorage.setItem(DB_KEY, JSON.stringify(db));
+const delay = (ms = 260) => new Promise(r => setTimeout(r, ms));
+
+const api = {
+  async listGroups() { await delay(120); return db.groups.map(g => ({ ...g, ...groupStats(g.id) })); },
+  async createGroup({ name, merge, mergeMax }) {
+    await delay();
+    if (db.groups.some(g => g.name === name)) throw { field: 'name', msg: '此名稱已被使用' };
+    const g = { id: 'g' + (++db.seq), name, isDefault: false, merge, mergeMax };
+    db.groups.unshift(g); // 設計稿：新群組排最上、預設群組固定墊底
+    persist(); return g;
+  },
+  async updateGroup(id, { name, merge, mergeMax }) {
+    await delay();
+    const g = db.groups.find(x => x.id === id);
+    if (!g.isDefault) {
+      if (db.groups.some(x => x.id !== id && x.name === name)) throw { field: 'name', msg: '此名稱已被使用' };
+      g.name = name;
+    }
+    g.merge = merge; g.mergeMax = mergeMax; persist(); return g;
+  },
+  async deleteGroup(id) {
+    await delay();
+    db.groups = db.groups.filter(g => g.id !== id);
+    db.units = db.units.filter(u => u.gid !== id);
+    persist();
+  },
+  async createUnits(gid, { name, min, max, qty }) {
+    await delay();
+    const names = qty <= 1 ? [name] : Array.from({ length: qty }, (_, i) => i === 0 ? name : `${name}-${i}`);
+    const dup = names.find(n => db.units.some(u => u.gid === gid && u.name === n));
+    if (dup) throw { field: 'name', msg: '此名稱已被使用' };
+    for (const n of names) db.units.push({ id: 'u' + (++db.seq), gid, name: n, min, max });
+    persist(); return names.length;
+  },
+  async updateUnit(id, { name, min, max, gid }) {
+    await delay();
+    const u = db.units.find(x => x.id === id);
+    if (db.units.some(x => x.id !== id && x.gid === gid && x.name === name)) throw { field: 'name', msg: '此名稱已被使用' };
+    Object.assign(u, { name, min, max, gid }); persist(); return u;
+  },
+  async deleteUnit(id) { await delay(); db.units = db.units.filter(u => u.id !== id); persist(); },
+};
+function groupStats(gid) {
+  const g = db.groups.find(x => x.id === gid);
+  const us = db.units.filter(u => u.gid === gid);
+  return { unitCount: us.length, mergeCount: g.merge ? g.mergeMax : 0, capTotal: us.reduce((a, u) => a + (+u.max || 0), 0) };
+}
+
+/* =====================================================
+   共用 UI
+   ===================================================== */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function openModal(html) { $('#modalBox').innerHTML = html; $('#modalMask').classList.add('show'); }
+function closeModal() { $('#modalMask').classList.remove('show'); }
+$('#modalMask').addEventListener('click', (e) => { if (e.target === $('#modalMask')) closeModal(); });
+
+const ICONS = {
+  person: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>',
+  edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
+  trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+  plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  chevR: '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
+};
+
+/* 側欄資料（照設計稿選單） */
+const RAIL = [['預約', true], ['排隊'], ['月曆'], ['顧客'], ['推播'], ['公告'], ['優惠券'], ['設定', false, true]];
+const RAIL_SVG = {
+  '預約': '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
+  '排隊': '<svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="10" r="2.4"/><path d="M2.5 20c.8-3.2 3-4.8 5.5-4.8s4.7 1.6 5.5 4.8M13.5 20c.5-2.4 1.8-3.8 3.5-3.8s3 1.4 3.5 3.8"/></svg>',
+  '月曆': '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 14h2M14 14h2M8 17h2"/></svg>',
+  '顧客': '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>',
+  '推播': '<svg viewBox="0 0 24 24"><path d="M4 9v6h4l6 4V5L8 9H4z"/><path d="M17 9c1 .8 1 4.2 0 5"/></svg>',
+  '公告': '<svg viewBox="0 0 24 24"><path d="M3 10v4h3l7 4V6l-7 4H3z"/><path d="M17 8a5 5 0 0 1 0 8M21 12h-2"/></svg>',
+  '優惠券': '<svg viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 0 0 8v3h18v-3a2 2 0 0 1 0-8V5H3v3z"/><path d="M13 5v14" stroke-dasharray="2 2"/></svg>',
+  '設定': '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg>',
+};
+const NAV = [
+  ['帳號設定', ['商家基本資訊', '肚肚POS串接設定', '通知點數管理']],
+  ['預約設定', ['預約規則', '例外預約規則', '自動排位規則', '顧客預約頁', '後台操作偏好', '預約通知', '預約追蹤', '訂金管理', '自訂預約問卷', '店內空間配置', '透過Google預訂']],
+  ['排隊設定', ['線上排隊設定', '排隊組別', '排隊通知', '預計等候時間', '排隊展示頁', '抽單機', '人員帳號設定']],
+];
+
+function renderChrome() {
+  $('#railList').innerHTML = RAIL.map(([n, act, active2]) =>
+    `<div class="nav-item${n === '設定' ? ' active' : ''}">${RAIL_SVG[n]}<span>${n}</span></div>`).join('');
+  const navHtml = NAV.map(([g, items]) => `
+    <div><div class="nav-group-title"><span class="dot"></span>${g}</div>
+    <div class="nav-sub">${items.map(i => `<a data-nav="${i}" class="${i === '預約規則' ? 'active' : ''}">${i}</a>`).join('')}</div></div>`).join('');
+  $('#settingsNav').innerHTML = navHtml;
+  $('#drawer').innerHTML = navHtml;
+  document.querySelectorAll('[data-nav]').forEach(a => a.addEventListener('click', () => {
+    closeDrawer();
+    if (a.dataset.nav === '預約規則') { location.hash = '#/rules'; }
+    else toast('此頁面尚未做成互動 Demo');
+  }));
+}
+const closeDrawer = () => { $('#drawer').classList.remove('show'); $('#drawerMask').classList.remove('show'); };
+$('#burger').addEventListener('click', () => { $('#drawer').classList.add('show'); $('#drawerMask').classList.add('show'); });
+$('#drawerMask').addEventListener('click', closeDrawer);
+$('#resetBtn').addEventListener('click', () => { db = seed(); persist(); toast('已重置範例資料'); route(); });
+
+/* =====================================================
+   Router
+   ===================================================== */
+function setTitle(crumbs, h1) {
+  $('#crumb').innerHTML = crumbs.map((c, i) => {
+    const last = i === crumbs.length - 1;
+    const el = last ? `<span class="here">${esc(c[0])}</span>` : `<a onclick="location.hash='${c[1]}'">${esc(c[0])}</a>`;
+    return el + (last ? '' : `<span class="sep"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>`);
+  }).join('');
+  $('#pageH1').textContent = h1 || '';
+}
+function route() {
+  closeModal();
+  const h = location.hash || '#/unit';
+  const mGroup = h.match(/^#\/unit\/group\/(.+)$/);
+  if (h === '#/rules') return viewRules();
+  if (mGroup) return viewGroup(decodeURIComponent(mGroup[1]));
+  return viewUnitList();
+}
+window.addEventListener('hashchange', route);
+
+/* =====================================================
+   預約規則 landing（入口示意）
+   ===================================================== */
+function viewRules() {
+  setTitle([['預約規則', '#/rules']], '預約規則');
+  $('#content').innerHTML = `
+    <div class="card">
+      <div class="card-head"><div class="ch-main">
+        <div class="ch-title">預約模式與規則</div>
+        <div class="ch-desc">您可以依據所選的預約模式訂定預約規則，包含時段、人數與服務項目。</div>
+      </div></div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="font-size:12px;color:var(--text-muted)">目前套用</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="background:var(--primary-l2);color:var(--primary-dark);font-size:16px;font-weight:500;padding:6px 12px;border-radius:6px">基本人數預約</span>
+          <button class="btn-md ghost-green" onclick="toast('「變更預約模式」尚未做成互動 Demo')">✎ 變更</button>
+        </div>
+      </div>
+      <div class="rows">
+        <div class="g-row" onclick="location.hash='#/unit'">
+          <div class="gr-main"><div class="gr-name">預約單位</div>
+          <div class="gr-sub">設定可供預約的單位及容納人數，如桌位、設備、服務人員等</div></div>
+          <span class="arrow">${ICONS.chevR}</span>
+        </div>
+        <div class="g-row" onclick="toast('「預約時段與規則」尚未做成互動 Demo')">
+          <div class="gr-main"><div class="gr-name">預約時段與規則</div>
+          <div class="gr-sub">設定可供預約的時段與規則</div></div>
+          <span class="arrow">${ICONS.chevR}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* =====================================================
+   預約單位 — 清單頁（分類群組）
+   ===================================================== */
+let addFormOpen = false;
+async function viewUnitList() {
+  setTitle([['預約規則', '#/rules'], ['預約單位', '#/unit']], '預約單位');
+  const groups = await api.listGroups();
+  const rowsHtml = groups.map(g => `
+    <div class="g-row${g.isDefault ? ' dim' : ''}" data-g="${g.id}">
+      <div class="gr-main">
+        <div class="gr-name">${esc(g.name)} (${g.unitCount})</div>
+        <div class="gr-sub">可合併單位數：${g.mergeCount} / 總容納人數：${g.capTotal}</div>
+      </div>
+      <span class="arrow">${ICONS.chevR}</span>
+    </div>`).join('');
+  $('#content').innerHTML = `
+    <div class="card">
+      <div class="card-head">
+        <div class="ch-main">
+          <div class="ch-title">分類群組</div>
+          <div class="ch-desc">建立群組以管理預約單位，並可設定同群組的單位能否自動合併預約。</div>
+        </div>
+        <button class="btn-md primary" id="addGroupBtn">${ICONS.plus} 群組</button>
+      </div>
+      <div id="addGroupSlot"></div>
+      <div class="rows" id="groupRows">${rowsHtml || '<div class="empty">尚未建立群組</div>'}</div>
+    </div>`;
+  $('#addGroupBtn').classList.toggle('btn-full-m', matchMedia('(max-width:760px)').matches);
+  $('#addGroupBtn').addEventListener('click', () => { if (!addFormOpen) renderGroupForm(); });
+  document.querySelectorAll('[data-g]').forEach(r => r.addEventListener('click', () => location.hash = '#/unit/group/' + r.dataset.g));
+  if (addFormOpen) renderGroupForm();
+}
+
+/* 新增群組 inline 表單（設計稿：卡片內展開） */
+function groupFormHtml({ title, name = '', nameDisabled = false, merge = false, mergeMax = 1, isEdit = false, isDefault = false }) {
+  return `
+    <div class="${isEdit ? '' : 'inline-form'}" id="gForm">
+      <div class="if-title" ${isEdit ? 'style="display:none"' : ''}>${title}</div>
+      <div class="field" id="f_name">
+        <div class="field-label">群組名稱 <span class="err-msg" id="e_name"></span></div>
+        <div class="input${nameDisabled ? ' disabled' : ''}"><input id="i_name" maxlength="12" placeholder="如：室內區" value="${esc(name)}" ${nameDisabled ? 'disabled' : ''}></div>
+        ${nameDisabled ? '<div class="hint">此為系統預設群組無法修改名稱</div>' : ''}
+      </div>
+      <div>
+        <label class="check" id="ck_merge">
+          <span class="box${merge ? ' on' : ''}" id="bx_merge"></span>
+          <span><span class="ck-label">自動合併預約單位</span>
+          <div class="ck-desc">當單一預約單位無法容納預約人數時，系統將自動合併單位進行預約安排</div></span>
+        </label>
+        <div class="sub-field${merge ? ' show' : ''}" id="sf_merge" style="margin-top:10px">
+          <span class="sf-label">最多可合併數量</span>
+          <div class="input num-input"><input id="i_mergeMax" type="number" min="1" value="${mergeMax}"></div>
+          <span class="err-msg" id="e_merge"></span>
+        </div>
+      </div>
+      <div class="btn-row">
+        ${isEdit && !isDefault ? '<button class="btn-md ghost-red left" id="delGroupBtn">刪除群組</button>' : ''}
+        <button class="btn-md ghost" id="gCancel">取消</button>
+        <button class="btn-md primary disabled" id="gSave">儲存</button>
+      </div>
+    </div>`;
+}
+function wireGroupForm({ onSave, onCancel, onDelete, nameDisabled = false }) {
+  const iName = $('#i_name'), bx = $('#bx_merge'), sf = $('#sf_merge'), iMax = $('#i_mergeMax'), save = $('#gSave');
+  const upd = () => save.classList.toggle('disabled', !nameDisabled && !iName.value.trim());
+  upd();
+  iName && iName.addEventListener('input', () => { $('#f_name').classList.remove('has-error'); $('#e_name').classList.remove('show'); upd(); });
+  $('#ck_merge').addEventListener('click', (e) => { e.preventDefault(); bx.classList.toggle('on'); sf.classList.toggle('show', bx.classList.contains('on')); });
+  $('#gCancel').addEventListener('click', onCancel);
+  const del = $('#delGroupBtn'); del && del.addEventListener('click', onDelete);
+  save.addEventListener('click', async () => {
+    if (save.classList.contains('disabled')) return;
+    const merge = bx.classList.contains('on');
+    const mergeMax = parseInt(iMax.value, 10);
+    if (merge && (!mergeMax || mergeMax < 1)) { $('#e_merge').textContent = '請輸入大於或等於 1 的數字'; $('#e_merge').classList.add('show'); return; }
+    $('#e_merge').classList.remove('show');
+    try { await onSave({ name: iName ? iName.value.trim() : '', merge, mergeMax: merge ? mergeMax : 1 }); }
+    catch (err) {
+      if (err && err.field === 'name') { $('#f_name').classList.add('has-error'); $('#e_name').textContent = err.msg; $('#e_name').classList.add('show'); }
+    }
+  });
+}
+function renderGroupForm() {
+  addFormOpen = true;
+  $('#addGroupSlot').innerHTML = groupFormHtml({ title: '新增群組' });
+  wireGroupForm({
+    nameDisabled: false,
+    onCancel: () => { addFormOpen = false; $('#addGroupSlot').innerHTML = ''; },
+    onSave: async (data) => { await api.createGroup(data); addFormOpen = false; toast('已新增群組'); viewUnitList(); },
+  });
+  $('#i_name').focus();
+}
+
+/* =====================================================
+   預約單位 — 群組內頁
+   ===================================================== */
+let addUnitOpen = false;
+async function viewGroup(gid) {
+  const g = db.groups.find(x => x.id === gid);
+  if (!g) { location.hash = '#/unit'; return; }
+  const st = groupStats(gid);
+  const units = db.units.filter(u => u.gid === gid);
+  setTitle([['預約規則', '#/rules'], ['預約單位', '#/unit'], [g.name, '']], '');
+  $('#content').innerHTML = `
+    <div class="grp-head-card">
+      <div class="ghc-main">
+        <div class="ghc-name">${esc(g.name)}</div>
+        <div class="ghc-sub">可合併單位數：${st.mergeCount} / 總容納人數：${st.capTotal}</div>
+      </div>
+      <button class="btn-md ghost" id="editGroupBtn">${ICONS.edit} 編輯</button>
+    </div>
+    <div class="card">
+      <div class="sec-head">
+        <div class="t">預約單位 (${st.unitCount})</div>
+        <button class="btn-md primary" id="addUnitBtn">${ICONS.plus} 預約單位</button>
+      </div>
+      <div id="addUnitSlot"></div>
+      <div class="unit-grid" id="unitGrid">
+        ${units.map(u => `
+          <div class="u-card" data-u="${u.id}">
+            <div class="uc-main">
+              <div class="uc-name">${esc(u.name)}</div>
+              <div class="uc-cap">${u.min}~${u.max} ${ICONS.person}</div>
+            </div>
+            <button class="icon-btn" data-edit="${u.id}">${ICONS.edit}</button>
+            <button class="icon-btn danger" data-del="${u.id}">${ICONS.trash}</button>
+          </div>`).join('') || '<div class="empty">尚未建立預約單位</div>'}
+      </div>
+    </div>`;
+  $('#editGroupBtn').addEventListener('click', () => openEditGroup(gid));
+  $('#addUnitBtn').addEventListener('click', () => { if (!addUnitOpen) renderUnitForm(gid); });
+  document.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openEditUnit(b.dataset.edit)));
+  document.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+    await api.deleteUnit(b.dataset.del); toast('已刪除預約單位'); viewGroup(gid);
+  }));
+  if (addUnitOpen) renderUnitForm(gid);
+}
+
+/* 編輯群組 Modal（設計稿：置中 dialog；預設群組名稱鎖定、無刪除鈕） */
+function openEditGroup(gid) {
+  const g = db.groups.find(x => x.id === gid);
+  openModal(`
+    <h3>編輯群組</h3>
+    ${groupFormHtml({ title: '', name: g.name, nameDisabled: g.isDefault, merge: g.merge, mergeMax: g.mergeMax, isEdit: true, isDefault: g.isDefault })}
+  `);
+  wireGroupForm({
+    nameDisabled: g.isDefault,
+    onCancel: closeModal,
+    onDelete: () => confirmDeleteGroup(gid),
+    onSave: async (data) => { await api.updateGroup(gid, data); closeModal(); toast('已儲存變更'); viewGroup(gid); },
+  });
+  if (!g.isDefault) { const s = $('#gSave'); s.classList.remove('disabled'); }
+  else $('#gSave').classList.remove('disabled');
+}
+function confirmDeleteGroup(gid) {
+  const g = db.groups.find(x => x.id === gid);
+  openModal(`
+    <h3>確定刪除嗎？</h3>
+    <div class="m-body"><p>刪除群組將同時刪除所有預約單位，相關預約需重新配置，否則無法於時間軸與空間配置圖顯示。確定刪除群組「${esc(g.name)}」嗎？</p></div>
+    <div class="btn-row">
+      <button class="btn-md ghost" onclick="closeModal()">取消</button>
+      <button class="btn-md" style="background:var(--alert);color:#fff" id="delConfirm">刪除</button>
+    </div>`);
+  $('#delConfirm').addEventListener('click', async () => {
+    await api.deleteGroup(gid); closeModal(); toast('已刪除群組'); location.hash = '#/unit';
+  });
+}
+
+/* 新增預約單位 inline 表單 */
+function unitFormHtml({ title, name = '', min = 1, max = '', showQuick = true, gidSelect = null, curGid = null }) {
+  return `
+    <div class="inline-form" id="uForm">
+      <div class="if-title">${title}</div>
+      <div class="field" id="f_uname">
+        <div class="field-label">預約單位名稱 <span class="err-msg" id="e_uname"></span></div>
+        <div class="input"><input id="i_uname" maxlength="12" placeholder="如：1號桌" value="${esc(name)}"></div>
+      </div>
+      <div class="grid2">
+        <div class="field" id="f_umin">
+          <div class="field-label">最少容納人數</div>
+          <div class="input"><input id="i_umin" type="number" min="1" value="${min}"></div>
+        </div>
+        <div class="field" id="f_umax">
+          <div class="field-label">最多容納人數 <span class="err-msg" id="e_umax"></span></div>
+          <div class="input"><input id="i_umax" type="number" min="1" value="${max}"></div>
+        </div>
+      </div>
+      ${gidSelect ? `
+      <div class="field"><div class="field-label">分類群組</div>
+        <select class="sel" id="i_ugid">${gidSelect.map(g => `<option value="${g.id}" ${g.id === curGid ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select>
+      </div>` : ''}
+      ${showQuick ? `
+      <div>
+        <label class="check" id="ck_quick">
+          <span class="box" id="bx_quick"></span>
+          <span><span class="ck-label">快速新增</span>
+          <div class="ck-desc">一次建立多個相同容納人數範圍的預約單位</div></span>
+        </label>
+        <div class="sub-field" id="sf_quick" style="margin-top:10px">
+          <span class="sf-label">數量</span>
+          <div class="input num-input"><input id="i_qty" type="number" min="2" value="2"></div>
+        </div>
+      </div>` : ''}
+      <div class="btn-row">
+        <button class="btn-md ghost" id="uCancel">取消</button>
+        <button class="btn-md primary disabled" id="uSave">儲存</button>
+      </div>
+    </div>`;
+}
+function wireUnitForm({ onSave, onCancel }) {
+  const iName = $('#i_uname'), iMin = $('#i_umin'), iMax = $('#i_umax'), save = $('#uSave');
+  const bxQ = $('#bx_quick'), sfQ = $('#sf_quick');
+  const upd = () => save.classList.toggle('disabled', !iName.value.trim() || !iMax.value);
+  upd();
+  [iName, iMin, iMax].forEach(i => i.addEventListener('input', () => {
+    $('#f_uname').classList.remove('has-error'); $('#e_uname').classList.remove('show');
+    $('#f_umax').classList.remove('has-error'); $('#e_umax').classList.remove('show');
+    upd();
+  }));
+  const ckQ = $('#ck_quick');
+  ckQ && ckQ.addEventListener('click', (e) => { e.preventDefault(); bxQ.classList.toggle('on'); sfQ.classList.toggle('show', bxQ.classList.contains('on')); });
+  $('#uCancel').addEventListener('click', onCancel);
+  save.addEventListener('click', async () => {
+    if (save.classList.contains('disabled')) return;
+    const min = parseInt(iMin.value, 10) || 1, max = parseInt(iMax.value, 10);
+    if (max < min) { $('#f_umax').classList.add('has-error'); $('#e_umax').textContent = '最多容納人數不得小於最少容納人數'; $('#e_umax').classList.add('show'); return; }
+    const qty = (bxQ && bxQ.classList.contains('on')) ? Math.max(2, parseInt(($('#i_qty') || {}).value, 10) || 2) : 1;
+    const gid = $('#i_ugid') ? $('#i_ugid').value : null;
+    try { await onSave({ name: iName.value.trim(), min, max, qty, gid }); }
+    catch (err) {
+      if (err && err.field === 'name') { $('#f_uname').classList.add('has-error'); $('#e_uname').textContent = err.msg; $('#e_uname').classList.add('show'); }
+    }
+  });
+}
+function renderUnitForm(gid) {
+  addUnitOpen = true;
+  $('#addUnitSlot').innerHTML = unitFormHtml({ title: '新增預約單位' });
+  wireUnitForm({
+    onCancel: () => { addUnitOpen = false; $('#addUnitSlot').innerHTML = ''; },
+    onSave: async ({ name, min, max, qty }) => {
+      const n = await api.createUnits(gid, { name, min, max, qty });
+      addUnitOpen = false; toast(n > 1 ? `已新增 ${n} 個預約單位` : '已新增預約單位'); viewGroup(gid);
+    },
+  });
+  $('#i_uname').focus();
+}
+
+/* 編輯單位 Modal（含分類群組下拉，可搬群組） */
+function openEditUnit(uid) {
+  const u = db.units.find(x => x.id === uid);
+  openModal(`
+    <h3>編輯預約單位</h3>
+    ${unitFormHtml({ title: '', name: u.name, min: u.min, max: u.max, showQuick: false, gidSelect: db.groups, curGid: u.gid })}
+  `);
+  $('#uForm').classList.remove('inline-form');
+  $('#uForm .if-title') && ($('#uForm').querySelector('.if-title').style.display = 'none');
+  wireUnitForm({
+    onCancel: closeModal,
+    onSave: async ({ name, min, max, gid }) => {
+      const from = u.gid;
+      await api.updateUnit(uid, { name, min, max, gid });
+      closeModal(); toast('已儲存變更'); viewGroup(from === gid ? gid : from);
+    },
+  });
+  $('#uSave').classList.remove('disabled');
+}
+
+/* =====================================================
+   init
+   ===================================================== */
+renderChrome();
+route();
+</script>
+</body>
+</html>
