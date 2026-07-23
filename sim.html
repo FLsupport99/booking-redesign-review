@@ -154,6 +154,32 @@ select.sel:focus{border-color:var(--border-on)}
 .toast.show{opacity:1}
 .empty{text-align:center;color:var(--text-body);padding:28px 0;font-size:14px}
 
+/* ==== 變更預約模式 ==== */
+.cur-mode{display:flex;flex-direction:column;gap:6px}
+.cur-mode .lb{font-size:12px;color:var(--text-muted)}
+.cur-mode .val{align-self:flex-start;background:var(--primary-l2);color:var(--primary-dark);font-size:16px;font-weight:500;padding:6px 12px;border-radius:6px}
+.opt-row{padding:14px 16px;border-radius:var(--r-card);background:#fff;border:1px solid var(--border-field);cursor:pointer;display:flex;align-items:flex-start;gap:14px}
+.opt-row.on{background:var(--bg-selected);border-color:var(--primary)}
+.radio{width:20px;height:20px;border-radius:50%;border:1px solid var(--border-field);background:#fff;flex:0 0 20px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.opt-row.on .radio{border-color:var(--primary)}
+.opt-row.on .radio::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--primary)}
+.opt-row .om{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.opt-row .ot{font-size:16px;line-height:22px;font-weight:500}
+.opt-row .osuit{align-self:flex-start;display:inline-flex;padding:2px 8px;border-radius:var(--r-tag);background:#f5f5f5;border:1px solid var(--border-field);font-size:13px;line-height:18px;color:var(--text-body)}
+.opt-row .odetail{display:none;flex-direction:column;gap:8px;font-size:14px;line-height:20px;color:var(--text-body);margin-top:4px}
+.opt-row.on .odetail{display:flex}
+.opt-row .odetail b{color:var(--text-strong);font-weight:500}
+.mode-flex{display:flex;gap:20px;align-items:flex-start}
+.mode-flex .opts{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0}
+.mode-preview{width:340px;flex:0 0 340px;background:#f5f5f5;border-radius:var(--r-card);padding:14px;display:flex;flex-direction:column;gap:10px}
+.mode-preview .pv-t{font-size:14px;font-weight:500;color:var(--text-body)}
+.mode-preview img{width:100%;height:auto;border-radius:8px;border:1px solid var(--border-card);background:#fff}
+.mode-preview .none{font-size:13px;color:var(--text-muted);padding:24px 0;text-align:center}
+@media (max-width:760px){
+  .mode-flex{flex-direction:column}
+  .mode-preview{width:100%;flex:auto}
+}
+
 /* ==== Demo 工具 ==== */
 .demo-fab{position:fixed;right:18px;bottom:18px;z-index:90;display:flex;gap:8px}
 .demo-fab .btn-md{box-shadow:0 2px 10px rgba(0,0,0,.15)}
@@ -230,6 +256,7 @@ select.sel:focus{border-color:var(--border-on)}
 const DB_KEY = 'sim_unit_v1';
 const seed = () => ({
   seq: 100,
+  mode: 'basic',
   groups: [
     { id: 'g_indoor',  name: '室內',     isDefault: false, merge: true,  mergeMax: 2 },
     { id: 'g_outdoor', name: '戶外',     isDefault: false, merge: true,  mergeMax: 2 },
@@ -287,7 +314,15 @@ const api = {
     Object.assign(u, { name, min, max, gid }); persist(); return u;
   },
   async deleteUnit(id) { await delay(); db.units = db.units.filter(u => u.id !== id); persist(); },
+  async setMode(m) { await delay(); db.mode = m; persist(); },
 };
+const MODES = [
+  { id: 'basic',    name: '基本人數預約', suit: '適合：需安排位置或空間的商家（如火鍋店）',       need: '預約單位、預約時段與規則',                         pick: '人數、日期、時間',                     img: 'algo_assets/2510_79095.png' },
+  { id: 'service',  name: '服務項目預約', suit: '適合：有特定服務項目的商家（如飯店自助餐）',     need: '預約單位、預約項目及其對應的時段與規則',           pick: '服務項目、人數、日期、時間',           img: 'algo_assets/2532_79573.png' },
+  { id: 'category', name: '階層項目預約', suit: '適合：需細分服務項目的商家（如美業）',           need: '預約單位、預約項目與子項目，以及其對應的時段與規則', pick: '服務項目與子項目、人數、日期、時間',   img: 'algo_assets/2564_79737.png' },
+  { id: 'capacity', name: '總量控管',     suit: '適合：僅需控管進場人數的商家（如展覽活動）',     need: '預約時段與人數上限，以及其他預約規則',             pick: '人數、日期、時間',                     img: null },
+];
+const modeName = () => (MODES.find(m => m.id === (db.mode || 'basic')) || MODES[0]).name;
 function groupStats(gid) {
   const g = db.groups.find(x => x.id === gid);
   const us = db.units.filter(u => u.gid === gid);
@@ -345,6 +380,8 @@ function renderChrome() {
   document.querySelectorAll('[data-nav]').forEach(a => a.addEventListener('click', () => {
     closeDrawer();
     if (a.dataset.nav === '預約規則') { location.hash = '#/rules'; }
+    else if (a.dataset.nav === '例外預約規則') { location.href = 'exception_rules.html'; }
+    else if (a.dataset.nav === '顧客預約頁') { location.href = 'hierarchical_booking.html'; }
     else toast('此頁面尚未做成互動 Demo');
   }));
 }
@@ -366,9 +403,10 @@ function setTitle(crumbs, h1) {
 }
 function route() {
   closeModal();
-  const h = location.hash || '#/unit';
+  const h = location.hash || '#/rules';
   const mGroup = h.match(/^#\/unit\/group\/(.+)$/);
-  if (h === '#/rules') return viewRules();
+  if (h === '#/rules' || h === '') return viewRules();
+  if (h === '#/mode') return viewModeChange();
   if (mGroup) return viewGroup(decodeURIComponent(mGroup[1]));
   return viewUnitList();
 }
@@ -379,17 +417,20 @@ window.addEventListener('hashchange', route);
    ===================================================== */
 function viewRules() {
   setTitle([['預約規則', '#/rules']], '預約規則');
+  const isItemMode = db.mode === 'service' || db.mode === 'category';
+  const slotTitle = isItemMode ? '預約項目與時段規則' : '預約時段與規則';
+  const slotDesc = isItemMode ? '設定可供預約的服務項目、時段與規則' : '設定可供預約的時段與規則';
   $('#content').innerHTML = `
     <div class="card">
       <div class="card-head"><div class="ch-main">
         <div class="ch-title">預約模式與規則</div>
         <div class="ch-desc">您可以依據所選的預約模式訂定預約規則，包含時段、人數與服務項目。</div>
       </div></div>
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <div style="font-size:12px;color:var(--text-muted)">目前套用</div>
+      <div class="cur-mode">
+        <div class="lb">目前套用</div>
         <div style="display:flex;align-items:center;gap:12px">
-          <span style="background:var(--primary-l2);color:var(--primary-dark);font-size:16px;font-weight:500;padding:6px 12px;border-radius:6px">基本人數預約</span>
-          <button class="btn-md ghost-green" onclick="toast('「變更預約模式」尚未做成互動 Demo')">✎ 變更</button>
+          <span class="val">${modeName()}</span>
+          <button class="btn-md ghost-green" onclick="location.hash='#/mode'">${ICONS.edit} 變更</button>
         </div>
       </div>
       <div class="rows">
@@ -398,13 +439,69 @@ function viewRules() {
           <div class="gr-sub">設定可供預約的單位及容納人數，如桌位、設備、服務人員等</div></div>
           <span class="arrow">${ICONS.chevR}</span>
         </div>
-        <div class="g-row" onclick="toast('「預約時段與規則」尚未做成互動 Demo')">
-          <div class="gr-main"><div class="gr-name">預約時段與規則</div>
-          <div class="gr-sub">設定可供預約的時段與規則</div></div>
+        <div class="g-row" onclick="toast('「${slotTitle}」尚未做成互動 Demo')">
+          <div class="gr-main"><div class="gr-name">${slotTitle}</div>
+          <div class="gr-sub">${slotDesc}</div></div>
           <span class="arrow">${ICONS.chevR}</span>
         </div>
       </div>
     </div>`;
+}
+
+/* =====================================================
+   變更預約模式
+   ===================================================== */
+let modeSel = null;
+function viewModeChange() {
+  modeSel = db.mode;
+  setTitle([['預約規則', '#/rules'], ['變更預約模式', '#/mode']], '變更預約模式');
+  const render = () => {
+    const cur = MODES.find(m => m.id === modeSel);
+    $('#content').innerHTML = `
+      <div class="card">
+        <div class="cur-mode"><div class="lb">目前套用：${modeName()}</div></div>
+        <div class="sec-head"><div class="t" style="font-size:16px">變更模式</div></div>
+        <div class="mode-flex">
+          <div class="opts">
+            ${MODES.map(m => `
+              <div class="opt-row${m.id === modeSel ? ' on' : ''}" data-m="${m.id}">
+                <span class="radio"></span>
+                <div class="om">
+                  <div class="ot">${m.name}</div>
+                  <span class="osuit">${m.suit}</span>
+                  <div class="odetail">
+                    <div><b>需設定：</b><br>${m.need}</div>
+                    <div><b>預約時需選擇：</b><br>${m.pick}</div>
+                  </div>
+                </div>
+              </div>`).join('')}
+          </div>
+          <div class="mode-preview">
+            <div class="pv-t">顧客預約流程示意</div>
+            ${cur.img ? `<img src="${cur.img}" alt="${cur.name} 顧客預約流程示意">` : '<div class="none">此模式無流程示意圖</div>'}
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-md ghost" onclick="location.hash='#/rules'">取消</button>
+          <button class="btn-md primary${modeSel === db.mode ? ' disabled' : ''}" id="modeSave">儲存</button>
+        </div>
+      </div>`;
+    document.querySelectorAll('[data-m]').forEach(r => r.addEventListener('click', () => { modeSel = r.dataset.m; render(); }));
+    $('#modeSave').addEventListener('click', () => {
+      if ($('#modeSave').classList.contains('disabled')) return;
+      openModal(`
+        <h3>確定儲存嗎？</h3>
+        <div class="m-body"><p>變更模式會影響原本的預約規則與顧客預約頁的顯示內容。確定儲存嗎？</p></div>
+        <div class="btn-row">
+          <button class="btn-md ghost" onclick="closeModal()">取消</button>
+          <button class="btn-md primary" id="modeConfirm">確定</button>
+        </div>`);
+      $('#modeConfirm').addEventListener('click', async () => {
+        await api.setMode(modeSel); closeModal(); toast('已變更預約模式'); location.hash = '#/rules';
+      });
+    });
+  };
+  render();
 }
 
 /* =====================================================
