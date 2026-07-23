@@ -3,7 +3,11 @@
 流程（下次設計完工要整合時）：
 1. 用 figma MCP `use_figma` 盤點目標頁面 section/frame（含 x,y,w,h），更新 `manifest_*.json`
    - 與 `../modes_assets/manifest.json`、`../algo_assets/manifest.json` 的 frames 比對，只處理新增/變更的 node
-2. 匯出：figma MCP `get_screenshot`，參數 `{maxDimension: 16384, contentsOnly: true}` → 回傳 URL 用 curl 下載
+2. 匯出（擇一）：
+   - **首選 REST**（2026-07-23 起可用）：`~/FL-Agent/FL-Salesapp/.env` 的 `FIGMA_TOKEN`（Ian 的 PAT），
+     `GET /v1/images/:fileKey?ids=<逗號分隔多個id>&format=png&scale=1` → 批次拿 URL 下載；
+     不吃 MCP 額度、無 4096px 限制。專案檔案清單：`GET /v1/projects/238052935/files`
+   - 備援 MCP：`get_screenshot` 參數 `{maxDimension: 16384, contentsOnly: true}` → 回傳 URL 用 curl 下載
    - ⚠️ 不要用 `download_assets`：其匯出被硬限制在 4096px，超寬 section 會被縮圖
    - ⚠️ MCP 讀取額度：Pro 方案 200 次/天、15 次/分（use_figma/get_metadata/get_screenshot 都算）
    - section 輸出四周各多 40px 邊距（w+80），`build_galleries.py` 的 render_geometry 已處理
