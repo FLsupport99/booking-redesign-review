@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>服務項目＋階層項目預約 — 設計稿總覽</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"PingFang TC","Noto Sans TC",sans-serif;color:#222;background:#f4f5f6}
+  header.top{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #e5e5e5;padding:14px 24px;display:flex;align-items:center;gap:14px}
+  header.top h1{font-size:17px;font-weight:600}
+  header.top .meta{font-size:13px;color:#888}
+  header.top .link{margin-left:auto;font-size:13px;color:#29A379;text-decoration:none;border:1px solid #3FBA88;border-radius:100px;padding:6px 14px}
+  .wrap{display:flex;align-items:flex-start}
+  nav.side{position:sticky;top:56px;width:250px;flex:0 0 250px;height:calc(100vh - 56px);overflow:auto;padding:16px 10px;background:#fff;border-right:1px solid #e5e5e5}
+  nav.side .ngh{font-size:12px;font-weight:700;color:#29A379;padding:12px 12px 4px;letter-spacing:.5px}
+  nav.side a{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:#444;text-decoration:none;padding:7px 12px;border-radius:8px}
+  nav.side a:hover{background:#f0f7f3}
+  nav.side a span{color:#aaa;font-size:12px}
+  main{flex:1;min-width:0;padding:22px 28px 80px}
+  .gh{font-size:15px;font-weight:700;color:#29A379;margin:26px 0 6px;letter-spacing:.5px}
+  .sec{margin-bottom:14px}
+  .sh{font-size:16px;font-weight:600;margin:18px 0 12px;padding-bottom:8px;border-bottom:1px solid #e5e5e5}
+  .sh em{font-style:normal;font-size:12px;color:#999;font-weight:400;margin-left:8px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+  .card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;overflow:hidden;cursor:zoom-in}
+  .card .imwrap{background:#fafafa;max-height:420px;overflow:auto;display:flex;justify-content:center}
+  .card img{width:100%;height:auto;display:block}
+  .card.mob .imwrap{padding:10px}
+  .card.mob img{max-width:230px;margin:0 auto}
+  figcaption{font-size:12px;color:#555;padding:9px 11px;display:flex;align-items:center;gap:7px;border-top:1px solid #eee;line-height:1.4}
+  .badge{flex:0 0 auto;font-size:10px;color:#fff;background:#9aa;border-radius:4px;padding:2px 6px}
+  .card.mob .badge{background:#E4924B}
+  .card.desk .badge{background:#5B8DEF}
+  #lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99;align-items:flex-start;justify-content:center;overflow:auto;padding:30px;cursor:zoom-out}
+  #lb.on{display:flex}
+  #lb img{max-width:1024px;width:100%;height:auto;border-radius:6px}
+</style></head><body>
+<header class="top"><h1>服務項目＋階層項目預約 — 設計稿總覽</h1><span class="meta">共 195 張 · 2026 May. 顧客預約頁改版（頁②③）· 照 Figma 原稿渲染</span>
+<a class="link" href="index.html">← 回入口</a></header>
+<div class="wrap">
+<nav class="side"><div class="ngh">服務項目預約</div><a href="#s-1871_67714">1-1 服務項目預約 <span>17</span></a><a href="#s-1871_68446">1-2 服務項目預約_查看其他分店 <span>3</span></a><a href="#s-1871_69486">1-3 填寫資訊 <span>7</span></a><a href="#s-1871_69487">1-3a 填寫資訊_預先付款 <span>10</span></a><a href="#s-1871_70631">1-3b 填寫資訊_信用卡授權 <span>10</span></a><a href="#s-1886_73367">1-4 修改預約 <span>8</span></a><a href="#s-1886_76271">1-5 取消預約 <span>4</span></a><a href="#s-1886_76688">1-6 查詢預約 <span>12</span></a><a href="#s-1886_78874">2-1 設定_顧客預約頁內容 <span>5</span></a><a href="#s-1886_79590">2-2 編輯預約項目選單提示文字 <span>10</span></a><a href="#s-svc-notes">📋 說明卡與其他 <span>2</span></a><div class="ngh">階層項目預約</div><a href="#s-1696_74748">1-1 階層項目預約 <span>21</span></a><a href="#s-1696_76449">1-2 階層項目預約_查看其他分店 <span>6</span></a><a href="#s-1696_79661">1-3 填寫資訊 <span>7</span></a><a href="#s-1696_80447">1-3a 填寫資訊_預先付款 <span>10</span></a><a href="#s-1696_82044">1-3b 填寫資訊_信用卡授權 <span>10</span></a><a href="#s-1696_85080">1-4 修改預約 <span>10</span></a><a href="#s-1696_85706">1-5 取消預約 <span>4</span></a><a href="#s-1696_87742">1-6 查詢預約 <span>12</span></a><a href="#s-1829_14486">2-1 設定_顧客預約頁內容 <span>5</span></a><a href="#s-1847_16237">2-2 編輯預約項目選單提示文字 <span>10</span></a><a href="#s-1847_17541">2-3 編輯子項目選單提示文字 <span>9</span></a><a href="#s-hier-notes">📋 說明卡與其他 <span>3</span></a></nav>
+<main>
+<h2 class="gh">服務項目預約</h2>
+<section id="s-1871_67714" class="sec"><h3 class="sh">1-1 服務項目預約 <em>17 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_18086.png" alt="1-1 服務項目預約"></div><figcaption><span class="badge">桌面</span>1-1 服務項目預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_18317.png" alt="1-1 服務項目預約_展開其他注意事項"></div><figcaption><span class="badge">桌面</span>1-1 服務項目預約_展開其他注意事項</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_18646.png" alt="1-1 服務項目預約_選擇預約項目"></div><figcaption><span class="badge">桌面</span>1-1 服務項目預約_選擇預約項目</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_19400.png" alt="1-1 服務項目預約_選擇人數、日期與時段"></div><figcaption><span class="badge">桌面</span>1-1 服務項目預約_選擇人數、日期與時段</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_19962.png" alt="1-1 服務項目預約_隱藏人數選項"></div><figcaption><span class="badge">桌面</span>1-1 服務項目預約_隱藏人數選項</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_20594.png" alt="1-1 服務項目預約_Null（什麼都沒設定）"></div><figcaption><span class="badge">桌面</span>1-1 服務項目預約_Null（什麼都沒設定）</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_20684.png" alt="1-1 服務項目預約_未開放預約"></div><figcaption><span class="badge">桌面</span>1-1 服務項目預約_未開放預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_20898.png" alt="1-1 服務項目預約_Hover"></div><figcaption><span class="badge">桌面</span>1-1 服務項目預約_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_21335.png" alt="1-1 服務項目預約_Pressed"></div><figcaption><span class="badge">桌面</span>1-1 服務項目預約_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_21771.png" alt="1-1 服務項目預約_M"></div><figcaption><span class="badge">手機</span>1-1 服務項目預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_22000.png" alt="1-1 服務項目預約_選擇人數、日期與時段_M"></div><figcaption><span class="badge">手機</span>1-1 服務項目預約_選擇人數、日期與時段_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_22954.png" alt="1-1 服務項目預約_收合選擇人數、日期與時段 Modal_M"></div><figcaption><span class="badge">手機</span>1-1 服務項目預約_收合選擇人數、日期與時段 Modal_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_25459.png" alt="1-1 服務項目預約_選擇時段_M"></div><figcaption><span class="badge">手機</span>1-1 服務項目預約_選擇時段_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_25797.png" alt="1-1 服務項目預約_隱藏人數選項_M"></div><figcaption><span class="badge">手機</span>1-1 服務項目預約_隱藏人數選項_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_66716.png" alt="1-1 服務項目預約_Pressed_M"></div><figcaption><span class="badge">手機</span>1-1 服務項目預約_Pressed_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_66982.png" alt="1-1 服務項目預約_選擇時段_Pressed_M"></div><figcaption><span class="badge">手機</span>1-1 服務項目預約_選擇時段_Pressed_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_22341.png" alt="Modal / Form-RWD"></div><figcaption><span class="badge">手機</span>Modal / Form-RWD</figcaption></figure>
+</div></section>
+<section id="s-1871_68446" class="sec"><h3 class="sh">1-2 服務項目預約_查看其他分店 <em>3 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_67320.png" alt="1-2 服務項目預約_查看其他分店_Start"></div><figcaption><span class="badge">桌面</span>1-2 服務項目預約_查看其他分店_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_67719.png" alt="1-2 服務項目預約_查看其他分店"></div><figcaption><span class="badge">桌面</span>1-2 服務項目預約_查看其他分店</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_68006.png" alt="1-2 服務項目預約_查看其他分店_M"></div><figcaption><span class="badge">手機</span>1-2 服務項目預約_查看其他分店_M</figcaption></figure>
+</div></section>
+<section id="s-1871_69486" class="sec"><h3 class="sh">1-3 填寫資訊 <em>7 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_68238.png" alt="1-3 填寫資訊_Start"></div><figcaption><span class="badge">桌面</span>1-3 填寫資訊_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_68448.png" alt="1-3 填寫資訊"></div><figcaption><span class="badge">桌面</span>1-3 填寫資訊</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_68522.png" alt="1-3 填寫資訊_預約成功"></div><figcaption><span class="badge">桌面</span>1-3 填寫資訊_預約成功</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_68642.png" alt="1-3 填寫資訊_待審核"></div><figcaption><span class="badge">桌面</span>1-3 填寫資訊_待審核</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_68915.png" alt="1-3 填寫資訊_M"></div><figcaption><span class="badge">手機</span>1-3 填寫資訊_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_68990.png" alt="1-3 填寫資訊_預約成功_M"></div><figcaption><span class="badge">手機</span>1-3 填寫資訊_預約成功_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_69115.png" alt="1-3 填寫資訊_待審核_M"></div><figcaption><span class="badge">手機</span>1-3 填寫資訊_待審核_M</figcaption></figure>
+</div></section>
+<section id="s-1871_69487" class="sec"><h3 class="sh">1-3a 填寫資訊_預先付款 <em>10 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_69488.png" alt="1-3a 填寫資訊_預先付款_Start"></div><figcaption><span class="badge">桌面</span>1-3a 填寫資訊_預先付款_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_69806.png" alt="1-3a 填寫資訊_預先付款"></div><figcaption><span class="badge">桌面</span>1-3a 填寫資訊_預先付款</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_69880.png" alt="1-3a 填寫資訊_預先付款_待付款"></div><figcaption><span class="badge">桌面</span>1-3a 填寫資訊_預先付款_待付款</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_69991.png" alt="1-3a 填寫資訊_預先付款_待審核+待付款"></div><figcaption><span class="badge">桌面</span>1-3a 填寫資訊_預先付款_待審核+待付款</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_70104.png" alt="1-3a 填寫資訊_預先付款_付款完成"></div><figcaption><span class="badge">桌面</span>1-3a 填寫資訊_預先付款_付款完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_69613.png" alt="1-3a 填寫資訊_預先付款_M"></div><figcaption><span class="badge">手機</span>1-3a 填寫資訊_預先付款_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_70209.png" alt="1-3a 填寫資訊_預先付款_M"></div><figcaption><span class="badge">手機</span>1-3a 填寫資訊_預先付款_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_70289.png" alt="1-3a 填寫資訊_預先付款_付款完成_M"></div><figcaption><span class="badge">手機</span>1-3a 填寫資訊_預先付款_付款完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_70399.png" alt="1-3a 填寫資訊_預先付款_待審核+待付款_M"></div><figcaption><span class="badge">手機</span>1-3a 填寫資訊_預先付款_待審核+待付款_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_70513.png" alt="1-3a 填寫資訊_預先付款_待付款_M"></div><figcaption><span class="badge">手機</span>1-3a 填寫資訊_預先付款_待付款_M</figcaption></figure>
+</div></section>
+<section id="s-1871_70631" class="sec"><h3 class="sh">1-3b 填寫資訊_信用卡授權 <em>10 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_70632.png" alt="1-3b 填寫資訊_信用卡授權_Start"></div><figcaption><span class="badge">桌面</span>1-3b 填寫資訊_信用卡授權_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_70758.png" alt="1-3b 填寫資訊_信用卡授權"></div><figcaption><span class="badge">桌面</span>1-3b 填寫資訊_信用卡授權</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_70837.png" alt="1-3b 填寫資訊_信用卡授權_綁卡完成"></div><figcaption><span class="badge">桌面</span>1-3b 填寫資訊_信用卡授權_綁卡完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_70942.png" alt="1-3b 填寫資訊_信用卡授權_待綁卡"></div><figcaption><span class="badge">桌面</span>1-3b 填寫資訊_信用卡授權_待綁卡</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_71053.png" alt="1-3b 填寫資訊_預先付款_待審核+待綁卡"></div><figcaption><span class="badge">桌面</span>1-3b 填寫資訊_預先付款_待審核+待綁卡</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_71166.png" alt="1-3b 填寫資訊_信用卡授權_Start_M"></div><figcaption><span class="badge">手機</span>1-3b 填寫資訊_信用卡授權_Start_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_71360.png" alt="1-3b 填寫資訊_信用卡授權_M"></div><figcaption><span class="badge">手機</span>1-3b 填寫資訊_信用卡授權_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_71445.png" alt="1-3b 填寫資訊_信用卡授權_待綁卡_M"></div><figcaption><span class="badge">手機</span>1-3b 填寫資訊_信用卡授權_待綁卡_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_71561.png" alt="1-3b 填寫資訊_信用卡授權_綁卡完成_M"></div><figcaption><span class="badge">手機</span>1-3b 填寫資訊_信用卡授權_綁卡完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_71671.png" alt="1-3a 填寫資訊_預先付款_待審核+待綁卡_M"></div><figcaption><span class="badge">手機</span>1-3a 填寫資訊_預先付款_待審核+待綁卡_M</figcaption></figure>
+</div></section>
+<section id="s-1886_73367" class="sec"><h3 class="sh">1-4 修改預約 <em>8 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_73368.png" alt="1-4 修改預約_Start"></div><figcaption><span class="badge">桌面</span>1-4 修改預約_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_73473.png" alt="1-4 填寫資訊_修改預約_完成修改"></div><figcaption><span class="badge">桌面</span>1-4 填寫資訊_修改預約_完成修改</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_73567.png" alt="1-4 修改預約"></div><figcaption><span class="badge">桌面</span>1-4 修改預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_73710.png" alt="1-4 修改預約_完成重選預約項目"></div><figcaption><span class="badge">桌面</span>1-4 修改預約_完成重選預約項目</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_73853.png" alt="1-4 修改預約_完成重修改輸入"></div><figcaption><span class="badge">桌面</span>1-4 修改預約_完成重修改輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_73996.png" alt="1-4 修改預約_重選預約項目"></div><figcaption><span class="badge">桌面</span>1-4 修改預約_重選預約項目</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_74311.png" alt="1-4 修改預約_M"></div><figcaption><span class="badge">手機</span>1-4 修改預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_74459.png" alt="1-4 修改預約_重選預約項目_M"></div><figcaption><span class="badge">手機</span>1-4 修改預約_重選預約項目_M</figcaption></figure>
+</div></section>
+<section id="s-1886_76271" class="sec"><h3 class="sh">1-5 取消預約 <em>4 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_76272.png" alt="1-5 取消預約_完成取消"></div><figcaption><span class="badge">桌面</span>1-5 取消預約_完成取消</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_76382.png" alt="1-5 取消預約_Start"></div><figcaption><span class="badge">桌面</span>1-5 取消預約_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_76487.png" alt="1-5 取消預約_Popup"></div><figcaption><span class="badge">桌面</span>1-5 取消預約_Popup</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_76588.png" alt="1-5 取消預約_完成取消_M"></div><figcaption><span class="badge">手機</span>1-5 取消預約_完成取消_M</figcaption></figure>
+</div></section>
+<section id="s-1886_76688" class="sec"><h3 class="sh">1-6 查詢預約 <em>12 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_76689.png" alt="1-6 查詢預約_Start"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_76860.png" alt="1-6 查詢預約"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_77055.png" alt="1-6 查詢預約_查詢結果_已取消"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_已取消</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_77165.png" alt="1-6 查詢預約_查詢結果_預約成功"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_預約成功</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_77279.png" alt="1-6 查詢預約_查詢結果_已結束"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_已結束</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_77389.png" alt="1-6 查詢預約_查詢結果_待審核"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_待審核</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_77488.png" alt="1-6 查詢預約_查詢結果_待付款"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_待付款</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_77593.png" alt="1-6 查詢預約_查詢結果_付款完成"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_付款完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_77692.png" alt="1-6 查詢預約_查詢結果_綁卡完成"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_綁卡完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_77791.png" alt="1-6 查詢預約_查詢結果_待綁卡"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_待綁卡</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_77896.png" alt="1-6 查詢預約_查詢結果_待審核+待綁卡"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_待審核+待綁卡</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_78003.png" alt="1-6 查詢預約_查詢結果_預先付款_待審核+待付款"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_預先付款_待審核+待付款</figcaption></figure>
+</div></section>
+<section id="s-1886_78874" class="sec"><h3 class="sh">2-1 設定_顧客預約頁內容 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_78875.png" alt="2-1 設定_顧客預約頁內容（Default）"></div><figcaption><span class="badge">桌面</span>2-1 設定_顧客預約頁內容（Default）</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_79019.png" alt="2-1 設定_顧客預約頁內容_Hover"></div><figcaption><span class="badge">桌面</span>2-1 設定_顧客預約頁內容_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_79211.png" alt="2-1 設定_顧客預約頁內容_Pressed"></div><figcaption><span class="badge">桌面</span>2-1 設定_顧客預約頁內容_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_79403.png" alt="2-1 設定_顧客預約頁內容（Default）_M"></div><figcaption><span class="badge">手機</span>2-1 設定_顧客預約頁內容（Default）_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_79496.png" alt="2-1 設定_顧客預約頁內容_Pressed_M"></div><figcaption><span class="badge">手機</span>2-1 設定_顧客預約頁內容_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-1886_79590" class="sec"><h3 class="sh">2-2 編輯預約項目選單提示文字 <em>10 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_79591.png" alt="2-2 編輯預約項目選單提示文字_Start"></div><figcaption><span class="badge">桌面</span>2-2 編輯預約項目選單提示文字_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_79735.png" alt="2-2 編輯預約項目選單提示文字_Focus"></div><figcaption><span class="badge">桌面</span>2-2 編輯預約項目選單提示文字_Focus</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_79902.png" alt="2-2 編輯預約項目選單提示文字_Placeholder"></div><figcaption><span class="badge">桌面</span>2-2 編輯預約項目選單提示文字_Placeholder</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_80069.png" alt="2-2 編輯預約項目選單提示文字_完成輸入"></div><figcaption><span class="badge">桌面</span>2-2 編輯預約項目選單提示文字_完成輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_80236.png" alt="2-2 編輯預約項目選單提示文字_儲存成功"></div><figcaption><span class="badge">桌面</span>2-2 編輯預約項目選單提示文字_儲存成功</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_80381.png" alt="2-2 編輯預約項目選單提示文字_儲存成功"></div><figcaption><span class="badge">手機</span>2-2 編輯預約項目選單提示文字_儲存成功</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_80475.png" alt="2-2 編輯預約項目選單提示文字_M"></div><figcaption><span class="badge">手機</span>2-2 編輯預約項目選單提示文字_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_80591.png" alt="2-2 編輯預約項目選單提示文字_Focus_M"></div><figcaption><span class="badge">手機</span>2-2 編輯預約項目選單提示文字_Focus_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_80707.png" alt="2-2 編輯預約項目選單提示文字_Placeholder_M"></div><figcaption><span class="badge">手機</span>2-2 編輯預約項目選單提示文字_Placeholder_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_80823.png" alt="2-2 編輯預約項目選單提示文字_完成輸入_M"></div><figcaption><span class="badge">手機</span>2-2 編輯預約項目選單提示文字_完成輸入_M</figcaption></figure>
+</div></section>
+<section id="s-svc-notes" class="sec"><h3 class="sh">📋 說明卡與其他 <em>2 張</em></h3><div class="grid">
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1871_73364.png" alt="1-3 填寫資訊_說明"></div><figcaption><span class="badge">手機</span>1-3 填寫資訊_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1886_78871.png" alt="2-2 編輯預約項目選單提示文字_說明"></div><figcaption><span class="badge">手機</span>2-2 編輯預約項目選單提示文字_說明</figcaption></figure>
+</div></section>
+<h2 class="gh">階層項目預約</h2>
+<section id="s-1696_74748" class="sec"><h3 class="sh">1-1 階層項目預約 <em>21 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1608_61526.png" alt="1-1 階層項目預約"></div><figcaption><span class="badge">桌面</span>1-1 階層項目預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1644_68387.png" alt="1-1 階層項目預約_Null（什麼都沒設定）"></div><figcaption><span class="badge">桌面</span>1-1 階層項目預約_Null（什麼都沒設定）</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1644_68616.png" alt="1-1 階層項目預約_未開放預約"></div><figcaption><span class="badge">桌面</span>1-1 階層項目預約_未開放預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1637_65523.png" alt="1-1 階層項目預約_選擇父層"></div><figcaption><span class="badge">桌面</span>1-1 階層項目預約_選擇父層</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1637_65824.png" alt="1-1 階層項目預約_選擇子項目"></div><figcaption><span class="badge">桌面</span>1-1 階層項目預約_選擇子項目</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1644_66725.png" alt="1-1 階層項目預約_選擇人數、日期與時段"></div><figcaption><span class="badge">桌面</span>1-1 階層項目預約_選擇人數、日期與時段</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_88351.png" alt="1-1 階層項目預約_隱藏人數選項"></div><figcaption><span class="badge">桌面</span>1-1 階層項目預約_隱藏人數選項</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1644_68945.png" alt="1-1 階層項目預約_Hover"></div><figcaption><span class="badge">桌面</span>1-1 階層項目預約_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1653_69503.png" alt="1-1 階層項目預約_Pressed"></div><figcaption><span class="badge">桌面</span>1-1 階層項目預約_Pressed</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1637_65194.png" alt="1-1 階層項目預約_展開其他注意事項"></div><figcaption><span class="badge">桌面</span>1-1 階層項目預約_展開其他注意事項</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1653_70054.png" alt="1-1 階層項目預約_M"></div><figcaption><span class="badge">手機</span>1-1 階層項目預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_74001.png" alt="1-1 階層項目預約_Pressed_M"></div><figcaption><span class="badge">手機</span>1-1 階層項目預約_Pressed_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_73768.png" alt="1-1 階層項目預約_M"></div><figcaption><span class="badge">手機</span>1-1 階層項目預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1653_70964.png" alt="1-1 階層項目預約_選擇父層_M"></div><figcaption><span class="badge">手機</span>1-1 階層項目預約_選擇父層_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1653_73245.png" alt="Modal / Form-RWD"></div><figcaption><span class="badge">手機</span>Modal / Form-RWD</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1653_72908.png" alt="1-1 階層項目預約_選擇人數、日期與時段_M"></div><figcaption><span class="badge">手機</span>1-1 階層項目預約_選擇人數、日期與時段_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_88931.png" alt="1-1 階層項目預約_隱藏人數選項_M"></div><figcaption><span class="badge">手機</span>1-1 階層項目預約_隱藏人數選項_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1653_73413.png" alt="1-1 階層項目預約_選擇時段_M"></div><figcaption><span class="badge">手機</span>1-1 階層項目預約_選擇時段_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_74230.png" alt="1-1 階層項目預約_選擇時段_Pressed_M"></div><figcaption><span class="badge">手機</span>1-1 階層項目預約_選擇時段_Pressed_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1653_72507.png" alt="1-1 階層項目預約_收合選擇人數、日期與時段 Modal_M"></div><figcaption><span class="badge">手機</span>1-1 階層項目預約_收合選擇人數、日期與時段 Modal_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1653_70445.png" alt="1-1 階層項目預約_展開其他注意事項_M"></div><figcaption><span class="badge">手機</span>1-1 階層項目預約_展開其他注意事項_M</figcaption></figure>
+</div></section>
+<section id="s-1696_76449" class="sec"><h3 class="sh">1-2 階層項目預約_查看其他分店 <em>6 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1644_67145.png" alt="1-2 階層項目預約_查看其他分店_Start"></div><figcaption><span class="badge">桌面</span>1-2 階層項目預約_查看其他分店_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_74787.png" alt="1-2 階層項目預約_查看其他分店"></div><figcaption><span class="badge">桌面</span>1-2 階層項目預約_查看其他分店</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_75174.png" alt="分店展開"></div><figcaption><span class="badge">桌面</span>分店展開</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_75370.png" alt="分店展開_Hover"></div><figcaption><span class="badge">桌面</span>分店展開_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_75509.png" alt="分店展開_Pressed"></div><figcaption><span class="badge">桌面</span>分店展開_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_75761.png" alt="1-2 階層項目預約_查看其他分店_M"></div><figcaption><span class="badge">手機</span>1-2 階層項目預約_查看其他分店_M</figcaption></figure>
+</div></section>
+<section id="s-1696_79661" class="sec"><h3 class="sh">1-3 填寫資訊 <em>7 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_75993.png" alt="1-3 填寫資訊_Start"></div><figcaption><span class="badge">桌面</span>1-3 填寫資訊_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_76450.png" alt="1-3 填寫資訊"></div><figcaption><span class="badge">桌面</span>1-3 填寫資訊</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_76626.png" alt="1-3 填寫資訊_預約成功"></div><figcaption><span class="badge">桌面</span>1-3 填寫資訊_預約成功</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_77119.png" alt="1-3 填寫資訊_待審核"></div><figcaption><span class="badge">桌面</span>1-3 填寫資訊_待審核</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_79065.png" alt="1-3 填寫資訊_M"></div><figcaption><span class="badge">手機</span>1-3 填寫資訊_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_79272.png" alt="1-3 填寫資訊_預約成功_M"></div><figcaption><span class="badge">手機</span>1-3 填寫資訊_預約成功_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_79487.png" alt="1-3 填寫資訊_待審核_M"></div><figcaption><span class="badge">手機</span>1-3 填寫資訊_待審核_M</figcaption></figure>
+</div></section>
+<section id="s-1696_80447" class="sec"><h3 class="sh">1-3a 填寫資訊_預先付款 <em>10 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_76221.png" alt="1-3a 填寫資訊_預先付款_Start"></div><figcaption><span class="badge">桌面</span>1-3a 填寫資訊_預先付款_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_77258.png" alt="1-3a 填寫資訊_預先付款"></div><figcaption><span class="badge">桌面</span>1-3a 填寫資訊_預先付款</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_77435.png" alt="1-3a 填寫資訊_預先付款_待付款"></div><figcaption><span class="badge">桌面</span>1-3a 填寫資訊_預先付款_待付款</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_77543.png" alt="1-3a 填寫資訊_預先付款_待審核+待付款"></div><figcaption><span class="badge">桌面</span>1-3a 填寫資訊_預先付款_待審核+待付款</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_77653.png" alt="1-3a 填寫資訊_預先付款_付款完成"></div><figcaption><span class="badge">桌面</span>1-3a 填寫資訊_預先付款_付款完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_78727.png" alt="1-3a 填寫資訊_預先付款_M"></div><figcaption><span class="badge">手機</span>1-3a 填寫資訊_預先付款_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_79664.png" alt="1-3a 填寫資訊_預先付款_M"></div><figcaption><span class="badge">手機</span>1-3a 填寫資訊_預先付款_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_79877.png" alt="1-3a 填寫資訊_預先付款_付款完成_M"></div><figcaption><span class="badge">手機</span>1-3a 填寫資訊_預先付款_付款完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_79985.png" alt="1-3a 填寫資訊_預先付款_待審核+待付款_M"></div><figcaption><span class="badge">手機</span>1-3a 填寫資訊_預先付款_待審核+待付款_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_80098.png" alt="1-3a 填寫資訊_預先付款_待付款_M"></div><figcaption><span class="badge">手機</span>1-3a 填寫資訊_預先付款_待付款_M</figcaption></figure>
+</div></section>
+<section id="s-1696_82044" class="sec"><h3 class="sh">1-3b 填寫資訊_信用卡授權 <em>10 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_77871.png" alt="1-3b 填寫資訊_信用卡授權_Start"></div><figcaption><span class="badge">桌面</span>1-3b 填寫資訊_信用卡授權_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_78108.png" alt="1-3b 填寫資訊_信用卡授權"></div><figcaption><span class="badge">桌面</span>1-3b 填寫資訊_信用卡授權</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_78290.png" alt="1-3b 填寫資訊_信用卡授權_綁卡完成"></div><figcaption><span class="badge">桌面</span>1-3b 填寫資訊_信用卡授權_綁卡完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_78393.png" alt="1-3b 填寫資訊_信用卡授權_待綁卡"></div><figcaption><span class="badge">桌面</span>1-3b 填寫資訊_信用卡授權_待綁卡</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_78501.png" alt="1-3b 填寫資訊_預先付款_待審核+待綁卡"></div><figcaption><span class="badge">桌面</span>1-3b 填寫資訊_預先付款_待審核+待綁卡</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_80448.png" alt="1-3b 填寫資訊_信用卡授權_Start_M"></div><figcaption><span class="badge">手機</span>1-3b 填寫資訊_信用卡授權_Start_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_81257.png" alt="1-3b 填寫資訊_信用卡授權_M"></div><figcaption><span class="badge">手機</span>1-3b 填寫資訊_信用卡授權_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_81475.png" alt="1-3b 填寫資訊_信用卡授權_待綁卡_M"></div><figcaption><span class="badge">手機</span>1-3b 填寫資訊_信用卡授權_待綁卡_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_81588.png" alt="1-3b 填寫資訊_信用卡授權_綁卡完成_M"></div><figcaption><span class="badge">手機</span>1-3b 填寫資訊_信用卡授權_綁卡完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_81696.png" alt="1-3a 填寫資訊_預先付款_待審核+待綁卡_M"></div><figcaption><span class="badge">手機</span>1-3a 填寫資訊_預先付款_待審核+待綁卡_M</figcaption></figure>
+</div></section>
+<section id="s-1696_85080" class="sec"><h3 class="sh">1-4 修改預約 <em>10 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_82053.png" alt="1-4 修改預約_Start"></div><figcaption><span class="badge">桌面</span>1-4 修改預約_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_83831.png" alt="1-4 填寫資訊_修改預約_完成修改"></div><figcaption><span class="badge">桌面</span>1-4 填寫資訊_修改預約_完成修改</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_82196.png" alt="1-4 修改預約"></div><figcaption><span class="badge">桌面</span>1-4 修改預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_83207.png" alt="1-4 修改預約_完成重選預約項目"></div><figcaption><span class="badge">桌面</span>1-4 修改預約_完成重選預約項目</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_83514.png" alt="1-4 修改預約_完成重修改輸入"></div><figcaption><span class="badge">桌面</span>1-4 修改預約_完成重修改輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_82505.png" alt="1-4 修改預約_重選預約項目"></div><figcaption><span class="badge">桌面</span>1-4 修改預約_重選預約項目</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_82863.png" alt="1-4 修改預約_重選子項目"></div><figcaption><span class="badge">桌面</span>1-4 修改預約_重選子項目</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_83972.png" alt="1-4 修改預約_M"></div><figcaption><span class="badge">手機</span>1-4 修改預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_84324.png" alt="1-4 修改預約_重選預約項目_M"></div><figcaption><span class="badge">手機</span>1-4 修改預約_重選預約項目_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_84687.png" alt="1-4 修改預約_重選子項目_M"></div><figcaption><span class="badge">手機</span>1-4 修改預約_重選子項目_M</figcaption></figure>
+</div></section>
+<section id="s-1696_85706" class="sec"><h3 class="sh">1-5 取消預約 <em>4 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_85385.png" alt="1-5 取消預約_完成取消"></div><figcaption><span class="badge">桌面</span>1-5 取消預約_完成取消</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_85092.png" alt="1-5 取消預約_Start"></div><figcaption><span class="badge">桌面</span>1-5 取消預約_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_85232.png" alt="1-5 取消預約_Popup"></div><figcaption><span class="badge">桌面</span>1-5 取消預約_Popup</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_85523.png" alt="1-5 取消預約_完成取消_M"></div><figcaption><span class="badge">手機</span>1-5 取消預約_完成取消_M</figcaption></figure>
+</div></section>
+<section id="s-1696_87742" class="sec"><h3 class="sh">1-6 查詢預約 <em>12 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_85707.png" alt="1-6 查詢預約_Start"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_85878.png" alt="1-6 查詢預約"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_86352.png" alt="1-6 查詢預約_查詢結果_已取消"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_已取消</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_86459.png" alt="1-6 查詢預約_查詢結果_預約成功"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_預約成功</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_86570.png" alt="1-6 查詢預約_查詢結果_已結束"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_已結束</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_86677.png" alt="1-6 查詢預約_查詢結果_待審核"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_待審核</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_86773.png" alt="1-6 查詢預約_查詢結果_待付款"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_待付款</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_86875.png" alt="1-6 查詢預約_查詢結果_付款完成"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_付款完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_86972.png" alt="1-6 查詢預約_查詢結果_綁卡完成"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_綁卡完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_87069.png" alt="1-6 查詢預約_查詢結果_待綁卡"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_待綁卡</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_87171.png" alt="1-6 查詢預約_查詢結果_待審核+待綁卡"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_待審核+待綁卡</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_87275.png" alt="1-6 查詢預約_查詢結果_預先付款_待審核+待付款"></div><figcaption><span class="badge">桌面</span>1-6 查詢預約_查詢結果_預先付款_待審核+待付款</figcaption></figure>
+</div></section>
+<section id="s-1829_14486" class="sec"><h3 class="sh">2-1 設定_顧客預約頁內容 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1792_50278.png" alt="2-1 設定_顧客預約頁內容（Default）"></div><figcaption><span class="badge">桌面</span>2-1 設定_顧客預約頁內容（Default）</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1801_55233.png" alt="2-1 設定_顧客預約頁內容_Hover"></div><figcaption><span class="badge">桌面</span>2-1 設定_顧客預約頁內容_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1801_55786.png" alt="2-1 設定_顧客預約頁內容_Pressed"></div><figcaption><span class="badge">桌面</span>2-1 設定_顧客預約頁內容_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1829_13865.png" alt="2-1 設定_顧客預約頁內容（Default）_M"></div><figcaption><span class="badge">手機</span>2-1 設定_顧客預約頁內容（Default）_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1829_14178.png" alt="2-1 設定_顧客預約頁內容_Pressed_M"></div><figcaption><span class="badge">手機</span>2-1 設定_顧客預約頁內容_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-1847_16237" class="sec"><h3 class="sh">2-2 編輯預約項目選單提示文字 <em>10 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1801_54805.png" alt="2-2 編輯預約項目選單提示文字_Start"></div><figcaption><span class="badge">桌面</span>2-2 編輯預約項目選單提示文字_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1801_56363.png" alt="2-2 編輯預約項目選單提示文字_Focus"></div><figcaption><span class="badge">桌面</span>2-2 編輯預約項目選單提示文字_Focus</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1829_10091.png" alt="2-2 編輯預約項目選單提示文字_Placeholder"></div><figcaption><span class="badge">桌面</span>2-2 編輯預約項目選單提示文字_Placeholder</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1829_10562.png" alt="2-2 編輯預約項目選單提示文字_完成輸入"></div><figcaption><span class="badge">桌面</span>2-2 編輯預約項目選單提示文字_完成輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1829_11029.png" alt="2-2 編輯預約項目選單提示文字_儲存成功"></div><figcaption><span class="badge">桌面</span>2-2 編輯預約項目選單提示文字_儲存成功</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_14488.png" alt="2-2 編輯預約項目選單提示文字_儲存成功"></div><figcaption><span class="badge">手機</span>2-2 編輯預約項目選單提示文字_儲存成功</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_14785.png" alt="2-2 編輯預約項目選單提示文字_M"></div><figcaption><span class="badge">手機</span>2-2 編輯預約項目選單提示文字_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_15178.png" alt="2-2 編輯預約項目選單提示文字_Focus_M"></div><figcaption><span class="badge">手機</span>2-2 編輯預約項目選單提示文字_Focus_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_15560.png" alt="2-2 編輯預約項目選單提示文字_Placeholder_M"></div><figcaption><span class="badge">手機</span>2-2 編輯預約項目選單提示文字_Placeholder_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_15896.png" alt="2-2 編輯預約項目選單提示文字_完成輸入_M"></div><figcaption><span class="badge">手機</span>2-2 編輯預約項目選單提示文字_完成輸入_M</figcaption></figure>
+</div></section>
+<section id="s-1847_17541" class="sec"><h3 class="sh">2-3 編輯子項目選單提示文字 <em>9 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1829_12353.png" alt="2-3 編輯子項目選單提示文字_Focus"></div><figcaption><span class="badge">桌面</span>2-3 編輯子項目選單提示文字_Focus</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1829_12916.png" alt="2-3 編輯子項目選單提示文字_Placeholder"></div><figcaption><span class="badge">桌面</span>2-3 編輯子項目選單提示文字_Placeholder</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1829_13379.png" alt="2-3 編輯子項目選單提示文字_完成輸入"></div><figcaption><span class="badge">桌面</span>2-3 編輯子項目選單提示文字_完成輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1829_11492.png" alt="2-3 編輯子項目選單提示文字_Start"></div><figcaption><span class="badge">桌面</span>2-3 編輯子項目選單提示文字_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="modes_assets/1829_11922.png" alt="2-3 編輯子項目選單提示文字_儲存成功"></div><figcaption><span class="badge">桌面</span>2-3 編輯子項目選單提示文字_儲存成功</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_16567.png" alt="2-3 編輯子項目選單提示文字_儲存成功_M"></div><figcaption><span class="badge">手機</span>2-3 編輯子項目選單提示文字_儲存成功_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_16238.png" alt="2-3 編輯子項目選單提示文字_Focus_M"></div><figcaption><span class="badge">手機</span>2-3 編輯子項目選單提示文字_Focus_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_16871.png" alt="2-3 編輯子項目選單提示文字_Placeholder_M"></div><figcaption><span class="badge">手機</span>2-3 編輯子項目選單提示文字_Placeholder_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1847_17200.png" alt="2-3 編輯子項目選單提示文字_完成輸入_M"></div><figcaption><span class="badge">手機</span>2-3 編輯子項目選單提示文字_完成輸入_M</figcaption></figure>
+</div></section>
+<section id="s-hier-notes" class="sec"><h3 class="sh">📋 說明卡與其他 <em>3 張</em></h3><div class="grid">
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1696_74745.png" alt="1-1 階層項目預約_說明"></div><figcaption><span class="badge">手機</span>1-1 階層項目預約_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1829_10560.png" alt="2-2 編輯預約項目選單提示文字_說明"></div><figcaption><span class="badge">手機</span>2-2 編輯預約項目選單提示文字_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="modes_assets/1829_13862.png" alt="2-3 編輯子項目選單提示文字_說明"></div><figcaption><span class="badge">手機</span>2-3 編輯子項目選單提示文字_說明</figcaption></figure>
+</div></section>
+</main>
+</div>
+<div id="lb" onclick="this.classList.remove('on')"><img id="lbimg" src=""></div>
+<script>
+document.querySelectorAll('.card img').forEach(function(im){
+  im.addEventListener('click',function(e){e.stopPropagation();var lb=document.getElementById('lb');document.getElementById('lbimg').src=im.src;lb.classList.add('on');});
+});
+</script>
+</body></html>

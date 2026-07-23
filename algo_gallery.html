@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>演算法改版・後台設定 — 設計稿總覽</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"PingFang TC","Noto Sans TC",sans-serif;color:#222;background:#f4f5f6}
+  header.top{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #e5e5e5;padding:14px 24px;display:flex;align-items:center;gap:14px}
+  header.top h1{font-size:17px;font-weight:600}
+  header.top .meta{font-size:13px;color:#888}
+  header.top .link{margin-left:auto;font-size:13px;color:#29A379;text-decoration:none;border:1px solid #3FBA88;border-radius:100px;padding:6px 14px}
+  .wrap{display:flex;align-items:flex-start}
+  nav.side{position:sticky;top:56px;width:250px;flex:0 0 250px;height:calc(100vh - 56px);overflow:auto;padding:16px 10px;background:#fff;border-right:1px solid #e5e5e5}
+  nav.side .ngh{font-size:12px;font-weight:700;color:#29A379;padding:12px 12px 4px;letter-spacing:.5px}
+  nav.side a{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:#444;text-decoration:none;padding:7px 12px;border-radius:8px}
+  nav.side a:hover{background:#f0f7f3}
+  nav.side a span{color:#aaa;font-size:12px}
+  main{flex:1;min-width:0;padding:22px 28px 80px}
+  .gh{font-size:15px;font-weight:700;color:#29A379;margin:26px 0 6px;letter-spacing:.5px}
+  .sec{margin-bottom:14px}
+  .sh{font-size:16px;font-weight:600;margin:18px 0 12px;padding-bottom:8px;border-bottom:1px solid #e5e5e5}
+  .sh em{font-style:normal;font-size:12px;color:#999;font-weight:400;margin-left:8px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+  .card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;overflow:hidden;cursor:zoom-in}
+  .card .imwrap{background:#fafafa;max-height:420px;overflow:auto;display:flex;justify-content:center}
+  .card img{width:100%;height:auto;display:block}
+  .card.mob .imwrap{padding:10px}
+  .card.mob img{max-width:230px;margin:0 auto}
+  figcaption{font-size:12px;color:#555;padding:9px 11px;display:flex;align-items:center;gap:7px;border-top:1px solid #eee;line-height:1.4}
+  .badge{flex:0 0 auto;font-size:10px;color:#fff;background:#9aa;border-radius:4px;padding:2px 6px}
+  .card.mob .badge{background:#E4924B}
+  .card.desk .badge{background:#5B8DEF}
+  #lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99;align-items:flex-start;justify-content:center;overflow:auto;padding:30px;cursor:zoom-out}
+  #lb.on{display:flex}
+  #lb img{max-width:1024px;width:100%;height:auto;border-radius:6px}
+</style></head><body>
+<header class="top"><h1>演算法改版・後台設定 — 設計稿總覽</h1><span class="meta">共 640 張 · 2025 Oct. 系統架構演算法優化 · 照 Figma 原稿渲染</span>
+<a class="link" href="index.html">← 回入口</a></header>
+<div class="wrap">
+<nav class="side"><div class="ngh">① 預約模式</div><a href="#s-2642_18424">1-1 預約模式與規則 <span>13</span></a><a href="#s-2615_4908">1-2 變更預約模式 <span>16</span></a><a href="#s-2387_4375">Demo <span>5</span></a><a href="#s-mode-notes">📋 說明卡與其他 <span>7</span></a><div class="ngh">② 預約單位</div><a href="#s-2219_24725">2-1 預約單位 <span>10</span></a><a href="#s-2235_25144">2-2-1 預約單位_新增群組 <span>11</span></a><a href="#s-2235_33167">2-2-2 預約單位_編輯群組 <span>13</span></a><a href="#s-2278_8855">2-2-3 預約單位_刪除群組 <span>9</span></a><a href="#s-2283_9886">2-3 預約單位_單位 <span>11</span></a><a href="#s-2300_32867">2-4-1 預約單位_新增單位 <span>10</span></a><a href="#s-2312_38158">2-3-2 預約單位_編輯單位 <span>13</span></a><a href="#s-2312_38713">2-3-3 預約單位_刪除單位 <span>5</span></a><a href="#s-unit-notes">📋 說明卡與其他 <span>3</span></a><div class="ngh">③ 時段設定</div><a href="#s-3946_124110">3-1 預約時段-基本人數預約 <span>17</span></a><a href="#s-4010_127884">3-2 基本人數預約_新增時段 <span>21</span></a><a href="#s-4010_128806">3-2a 基本人數預約_新增時段_選擇時間範圍 <span>7</span></a><a href="#s-4010_130653">3-2b 基本人數預約_新增時段_自訂時間 <span>13</span></a><a href="#s-4010_134107">3-2c 基本人數預約_新增時段_自訂預約單位 <span>6</span></a><a href="#s-4010_138061">3-3 基本人數預約_編輯時段 <span>5</span></a><a href="#s-4010_139133">3-4 基本人數預約_刪除時段 <span>7</span></a><a href="#s-4068_158708">4-1 預約時段-服務項目預約 <span>8</span></a><a href="#s-4076_159179">4-2 服務項目預約_新增項目 <span>9</span></a><a href="#s-4154_41059">4-3 服務項目預約_編輯項目清單 <span>14</span></a><a href="#s-4171_44140">4-4 服務項目預約_編輯項目名稱 <span>18</span></a><a href="#s-4196_51667">4-5 服務項目預約_新增時段 <span>9</span></a><a href="#s-4196_53626">4-6 服務項目預約_編輯時段 <span>5</span></a><a href="#s-4196_56708">4-6 服務項目預約_刪除時段 <span>5</span></a><a href="#s-4196_58564">5-1 預約時段-階層項目預約 <span>8</span></a><a href="#s-4196_60526">5-2 階層項目預約_新增項目 <span>9</span></a><a href="#s-4203_52501">5-3 階層項目預約_編輯項目名稱 <span>18</span></a><a href="#s-4203_47056">5-4 階層項目預約_編輯項目清單 <span>14</span></a><a href="#s-4212_68521">5-5 階層項目預約_新增子項目 <span>11</span></a><a href="#s-4215_88822">5-6 階層項目預約_編輯子項目名稱 <span>18</span></a><a href="#s-4215_93161">5-7 階層項目預約_新增時段 <span>8</span></a><a href="#s-4215_95995">5-8 階層項目預約_編輯時段 <span>5</span></a><a href="#s-4215_101397">5-9 階層項目預約_刪除時段 <span>5</span></a><a href="#s-4026_148377">6-1 預約時段-總量控管 <span>10</span></a><a href="#s-4050_153229">6-2 總量控管_新增時段 <span>11</span></a><a href="#s-4050_155469">6-3 總量控管_編輯時段 <span>5</span></a><a href="#s-4050_158079">6-4 總量控管_刪除時段 <span>5</span></a><a href="#s-time-notes">📋 說明卡與其他 <span>14</span></a><div class="ngh">④ 例外預約規則</div><a href="#s-4641_161351">7-1 例外時段-基本人數預約 <span>16</span></a><a href="#s-4627_71194">7-2 基本人數預約_關閉預約 <span>7</span></a><a href="#s-4651_221561">7-3 基本人數預約_新增例外規則 <span>17</span></a><a href="#s-4651_224660">7-4 基本人數預約_編輯例外規則 <span>5</span></a><a href="#s-4651_226507">7-5 基本人數預約_複製例外規則 <span>5</span></a><a href="#s-4651_233699">7-6 基本人數預約_刪除例外規則 <span>5</span></a><a href="#s-4627_69452">8-1 例外時段-預約項目預約 <span>15</span></a><a href="#s-4627_69453">8-2 預約項目預約_關閉預約 <span>7</span></a><a href="#s-4651_233700">8-3 預約項目預約_新增例外規則 <span>18</span></a><a href="#s-4651_241385">8-4 預約項目預約_編輯例外規則 <span>5</span></a><a href="#s-4651_244376">8-5 預約項目預約_編輯已關閉預約的項目 <span>3</span></a><a href="#s-4651_246524">8-6 預約項目預約_複製例外規則 <span>3</span></a><a href="#s-4651_248232">8-7 預約項目預約_刪除例外規則 <span>5</span></a><a href="#s-4542_12815">9-1 例外時段-階層項目預約 <span>16</span></a><a href="#s-4542_66013">9-2 階層項目預約_關閉預約 <span>7</span></a><a href="#s-4596_22213">9-3 階層項目預約_新增例外規則 <span>21</span></a><a href="#s-4604_27215">9-4 階層項目預約_編輯例外規則 <span>5</span></a><a href="#s-4604_38763">9-5 階層項目預約_編輯已關閉預約的項目 <span>3</span></a><a href="#s-4604_40322">9-6 階層項目預約_複製例外規則 <span>3</span></a><a href="#s-4604_44658">9-7 階層項目預約_刪除例外規則 <span>5</span></a><a href="#s-4655_260756">10-1 例外時段-總量控管 <span>13</span></a><a href="#s-4655_260757">10-2 總量控管_關閉預約 <span>7</span></a><a href="#s-4655_262501">10-3 總量控管_新增例外規則 <span>14</span></a><a href="#s-4655_264747">10-4 總量控管_編輯例外規則 <span>5</span></a><a href="#s-4655_265395">10-5 總量控管_複製例外規則 <span>5</span></a><a href="#s-4655_266031">10-6 總量控管_刪除例外規則 <span>5</span></a><a href="#s-exc-notes">📋 說明卡與其他 <span>9</span></a></nav>
+<main>
+<h2 class="gh">① 預約模式</h2>
+<section id="s-2642_18424" class="sec"><h3 class="sh">1-1 預約模式與規則 <em>13 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2615_5551.png" alt="1-1 預約規則_基本人數預約（Default）"></div><figcaption><span class="badge">桌面</span>1-1 預約規則_基本人數預約（Default）</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2615_4909.png" alt="1-1 預約規則_服務項目預約"></div><figcaption><span class="badge">桌面</span>1-1 預約規則_服務項目預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2615_5123.png" alt="1-1 預約規則_階層項目預約"></div><figcaption><span class="badge">桌面</span>1-1 預約規則_階層項目預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2615_5337.png" alt="1-1 預約規則_總量控管"></div><figcaption><span class="badge">桌面</span>1-1 預約規則_總量控管</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2629_4752.png" alt="1-1 預約規則_Hover"></div><figcaption><span class="badge">桌面</span>1-1 預約規則_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2629_4972.png" alt="1-1 預約規則_Pressed"></div><figcaption><span class="badge">桌面</span>1-1 預約規則_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2615_4630.png" alt="1-1 預約規則_選單_M"></div><figcaption><span class="badge">手機</span>1-1 預約規則_選單_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2577_16449.png" alt="1-1 預約規則_基本人數預約（Default）_M"></div><figcaption><span class="badge">手機</span>1-1 預約規則_基本人數預約（Default）_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2635_5925.png" alt="1-1 預約規則_服務項目預約_M"></div><figcaption><span class="badge">手機</span>1-1 預約規則_服務項目預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2635_6005.png" alt="1-1 預約規則_階層項目預約_M"></div><figcaption><span class="badge">手機</span>1-1 預約規則_階層項目預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2635_6085.png" alt="1-1 預約規則_總量控管_M"></div><figcaption><span class="badge">手機</span>1-1 預約規則_總量控管_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2642_18209.png" alt="1-1 預約規則_Pressed_M"></div><figcaption><span class="badge">手機</span>1-1 預約規則_Pressed_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2064_27833.png" alt="設定分類"></div><figcaption><span class="badge">手機</span>設定分類</figcaption></figure>
+</div></section>
+<section id="s-2615_4908" class="sec"><h3 class="sh">1-2 變更預約模式 <em>16 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2064_27276.png" alt="1-2 變更預約模式_基本人數預約（Default）_Start"></div><figcaption><span class="badge">桌面</span>1-2 變更預約模式_基本人數預約（Default）_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2091_41048.png" alt="1-2 變更預約模式_基本人數預約"></div><figcaption><span class="badge">桌面</span>1-2 變更預約模式_基本人數預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2510_79175.png" alt="1-2 變更預約模式_服務項目預約"></div><figcaption><span class="badge">桌面</span>1-2 變更預約模式_服務項目預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2528_79680.png" alt="1-2 變更預約模式_階層項目預約"></div><figcaption><span class="badge">桌面</span>1-2 變更預約模式_階層項目預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2528_79928.png" alt="1-2 變更預約模式_總量控管"></div><figcaption><span class="badge">桌面</span>1-2 變更預約模式_總量控管</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2566_80765.png" alt="1-2 變更預約模式_儲存提醒"></div><figcaption><span class="badge">桌面</span>1-2 變更預約模式_儲存提醒</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2566_81021.png" alt="1-1 變更預約模式_完成變更"></div><figcaption><span class="badge">桌面</span>1-1 變更預約模式_完成變更</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2629_5432.png" alt="1-2 變更預約模式_Hover"></div><figcaption><span class="badge">桌面</span>1-2 變更預約模式_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2629_5679.png" alt="1-2 變更預約模式_Pressed"></div><figcaption><span class="badge">桌面</span>1-2 變更預約模式_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2577_16875.png" alt="1-2 變更預約模式_基本人數預約_M"></div><figcaption><span class="badge">手機</span>1-2 變更預約模式_基本人數預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2608_4010.png" alt="1-2 變更預約模式_服務項目預約_M"></div><figcaption><span class="badge">手機</span>1-2 變更預約模式_服務項目預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2608_4192.png" alt="1-2 變更預約模式_階層項目預約_M"></div><figcaption><span class="badge">手機</span>1-2 變更預約模式_階層項目預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2608_4402.png" alt="1-2 變更預約模式_總量控管_M"></div><figcaption><span class="badge">手機</span>1-2 變更預約模式_總量控管_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2608_4950.png" alt="1-2 變更預約模式_儲存提醒_M"></div><figcaption><span class="badge">手機</span>1-2 變更預約模式_儲存提醒_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2608_5153.png" alt="1-2 變更預約模式_完成變更_M"></div><figcaption><span class="badge">手機</span>1-2 變更預約模式_完成變更_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2642_18301.png" alt="1-2 變更預約模式_服務項目預約_Pressed_M"></div><figcaption><span class="badge">手機</span>1-2 變更預約模式_服務項目預約_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-2387_4375" class="sec"><h3 class="sh">Demo <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2404_16417.png" alt="1-1 變更預約模式_基本預約（Default）_Start"></div><figcaption><span class="badge">桌面</span>1-1 變更預約模式_基本預約（Default）_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2119_41689.png" alt="1-1 變更預約模式_基本預約"></div><figcaption><span class="badge">桌面</span>1-1 變更預約模式_基本預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2371_16694.png" alt="1-1 變更預約模式_基本預約"></div><figcaption><span class="badge">桌面</span>1-1 變更預約模式_基本預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2371_17026.png" alt="1-1 變更預約模式_基本預約"></div><figcaption><span class="badge">桌面</span>1-1 變更預約模式_基本預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2371_17358.png" alt="1-1 變更預約模式_基本預約"></div><figcaption><span class="badge">桌面</span>1-1 變更預約模式_基本預約</figcaption></figure>
+</div></section>
+<section id="s-mode-notes" class="sec"><h3 class="sh">📋 說明卡與其他 <em>7 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2064_27896.png" alt="預約規則_單選項預約"></div><figcaption><span class="badge">桌面</span>預約規則_單選項預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2510_79095.png" alt="Preview_基本人數預約"></div><figcaption><span class="badge">桌面</span>Preview_基本人數預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2552_79676.png" alt="Preview_基本人數預約_EN"></div><figcaption><span class="badge">桌面</span>Preview_基本人數預約_EN</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2532_79573.png" alt="Preview_服務項目預約"></div><figcaption><span class="badge">桌面</span>Preview_服務項目預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2551_80361.png" alt="Preview_服務項目預約_EN"></div><figcaption><span class="badge">桌面</span>Preview_服務項目預約_EN</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2564_79737.png" alt="Preview_階層項目預約"></div><figcaption><span class="badge">桌面</span>Preview_階層項目預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2566_80439.png" alt="Preview_階層項目預約_EN"></div><figcaption><span class="badge">桌面</span>Preview_階層項目預約_EN</figcaption></figure>
+</div></section>
+<h2 class="gh">② 預約單位</h2>
+<section id="s-2219_24725" class="sec"><h3 class="sh">2-1 預約單位 <em>10 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_26954.png" alt="2-1 預約單位_Start"></div><figcaption><span class="badge">桌面</span>2-1 預約單位_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_27243.png" alt="2-1 預約單位_預設資料"></div><figcaption><span class="badge">桌面</span>2-1 預約單位_預設資料</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2210_24662.png" alt="2-1 預約單位_預設資料_Word Limit"></div><figcaption><span class="badge">桌面</span>2-1 預約單位_預設資料_Word Limit</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_33335.png" alt="2-1 預約單位_群組 Null"></div><figcaption><span class="badge">桌面</span>2-1 預約單位_群組 Null</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2182_55306.png" alt="2-1 預約單位_Hover"></div><figcaption><span class="badge">桌面</span>2-1 預約單位_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2182_55548.png" alt="2-1 預約單位_Pressed"></div><figcaption><span class="badge">桌面</span>2-1 預約單位_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2188_56695.png" alt="2-1 預約單位_預設資料_M"></div><figcaption><span class="badge">手機</span>2-1 預約單位_預設資料_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2215_24907.png" alt="2-1 預約單位_Word Limit_M"></div><figcaption><span class="badge">手機</span>2-1 預約單位_Word Limit_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2216_24663.png" alt="2-1 預約單位_Null_M"></div><figcaption><span class="badge">手機</span>2-1 預約單位_Null_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2215_25055.png" alt="2-1 預約單位_Pressed_M"></div><figcaption><span class="badge">手機</span>2-1 預約單位_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-2235_25144" class="sec"><h3 class="sh">2-2-1 預約單位_新增群組 <em>11 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_27876.png" alt="2-2-1 預約單位_新增群組_Start"></div><figcaption><span class="badge">桌面</span>2-2-1 預約單位_新增群組_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_32869.png" alt="2-2-1 預約單位_新增群組 Form"></div><figcaption><span class="badge">桌面</span>2-2-1 預約單位_新增群組 Form</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_33113.png" alt="2-2-1 預約單位_新增群組_輸入"></div><figcaption><span class="badge">桌面</span>2-2-1 預約單位_新增群組_輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_33223.png" alt="2-2-1 預約單位_新增群組_輸入錯誤"></div><figcaption><span class="badge">桌面</span>2-2-1 預約單位_新增群組_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_32980.png" alt="2-2-1 預約單位_新增群組_Placeholder"></div><figcaption><span class="badge">桌面</span>2-2-1 預約單位_新增群組_Placeholder</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_28932.png" alt="2-2-1 預約單位_新增群組_新增成功"></div><figcaption><span class="badge">桌面</span>2-2-1 預約單位_新增群組_新增成功</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2225_7647.png" alt="2-2-1 預約單位_新增群組 Form_M"></div><figcaption><span class="badge">手機</span>2-2-1 預約單位_新增群組 Form_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2219_24969.png" alt="2-2-1 預約單位_新增群組_輸入_M"></div><figcaption><span class="badge">手機</span>2-2-1 預約單位_新增群組_輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2219_25124.png" alt="2-2-1 預約單位_新增群組_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>2-2-1 預約單位_新增群組_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2219_25286.png" alt="2-2-1 預約單位_新增群組_Placeholder_M"></div><figcaption><span class="badge">手機</span>2-2-1 預約單位_新增群組_Placeholder_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2219_25420.png" alt="2-2-1 預約單位_新增群組_新增成功_M"></div><figcaption><span class="badge">手機</span>2-2-1 預約單位_新增群組_新增成功_M</figcaption></figure>
+</div></section>
+<section id="s-2235_33167" class="sec"><h3 class="sh">2-2-2 預約單位_編輯群組 <em>13 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_27974.png" alt="2-2-2 預約單位_編輯群組_Start"></div><figcaption><span class="badge">桌面</span>2-2-2 預約單位_編輯群組_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_31909.png" alt="2-2-2 預約單位_編輯群組_群組內頁"></div><figcaption><span class="badge">桌面</span>2-2-2 預約單位_編輯群組_群組內頁</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2235_29616.png" alt="2-2-2 預約單位_編輯群組"></div><figcaption><span class="badge">桌面</span>2-2-2 預約單位_編輯群組</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2235_30367.png" alt="2-2-2 預約單位_編輯群組_輸入錯誤"></div><figcaption><span class="badge">桌面</span>2-2-2 預約單位_編輯群組_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2235_30751.png" alt="2-2-2 預約單位_編輯群組_清空欄位"></div><figcaption><span class="badge">桌面</span>2-2-2 預約單位_編輯群組_清空欄位</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2235_31134.png" alt="2-2-2 預約單位_編輯群組_儲存成功"></div><figcaption><span class="badge">桌面</span>2-2-2 預約單位_編輯群組_儲存成功</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3167_62660.png" alt="2-2-2 預約單位_編輯預設群組"></div><figcaption><span class="badge">桌面</span>2-2-2 預約單位_編輯預設群組</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2235_31382.png" alt="2-2-2 預約單位_編輯群組_群組內頁_M"></div><figcaption><span class="badge">手機</span>2-2-2 預約單位_編輯群組_群組內頁_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2235_31542.png" alt="2-2-2 預約單位_編輯群組_M"></div><figcaption><span class="badge">手機</span>2-2-2 預約單位_編輯群組_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2235_32698.png" alt="2-2-2 預約單位_編輯群組_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>2-2-2 預約單位_編輯群組_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2235_32874.png" alt="2-2-2 預約單位_編輯群組_清空欄位_M"></div><figcaption><span class="badge">手機</span>2-2-2 預約單位_編輯群組_清空欄位_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2235_33053.png" alt="2-2-2 預約單位_編輯群組_儲存成功_M"></div><figcaption><span class="badge">手機</span>2-2-2 預約單位_編輯群組_儲存成功_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3184_62959.png" alt="2-2-2 預約單位_編輯預設群組_M"></div><figcaption><span class="badge">手機</span>2-2-2 預約單位_編輯預設群組_M</figcaption></figure>
+</div></section>
+<section id="s-2278_8855" class="sec"><h3 class="sh">2-2-3 預約單位_刪除群組 <em>9 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_28095.png" alt="2-2-3 預約單位_刪除群組_Start"></div><figcaption><span class="badge">桌面</span>2-2-3 預約單位_刪除群組_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2235_33655.png" alt="2-2-2 預約單位_刪除群組_群組內頁"></div><figcaption><span class="badge">桌面</span>2-2-2 預約單位_刪除群組_群組內頁</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2235_33899.png" alt="2-2-2 預約單位_刪除群組"></div><figcaption><span class="badge">桌面</span>2-2-2 預約單位_刪除群組</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2235_34203.png" alt="2-2-2 預約單位_刪除群組_Popup"></div><figcaption><span class="badge">桌面</span>2-2-2 預約單位_刪除群組_Popup</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2235_34506.png" alt="2-2-3 預約單位_刪除群組_刪除完成"></div><figcaption><span class="badge">桌面</span>2-2-3 預約單位_刪除群組_刪除完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3349_56068.png" alt="Modal / Popup Dialog_Hover"></div><figcaption><span class="badge">手機</span>Modal / Popup Dialog_Hover</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3349_56080.png" alt="Modal / Popup Dialog_Pressed"></div><figcaption><span class="badge">手機</span>Modal / Popup Dialog_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2274_8434.png" alt="2-2-2 預約單位_刪除群組_Popup_M"></div><figcaption><span class="badge">手機</span>2-2-2 預約單位_刪除群組_Popup_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2274_8698.png" alt="2-2-3 預約單位_刪除群組_刪除完成_M"></div><figcaption><span class="badge">手機</span>2-2-3 預約單位_刪除群組_刪除完成_M</figcaption></figure>
+</div></section>
+<section id="s-2283_9886" class="sec"><h3 class="sh">2-3 預約單位_單位 <em>11 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2278_8859.png" alt="2-3 預約單位_單位_Start"></div><figcaption><span class="badge">桌面</span>2-3 預約單位_單位_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2278_9082.png" alt="2-3 預約單位_單位"></div><figcaption><span class="badge">桌面</span>2-3 預約單位_單位</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2278_9720.png" alt="2-1 預約單位_單位_Word Limit"></div><figcaption><span class="badge">桌面</span>2-1 預約單位_單位_Word Limit</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2205_24414.png" alt="2-1 預約單位_單位 Null"></div><figcaption><span class="badge">桌面</span>2-1 預約單位_單位 Null</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2283_9268.png" alt="2-3 預約單位_單位_Hover"></div><figcaption><span class="badge">桌面</span>2-3 預約單位_單位_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2283_9520.png" alt="2-3 預約單位_單位_Pressed"></div><figcaption><span class="badge">桌面</span>2-3 預約單位_單位_Pressed</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_27763.png" alt="2-3 預約單位_預設群組_預設資料"></div><figcaption><span class="badge">桌面</span>2-3 預約單位_預設群組_預設資料</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2188_57738.png" alt="2-3 預約單位_單位_M"></div><figcaption><span class="badge">手機</span>2-3 預約單位_單位_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2188_57988.png" alt="2-1 預約單位_單位_Word Limit_M"></div><figcaption><span class="badge">手機</span>2-1 預約單位_單位_Word Limit_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2283_9154.png" alt="2-1 預約單位_單位 Null_M"></div><figcaption><span class="badge">手機</span>2-1 預約單位_單位 Null_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2283_9768.png" alt="2-3 預約單位_單位_Pressed_M"></div><figcaption><span class="badge">手機</span>2-3 預約單位_單位_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-2300_32867" class="sec"><h3 class="sh">2-4-1 預約單位_新增單位 <em>10 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_29190.png" alt="2-4-1 預約單位_新增單位_Start"></div><figcaption><span class="badge">桌面</span>2-4-1 預約單位_新增單位_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_31323.png" alt="2-3-1 預約單位_新增單位_Form"></div><figcaption><span class="badge">桌面</span>2-3-1 預約單位_新增單位_Form</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_31519.png" alt="2-3-1 預約單位_新增單位_輸入"></div><figcaption><span class="badge">桌面</span>2-3-1 預約單位_新增單位_輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_31713.png" alt="2-3-1 預約單位_新增單位_輸入錯誤"></div><figcaption><span class="badge">桌面</span>2-3-1 預約單位_新增單位_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_32638.png" alt="2-3-1 預約單位_新增單位_完成新增"></div><figcaption><span class="badge">桌面</span>2-3-1 預約單位_新增單位_完成新增</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2283_14223.png" alt="2-3-1 預約單位_新增單位_Form_M"></div><figcaption><span class="badge">手機</span>2-3-1 預約單位_新增單位_Form_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2294_31751.png" alt="2-3-1 預約單位_新增單位_輸入_M"></div><figcaption><span class="badge">手機</span>2-3-1 預約單位_新增單位_輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2294_32086.png" alt="2-3-1 預約單位_新增單位_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>2-3-1 預約單位_新增單位_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2294_14381.png" alt="2-3 預約單位_單位_M"></div><figcaption><span class="badge">手機</span>2-3 預約單位_單位_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2294_32247.png" alt="2-3 預約單位_單位_M"></div><figcaption><span class="badge">手機</span>2-3 預約單位_單位_M</figcaption></figure>
+</div></section>
+<section id="s-2312_38158" class="sec"><h3 class="sh">2-3-2 預約單位_編輯單位 <em>13 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_29368.png" alt="2-3-2 預約單位_編輯單位_Start"></div><figcaption><span class="badge">桌面</span>2-3-2 預約單位_編輯單位_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_30243.png" alt="2-3-2 預約單位_編輯單位"></div><figcaption><span class="badge">桌面</span>2-3-2 預約單位_編輯單位</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_30597.png" alt="2-3-2 預約單位_編輯單位_輸入"></div><figcaption><span class="badge">桌面</span>2-3-2 預約單位_編輯單位_輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_30774.png" alt="2-3-2 預約單位_編輯單位_輸入錯誤"></div><figcaption><span class="badge">桌面</span>2-3-2 預約單位_編輯單位_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_30420.png" alt="2-3-2 預約單位_編輯單位_清空瀾位"></div><figcaption><span class="badge">桌面</span>2-3-2 預約單位_編輯單位_清空瀾位</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_31139.png" alt="2-3-2 預約單位_編輯單位_群組選單"></div><figcaption><span class="badge">桌面</span>2-3-2 預約單位_編輯單位_群組選單</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_30077.png" alt="2-3-2 預約單位_編輯單位_完成"></div><figcaption><span class="badge">桌面</span>2-3-2 預約單位_編輯單位_完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2300_36145.png" alt="2-3-2 預約單位_編輯單位_M"></div><figcaption><span class="badge">手機</span>2-3-2 預約單位_編輯單位_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2312_36911.png" alt="2-3-2 預約單位_編輯單位_輸入_M"></div><figcaption><span class="badge">手機</span>2-3-2 預約單位_編輯單位_輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2312_37190.png" alt="2-3-2 預約單位_編輯單位_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>2-3-2 預約單位_編輯單位_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2312_37469.png" alt="2-3-2 預約單位_編輯單位_清空瀾位_M"></div><figcaption><span class="badge">手機</span>2-3-2 預約單位_編輯單位_清空瀾位_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2312_37748.png" alt="2-3-2 預約單位_編輯單位_清空瀾位_M"></div><figcaption><span class="badge">手機</span>2-3-2 預約單位_編輯單位_清空瀾位_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2300_36403.png" alt="2-3-2 預約單位_編輯單位_完成_M"></div><figcaption><span class="badge">手機</span>2-3-2 預約單位_編輯單位_完成_M</figcaption></figure>
+</div></section>
+<section id="s-2312_38713" class="sec"><h3 class="sh">2-3-3 預約單位_刪除單位 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_29546.png" alt="2-3-3 預約單位_刪除單位_Start"></div><figcaption><span class="badge">桌面</span>2-3-3 預約單位_刪除單位_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_29890.png" alt="2-3-3 預約單位_刪除單位"></div><figcaption><span class="badge">桌面</span>2-3-3 預約單位_刪除單位</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_29724.png" alt="2-3-3 預約單位_刪除單位_完成刪除"></div><figcaption><span class="badge">桌面</span>2-3-3 預約單位_刪除單位_完成刪除</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2312_38330.png" alt="2-3-3 預約單位_刪除單位_M"></div><figcaption><span class="badge">手機</span>2-3-3 預約單位_刪除單位_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2312_38456.png" alt="2-3-2 預約單位_編輯單位_完成_M"></div><figcaption><span class="badge">手機</span>2-3-2 預約單位_編輯單位_完成_M</figcaption></figure>
+</div></section>
+<section id="s-unit-notes" class="sec"><h3 class="sh">📋 說明卡與其他 <em>3 張</em></h3><div class="grid">
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_33431.png" alt="2-1 預約單位_說明"></div><figcaption><span class="badge">手機</span>2-1 預約單位_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_33427.png" alt="2-2 預約單位_新增群組_說明"></div><figcaption><span class="badge">手機</span>2-2 預約單位_新增群組_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/2065_33429.png" alt="2-4-1 預約單位_新增單位_說明"></div><figcaption><span class="badge">手機</span>2-4-1 預約單位_新增單位_說明</figcaption></figure>
+</div></section>
+<h2 class="gh">③ 時段設定</h2>
+<section id="s-3946_124110" class="sec"><h3 class="sh">3-1 預約時段-基本人數預約 <em>17 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/1380_5816.png" alt="3-1 預約時段-基本人數預約_Start"></div><figcaption><span class="badge">桌面</span>3-1 預約時段-基本人數預約_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/1380_6046.png" alt="3-1 預約時段-基本人數預約"></div><figcaption><span class="badge">桌面</span>3-1 預約時段-基本人數預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/1666_12224.png" alt="3-1 預約時段-基本人數預約_展開"></div><figcaption><span class="badge">桌面</span>3-1 預約時段-基本人數預約_展開</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3473_108294.png" alt="3-1 預約時段-基本人數預約_未設定預約單位"></div><figcaption><span class="badge">桌面</span>3-1 預約時段-基本人數預約_未設定預約單位</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2899_34340.png" alt="3-1 預約時段-基本人數預約_查看預約單位（Default全展開）"></div><figcaption><span class="badge">桌面</span>3-1 預約時段-基本人數預約_查看預約單位（Default全展開）</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/1698_15502.png" alt="3-1 預約時段-基本人數預約_Null"></div><figcaption><span class="badge">桌面</span>3-1 預約時段-基本人數預約_Null</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2899_34774.png" alt="3-1 預約時段-基本人數預約_Hover"></div><figcaption><span class="badge">桌面</span>3-1 預約時段-基本人數預約_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2906_18440.png" alt="3-1 預約時段-基本人數預約_Pressed"></div><figcaption><span class="badge">桌面</span>3-1 預約時段-基本人數預約_Pressed</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2909_23531.png" alt="Modal / 可預約單位_Hover"></div><figcaption><span class="badge">桌面</span>Modal / 可預約單位_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2909_23623.png" alt="Modal / 可預約單位_Pressed"></div><figcaption><span class="badge">桌面</span>Modal / 可預約單位_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3507_113894.png" alt="3-1 預約時段-基本人數預約_M"></div><figcaption><span class="badge">手機</span>3-1 預約時段-基本人數預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3637_32447.png" alt="3-1 預約時段-基本人數預約_展開_M"></div><figcaption><span class="badge">手機</span>3-1 預約時段-基本人數預約_展開_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3688_56964.png" alt="3-1 預約時段-基本人數預約_未設定預約單位_M"></div><figcaption><span class="badge">手機</span>3-1 預約時段-基本人數預約_未設定預約單位_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3892_83903.png" alt="3-1 預約時段-基本人數預約_查看預約單位（Default全展開）_M"></div><figcaption><span class="badge">手機</span>3-1 預約時段-基本人數預約_查看預約單位（Default全展開）_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3946_85668.png" alt="3-1 預約時段-基本人數預約_Null_M"></div><figcaption><span class="badge">手機</span>3-1 預約時段-基本人數預約_Null_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3946_123595.png" alt="3-1 預約時段-基本人數預約_Pressed_M"></div><figcaption><span class="badge">手機</span>3-1 預約時段-基本人數預約_Pressed_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3987_125175.png" alt="1-1 預約規則_基本人數預約（Default）_M"></div><figcaption><span class="badge">手機</span>1-1 預約規則_基本人數預約（Default）_M</figcaption></figure>
+</div></section>
+<section id="s-4010_127884" class="sec"><h3 class="sh">3-2 基本人數預約_新增時段 <em>21 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3043_44350.png" alt="3-2 基本人數預約_新增時段_Start"></div><figcaption><span class="badge">桌面</span>3-2 基本人數預約_新增時段_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3082_45518.png" alt="3-2 基本人數預約_新增時段"></div><figcaption><span class="badge">桌面</span>3-2 基本人數預約_新增時段</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3105_47209.png" alt="3-2 基本人數預約_新增時段_輸入"></div><figcaption><span class="badge">桌面</span>3-2 基本人數預約_新增時段_輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3105_47863.png" alt="3-2 基本人數預約_新增時段_輸入完成"></div><figcaption><span class="badge">桌面</span>3-2 基本人數預約_新增時段_輸入完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3105_49187.png" alt="3-2 基本人數預約_新增時段_未先設定預約單位&訂金"></div><figcaption><span class="badge">桌面</span>3-2 基本人數預約_新增時段_未先設定預約單位&訂金</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3120_57243.png" alt="3-2 基本人數預約_新增時段_輸入錯誤"></div><figcaption><span class="badge">桌面</span>3-2 基本人數預約_新增時段_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3120_54198.png" alt="3-2 基本人數預約_新增時段_新增完成"></div><figcaption><span class="badge">桌面</span>3-2 基本人數預約_新增時段_新增完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3134_58114.png" alt="3-2 基本人數預約_新增時段_Hover"></div><figcaption><span class="badge">桌面</span>3-2 基本人數預約_新增時段_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3445_38402.png" alt="3-2 基本人數預約_新增時段_Pressed"></div><figcaption><span class="badge">桌面</span>3-2 基本人數預約_新增時段_Pressed</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3438_35031.png" alt="訂金條件_綁卡+以固定金額顯示"></div><figcaption><span class="badge">桌面</span>訂金條件_綁卡+以固定金額顯示</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3105_46719.png" alt="Time Menu_Hover"></div><figcaption><span class="badge">手機</span>Time Menu_Hover</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3105_46748.png" alt="Time Menu_Pressed"></div><figcaption><span class="badge">手機</span>Time Menu_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3438_34770.png" alt="Dropdown Menu_Hover"></div><figcaption><span class="badge">手機</span>Dropdown Menu_Hover</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3438_34777.png" alt="Dropdown Menu_Pressed"></div><figcaption><span class="badge">手機</span>Dropdown Menu_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3987_124376.png" alt="3-1 預約時段-基本人數預約_M"></div><figcaption><span class="badge">手機</span>3-1 預約時段-基本人數預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3987_125349.png" alt="3-2 基本人數預約_新增時段_輸入_M"></div><figcaption><span class="badge">手機</span>3-2 基本人數預約_新增時段_輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3987_125748.png" alt="3-2 基本人數預約_新增時段_輸入完成_M"></div><figcaption><span class="badge">手機</span>3-2 基本人數預約_新增時段_輸入完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_126136.png" alt="3-2 基本人數預約_新增時段_未先設定預約單位&訂金_M"></div><figcaption><span class="badge">手機</span>3-2 基本人數預約_新增時段_未先設定預約單位&訂金_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_126468.png" alt="3-2 基本人數預約_新增時段_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>3-2 基本人數預約_新增時段_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_127019.png" alt="3-2 基本人數預約_新增時段_新增完成_M"></div><figcaption><span class="badge">手機</span>3-2 基本人數預約_新增時段_新增完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_127569.png" alt="3-2 基本人數預約_新增時段_Pressed_M"></div><figcaption><span class="badge">手機</span>3-2 基本人數預約_新增時段_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4010_128806" class="sec"><h3 class="sh">3-2a 基本人數預約_新增時段_選擇時間範圍 <em>7 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3445_39180.png" alt="3-2a 基本人數預約_新增時段_選擇時間範圍"></div><figcaption><span class="badge">桌面</span>3-2a 基本人數預約_新增時段_選擇時間範圍</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3105_46100.png" alt="3-2a 基本人數預約_新增時段_選擇時間間隔"></div><figcaption><span class="badge">桌面</span>3-2a 基本人數預約_新增時段_選擇時間間隔</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3105_48701.png" alt="3-2a 基本人數預約_新增時段_自動計算時段_重複時段error"></div><figcaption><span class="badge">桌面</span>3-2a 基本人數預約_新增時段_自動計算時段_重複時段error</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3105_46779.png" alt="Time Picker_Hover"></div><figcaption><span class="badge">手機</span>Time Picker_Hover</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_127887.png" alt="3-2a 基本人數預約_新增時段_選擇時間範圍_M"></div><figcaption><span class="badge">手機</span>3-2a 基本人數預約_新增時段_選擇時間範圍_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_128187.png" alt="3-2a 基本人數預約_新增時段_選擇時間間隔_M"></div><figcaption><span class="badge">手機</span>3-2a 基本人數預約_新增時段_選擇時間間隔_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_128512.png" alt="3-2a 基本人數預約_新增時段_自動計算時段_重複時段error_M"></div><figcaption><span class="badge">手機</span>3-2a 基本人數預約_新增時段_自動計算時段_重複時段error_M</figcaption></figure>
+</div></section>
+<section id="s-4010_130653" class="sec"><h3 class="sh">3-2b 基本人數預約_新增時段_自訂時間 <em>13 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3120_54691.png" alt="3-2b 基本人數預約_新增時段_自訂時間"></div><figcaption><span class="badge">桌面</span>3-2b 基本人數預約_新增時段_自訂時間</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3120_55140.png" alt="3-2b 基本人數預約_新增時段_自訂時間_Timepicker"></div><figcaption><span class="badge">桌面</span>3-2b 基本人數預約_新增時段_自訂時間_Timepicker</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3120_55580.png" alt="3-2b 基本人數預約_新增時段_自訂時間_完成Timepicker"></div><figcaption><span class="badge">桌面</span>3-2b 基本人數預約_新增時段_自訂時間_完成Timepicker</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3120_56011.png" alt="3-2b 基本人數預約_新增時段_自訂時間_加入時間完成"></div><figcaption><span class="badge">桌面</span>3-2b 基本人數預約_新增時段_自訂時間_加入時間完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3445_42187.png" alt="3-2b 基本人數預約_新增時段_自訂時間_加入時間error"></div><figcaption><span class="badge">桌面</span>3-2b 基本人數預約_新增時段_自訂時間_加入時間error</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3134_59276.png" alt="3-2b 基本人數預約_新增時段_輸入指定時間_重複時段error"></div><figcaption><span class="badge">桌面</span>3-2b 基本人數預約_新增時段_輸入指定時間_重複時段error</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3134_60428.png" alt="Button style"></div><figcaption><span class="badge">手機</span>Button style</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_128807.png" alt="3-2b 基本人數預約_新增時段_自訂時間_M"></div><figcaption><span class="badge">手機</span>3-2b 基本人數預約_新增時段_自訂時間_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_129112.png" alt="3-2b 基本人數預約_新增時段_自訂時間_Timepicker_M"></div><figcaption><span class="badge">手機</span>3-2b 基本人數預約_新增時段_自訂時間_Timepicker_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_129436.png" alt="3-2b 基本人數預約_新增時段_自訂時間_完成Timepicker_M"></div><figcaption><span class="badge">手機</span>3-2b 基本人數預約_新增時段_自訂時間_完成Timepicker_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_129755.png" alt="3-2b 基本人數預約_新增時段_自訂時間_加入時間完成_M"></div><figcaption><span class="badge">手機</span>3-2b 基本人數預約_新增時段_自訂時間_加入時間完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_130050.png" alt="3-2b 基本人數預約_新增時段_自訂時間_加入時間error_M"></div><figcaption><span class="badge">手機</span>3-2b 基本人數預約_新增時段_自訂時間_加入時間error_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_130348.png" alt="3-2b 基本人數預約_新增時段_輸入指定時間_重複時段error_M"></div><figcaption><span class="badge">手機</span>3-2b 基本人數預約_新增時段_輸入指定時間_重複時段error_M</figcaption></figure>
+</div></section>
+<section id="s-4010_134107" class="sec"><h3 class="sh">3-2c 基本人數預約_新增時段_自訂預約單位 <em>6 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3043_44783.png" alt="3-2c 基本人數預約_新增時段_自訂預約單位_Default未選擇內容"></div><figcaption><span class="badge">桌面</span>3-2c 基本人數預約_新增時段_自訂預約單位_Default未選擇內容</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3754_50683.png" alt="3-2c 基本人數預約_新增時段_自訂預約單位_選取展開"></div><figcaption><span class="badge">桌面</span>3-2c 基本人數預約_新增時段_自訂預約單位_選取展開</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3134_59813.png" alt="3-2c 基本人數預約_新增時段_自訂預約單位_完成選擇"></div><figcaption><span class="badge">桌面</span>3-2c 基本人數預約_新增時段_自訂預約單位_完成選擇</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_130654.png" alt="3-2c 基本人數預約_新增時段_自訂預約單位_Default未選擇內容_M"></div><figcaption><span class="badge">手機</span>3-2c 基本人數預約_新增時段_自訂預約單位_Default未選擇內容_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_131022.png" alt="3-2c 基本人數預約_新增時段_自訂預約單位_選取展開_M"></div><figcaption><span class="badge">手機</span>3-2c 基本人數預約_新增時段_自訂預約單位_選取展開_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_133534.png" alt="3-2c 基本人數預約_新增時段_自訂預約單位_完成選擇_M"></div><figcaption><span class="badge">手機</span>3-2c 基本人數預約_新增時段_自訂預約單位_完成選擇_M</figcaption></figure>
+</div></section>
+<section id="s-4010_138061" class="sec"><h3 class="sh">3-3 基本人數預約_編輯時段 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_134108.png" alt="3-3 基本人數預約_編輯時段_Start"></div><figcaption><span class="badge">桌面</span>3-3 基本人數預約_編輯時段_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_134539.png" alt="3-3 基本人數預約_編輯時段"></div><figcaption><span class="badge">桌面</span>3-3 基本人數預約_編輯時段</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_135550.png" alt="3-3 基本人數預約_編輯時段_編輯完成"></div><figcaption><span class="badge">桌面</span>3-3 基本人數預約_編輯時段_編輯完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_137399.png" alt="3-3 基本人數預約_編輯時段_M"></div><figcaption><span class="badge">手機</span>3-3 基本人數預約_編輯時段_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_137686.png" alt="3-3 基本人數預約_編輯時段_編輯完成_M"></div><figcaption><span class="badge">手機</span>3-3 基本人數預約_編輯時段_編輯完成_M</figcaption></figure>
+</div></section>
+<section id="s-4010_139133" class="sec"><h3 class="sh">3-4 基本人數預約_刪除時段 <em>7 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_135984.png" alt="3-4 基本人數預約_刪除時段_Start"></div><figcaption><span class="badge">桌面</span>3-4 基本人數預約_刪除時段_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_136411.png" alt="3-4 基本人數預約_刪除時段_Popup"></div><figcaption><span class="badge">桌面</span>3-4 基本人數預約_刪除時段_Popup</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_136856.png" alt="3-4 基本人數預約_刪除時段_完成刪除"></div><figcaption><span class="badge">桌面</span>3-4 基本人數預約_刪除時段_完成刪除</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4203_47009.png" alt="Modal / Popup Dialog_Hover"></div><figcaption><span class="badge">手機</span>Modal / Popup Dialog_Hover</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4203_47021.png" alt="Modal / Popup Dialog_Pressed"></div><figcaption><span class="badge">手機</span>Modal / Popup Dialog_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_138515.png" alt="3-4 基本人數預約_刪除時段_Popup_M"></div><figcaption><span class="badge">手機</span>3-4 基本人數預約_刪除時段_Popup_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4010_138790.png" alt="3-4 基本人數預約_刪除時段_完成刪除_M"></div><figcaption><span class="badge">手機</span>3-4 基本人數預約_刪除時段_完成刪除_M</figcaption></figure>
+</div></section>
+<section id="s-4068_158708" class="sec"><h3 class="sh">4-1 預約時段-服務項目預約 <em>8 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/1410_4853.png" alt="4-1 預約時段-服務項目預約_Start"></div><figcaption><span class="badge">桌面</span>4-1 預約時段-服務項目預約_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/1410_5084.png" alt="4-1 預約時段-服務項目預約"></div><figcaption><span class="badge">桌面</span>4-1 預約時段-服務項目預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2960_27337.png" alt="4-1 預約時段-服務項目預約_Null"></div><figcaption><span class="badge">桌面</span>4-1 預約時段-服務項目預約_Null</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3781_84496.png" alt="4-1 預約時段-服務項目預約_Hover"></div><figcaption><span class="badge">桌面</span>4-1 預約時段-服務項目預約_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3781_84731.png" alt="4-1 預約時段-服務項目預約_Pressed"></div><figcaption><span class="badge">桌面</span>4-1 預約時段-服務項目預約_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4068_158387.png" alt="4-1 預約時段-服務項目預約_M"></div><figcaption><span class="badge">手機</span>4-1 預約時段-服務項目預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4068_158489.png" alt="4-1 預約時段-服務項目預約_Null_M"></div><figcaption><span class="badge">手機</span>4-1 預約時段-服務項目預約_Null_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4068_158590.png" alt="4-1 預約時段-服務項目預約_Pressed_M"></div><figcaption><span class="badge">手機</span>4-1 預約時段-服務項目預約_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4076_159179" class="sec"><h3 class="sh">4-2 服務項目預約_新增項目 <em>9 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3167_60743.png" alt="4-2 服務項目預約_新增項目_Start"></div><figcaption><span class="badge">桌面</span>4-2 服務項目預約_新增項目_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3134_60473.png" alt="4-2 服務項目預約_新增項目"></div><figcaption><span class="badge">桌面</span>4-2 服務項目預約_新增項目</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3167_60988.png" alt="4-2 服務項目預約_新增項目_輸入完成"></div><figcaption><span class="badge">桌面</span>4-2 服務項目預約_新增項目_輸入完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3167_61265.png" alt="4-2 服務項目預約_新增項目_error"></div><figcaption><span class="badge">桌面</span>4-2 服務項目預約_新增項目_error</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3167_61793.png" alt="4-2 服務項目預約_新增項目_新增完成"></div><figcaption><span class="badge">桌面</span>4-2 服務項目預約_新增項目_新增完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4076_158709.png" alt="4-2 服務項目預約_新增項目_M"></div><figcaption><span class="badge">手機</span>4-2 服務項目預約_新增項目_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4076_158853.png" alt="4-2 服務項目預約_新增項目_輸入完成_M"></div><figcaption><span class="badge">手機</span>4-2 服務項目預約_新增項目_輸入完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4076_158966.png" alt="4-2 服務項目預約_新增項目_error_M"></div><figcaption><span class="badge">手機</span>4-2 服務項目預約_新增項目_error_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4076_159077.png" alt="4-2 服務項目預約_新增項目_新增完成_M"></div><figcaption><span class="badge">手機</span>4-2 服務項目預約_新增項目_新增完成_M</figcaption></figure>
+</div></section>
+<section id="s-4154_41059" class="sec"><h3 class="sh">4-3 服務項目預約_編輯項目清單 <em>14 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3167_62049.png" alt="4-3 服務項目預約_編輯項目清單_Start"></div><figcaption><span class="badge">桌面</span>4-3 服務項目預約_編輯項目清單_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3190_63148.png" alt="4-3 服務項目預約_編輯項目清單"></div><figcaption><span class="badge">桌面</span>4-3 服務項目預約_編輯項目清單</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3795_33161.png" alt="4-3 服務項目預約_編輯項目清單_完成編輯"></div><figcaption><span class="badge">桌面</span>4-3 服務項目預約_編輯項目清單_完成編輯</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4076_161094.png" alt="4-3 服務項目預約_編輯項目清單_刪光所有項目"></div><figcaption><span class="badge">桌面</span>4-3 服務項目預約_編輯項目清單_刪光所有項目</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3795_32576.png" alt="4-3 服務項目預約_編輯項目清單_儲存時提醒（有刪除才提醒）"></div><figcaption><span class="badge">桌面</span>4-3 服務項目預約_編輯項目清單_儲存時提醒（有刪除才提醒）</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3781_86188.png" alt="4-3 服務項目預約_編輯選單_儲存變更成功"></div><figcaption><span class="badge">桌面</span>4-3 服務項目預約_編輯選單_儲存變更成功</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4171_46038.png" alt="4-3 服務項目預約_編輯項目清單_Hover"></div><figcaption><span class="badge">桌面</span>4-3 服務項目預約_編輯項目清單_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4171_46299.png" alt="4-3 服務項目預約_編輯項目清單_Pressed"></div><figcaption><span class="badge">桌面</span>4-3 服務項目預約_編輯項目清單_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4076_159180.png" alt="4-3 服務項目預約_編輯項目清單_M"></div><figcaption><span class="badge">手機</span>4-3 服務項目預約_編輯項目清單_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4076_160961.png" alt="4-3 服務項目預約_編輯項目清單_完成編輯_M"></div><figcaption><span class="badge">手機</span>4-3 服務項目預約_編輯項目清單_完成編輯_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4130_105759.png" alt="4-3 服務項目預約_編輯項目清單_刪光所有項目_M"></div><figcaption><span class="badge">手機</span>4-3 服務項目預約_編輯項目清單_刪光所有項目_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4150_44897.png" alt="4-3 服務項目預約_編輯項目清單_儲存時提醒（有刪除才提醒）_M"></div><figcaption><span class="badge">手機</span>4-3 服務項目預約_編輯項目清單_儲存時提醒（有刪除才提醒）_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4154_40959.png" alt="4-3 服務項目預約_編輯選單_儲存變更成功_M"></div><figcaption><span class="badge">手機</span>4-3 服務項目預約_編輯選單_儲存變更成功_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4171_46558.png" alt="4-3 服務項目預約_編輯項目清單_Pressed_M"></div><figcaption><span class="badge">手機</span>4-3 服務項目預約_編輯項目清單_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4171_44140" class="sec"><h3 class="sh">4-4 服務項目預約_編輯項目名稱 <em>18 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3219_70775.png" alt="4-4 服務項目預約_編輯項目名稱_Start"></div><figcaption><span class="badge">桌面</span>4-4 服務項目預約_編輯項目名稱_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3219_71265.png" alt="4-4 服務項目預約_編輯項目名稱"></div><figcaption><span class="badge">桌面</span>4-4 服務項目預約_編輯項目名稱</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3799_30834.png" alt="4-4 服務項目預約_編輯項目名稱_Form"></div><figcaption><span class="badge">桌面</span>4-4 服務項目預約_編輯項目名稱_Form</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3799_44546.png" alt="4-4 服務項目預約_編輯項目名稱_Placeholder"></div><figcaption><span class="badge">桌面</span>4-4 服務項目預約_編輯項目名稱_Placeholder</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3799_45011.png" alt="4-4 服務項目預約_編輯項目名稱_完成輸入"></div><figcaption><span class="badge">桌面</span>4-4 服務項目預約_編輯項目名稱_完成輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4076_161599.png" alt="4-4 服務項目預約_編輯項目名稱_輸入錯誤"></div><figcaption><span class="badge">桌面</span>4-4 服務項目預約_編輯項目名稱_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4703_51081.png" alt="4-4 服務項目預約_編輯項目名稱_儲存提示"></div><figcaption><span class="badge">桌面</span>4-4 服務項目預約_編輯項目名稱_儲存提示</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3799_45470.png" alt="4-4 服務項目預約_編輯項目名稱_完成編輯"></div><figcaption><span class="badge">桌面</span>4-4 服務項目預約_編輯項目名稱_完成編輯</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4171_45601.png" alt="4-4 服務項目預約_編輯項目名稱_Hover"></div><figcaption><span class="badge">桌面</span>4-4 服務項目預約_編輯項目名稱_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4173_56623.png" alt="4-4 服務項目預約_編輯項目名稱_Pressed"></div><figcaption><span class="badge">桌面</span>4-4 服務項目預約_編輯項目名稱_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4154_42043.png" alt="4-4 服務項目預約_編輯項目名稱_M"></div><figcaption><span class="badge">手機</span>4-4 服務項目預約_編輯項目名稱_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4171_42505.png" alt="4-4 服務項目預約_編輯項目名稱_Form_M"></div><figcaption><span class="badge">手機</span>4-4 服務項目預約_編輯項目名稱_Form_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4171_42885.png" alt="4-4 服務項目預約_編輯項目名稱_Placeholder_M"></div><figcaption><span class="badge">手機</span>4-4 服務項目預約_編輯項目名稱_Placeholder_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4171_43203.png" alt="4-4 服務項目預約_編輯項目名稱_完成輸入_M"></div><figcaption><span class="badge">手機</span>4-4 服務項目預約_編輯項目名稱_完成輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4171_43522.png" alt="4-4 服務項目預約_編輯項目名稱_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>4-4 服務項目預約_編輯項目名稱_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4703_51581.png" alt="4-4 服務項目預約_編輯項目名稱_儲存提示_M"></div><figcaption><span class="badge">手機</span>4-4 服務項目預約_編輯項目名稱_儲存提示_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4171_43838.png" alt="4-4 服務項目預約_編輯項目名稱_完成編輯_M"></div><figcaption><span class="badge">手機</span>4-4 服務項目預約_編輯項目名稱_完成編輯_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4174_50525.png" alt="4-4 服務項目預約_編輯項目名稱_Pressed_M"></div><figcaption><span class="badge">手機</span>4-4 服務項目預約_編輯項目名稱_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4196_51667" class="sec"><h3 class="sh">4-5 服務項目預約_新增時段 <em>9 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3219_71020.png" alt="4-5 服務項目預約_新增時段_Start"></div><figcaption><span class="badge">桌面</span>4-5 服務項目預約_新增時段_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3605_31656.png" alt="4-5 服務項目預約_項目時段清單"></div><figcaption><span class="badge">桌面</span>4-5 服務項目預約_項目時段清單</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3605_33072.png" alt="4-5 服務項目預約_新增時段"></div><figcaption><span class="badge">桌面</span>4-5 服務項目預約_新增時段</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_48782.png" alt="4-5 服務項目預約_新增時段_完成"></div><figcaption><span class="badge">桌面</span>4-5 服務項目預約_新增時段_完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3605_31745.png" alt="4-5 服務項目預約_項目時段清單_展開"></div><figcaption><span class="badge">桌面</span>4-5 服務項目預約_項目時段清單_展開</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4726_52983.png" alt="4-5 服務項目預約_項目時段清單_Null"></div><figcaption><span class="badge">桌面</span>4-5 服務項目預約_項目時段清單_Null</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_51112.png" alt="4-5 服務項目預約_新增時段_M"></div><figcaption><span class="badge">手機</span>4-5 服務項目預約_新增時段_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_51370.png" alt="4-5 服務項目預約_新增時段_完成_M"></div><figcaption><span class="badge">手機</span>4-5 服務項目預約_新增時段_完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4726_53424.png" alt="4-5 服務項目預約_項目時段清單_Null_M"></div><figcaption><span class="badge">手機</span>4-5 服務項目預約_項目時段清單_Null_M</figcaption></figure>
+</div></section>
+<section id="s-4196_53626" class="sec"><h3 class="sh">4-6 服務項目預約_編輯時段 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_46315.png" alt="4-6 服務項目預約_編輯時段_Start"></div><figcaption><span class="badge">桌面</span>4-6 服務項目預約_編輯時段_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_46753.png" alt="4-6 服務項目預約_編輯時段"></div><figcaption><span class="badge">桌面</span>4-6 服務項目預約_編輯時段</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_47429.png" alt="4-6 服務項目預約_編輯時段_編輯完成"></div><figcaption><span class="badge">桌面</span>4-6 服務項目預約_編輯時段_編輯完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_53074.png" alt="4-6 服務項目預約_編輯時段_M"></div><figcaption><span class="badge">手機</span>4-6 服務項目預約_編輯時段_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_53329.png" alt="4-6 服務項目預約_編輯時段_編輯完成_M"></div><figcaption><span class="badge">手機</span>4-6 服務項目預約_編輯時段_編輯完成_M</figcaption></figure>
+</div></section>
+<section id="s-4196_56708" class="sec"><h3 class="sh">4-6 服務項目預約_刪除時段 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_47876.png" alt="4-6 服務項目預約_刪除時段_Start"></div><figcaption><span class="badge">桌面</span>4-6 服務項目預約_刪除時段_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_48314.png" alt="4-6 服務項目預約_刪除時段"></div><figcaption><span class="badge">桌面</span>4-6 服務項目預約_刪除時段</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_49385.png" alt="4-6 服務項目預約_刪除時段_完成刪除"></div><figcaption><span class="badge">桌面</span>4-6 服務項目預約_刪除時段_完成刪除</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_55843.png" alt="4-6 服務項目預約_刪除時段_M"></div><figcaption><span class="badge">手機</span>4-6 服務項目預約_刪除時段_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_55887.png" alt="4-6 服務項目預約_刪除時段_完成刪除_M"></div><figcaption><span class="badge">手機</span>4-6 服務項目預約_刪除時段_完成刪除_M</figcaption></figure>
+</div></section>
+<section id="s-4196_58564" class="sec"><h3 class="sh">5-1 預約時段-階層項目預約 <em>8 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/1899_44353.png" alt="5-1 預約時段-階層項目預約_Start"></div><figcaption><span class="badge">桌面</span>5-1 預約時段-階層項目預約_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/2974_40404.png" alt="5-1 預約時段-階層項目預約"></div><figcaption><span class="badge">桌面</span>5-1 預約時段-階層項目預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3043_42840.png" alt="5-1 預約時段-階層項目預約_Null"></div><figcaption><span class="badge">桌面</span>5-1 預約時段-階層項目預約_Null</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_49962.png" alt="5-1 預約時段-階層項目預約_Hover"></div><figcaption><span class="badge">桌面</span>5-1 預約時段-階層項目預約_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_50215.png" alt="5-1 預約時段-階層項目預約_Pressed"></div><figcaption><span class="badge">桌面</span>5-1 預約時段-階層項目預約_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_58304.png" alt="5-1 預約時段-階層項目預約_M"></div><figcaption><span class="badge">手機</span>5-1 預約時段-階層項目預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_58376.png" alt="5-1 預約時段-階層項目預約_Null_M"></div><figcaption><span class="badge">手機</span>5-1 預約時段-階層項目預約_Null_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_58340.png" alt="4-1 預約時段-服務項目預約_Pressed_M"></div><figcaption><span class="badge">手機</span>4-1 預約時段-服務項目預約_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4196_60526" class="sec"><h3 class="sh">5-2 階層項目預約_新增項目 <em>9 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3203_65775.png" alt="5-2 階層項目預約_新增項目_Start"></div><figcaption><span class="badge">桌面</span>5-2 階層項目預約_新增項目_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3445_80157.png" alt="5-2 階層項目預約_新增項目"></div><figcaption><span class="badge">桌面</span>5-2 階層項目預約_新增項目</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_50467.png" alt="5-2 階層項目預約_新增項目_輸入完成"></div><figcaption><span class="badge">桌面</span>5-2 階層項目預約_新增項目_輸入完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_50721.png" alt="5-2 階層項目預約_新增項目_輸入錯誤"></div><figcaption><span class="badge">桌面</span>5-2 階層項目預約_新增項目_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_50971.png" alt="5-2 階層項目預約_新增項目_新增完成"></div><figcaption><span class="badge">桌面</span>5-2 階層項目預約_新增項目_新增完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_60062.png" alt="5-2 階層項目預約_新增項目_M"></div><figcaption><span class="badge">手機</span>5-2 階層項目預約_新增項目_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_60102.png" alt="5-2 階層項目預約_新增項目_輸入完成_M"></div><figcaption><span class="badge">手機</span>5-2 階層項目預約_新增項目_輸入完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_60142.png" alt="5-2 階層項目預約_新增項目_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>5-2 階層項目預約_新增項目_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_60024.png" alt="5-2 階層項目預約_新增項目_新增完成_M"></div><figcaption><span class="badge">手機</span>5-2 階層項目預約_新增項目_新增完成_M</figcaption></figure>
+</div></section>
+<section id="s-4203_52501" class="sec"><h3 class="sh">5-3 階層項目預約_編輯項目名稱 <em>18 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3445_80666.png" alt="5-3 階層項目預約_編輯項目名稱_Start"></div><figcaption><span class="badge">桌面</span>5-3 階層項目預約_編輯項目名稱_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3445_80437.png" alt="5-3 階層項目預約_編輯項目名稱_子項目清單"></div><figcaption><span class="badge">桌面</span>5-3 階層項目預約_編輯項目名稱_子項目清單</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3445_80927.png" alt="5-3 階層項目預約_編輯項目名稱_Form"></div><figcaption><span class="badge">桌面</span>5-3 階層項目預約_編輯項目名稱_Form</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4116_99333.png" alt="5-3 階層項目預約_編輯項目名稱_Placeholder"></div><figcaption><span class="badge">桌面</span>5-3 階層項目預約_編輯項目名稱_Placeholder</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4116_99596.png" alt="5-3 階層項目預約_編輯項目名稱_完成輸入"></div><figcaption><span class="badge">桌面</span>5-3 階層項目預約_編輯項目名稱_完成輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4116_99853.png" alt="5-3 階層項目預約_編輯項目名稱_輸入錯誤"></div><figcaption><span class="badge">桌面</span>5-3 階層項目預約_編輯項目名稱_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4703_52801.png" alt="5-3 階層項目預約_編輯項目名稱_儲存提示"></div><figcaption><span class="badge">桌面</span>5-3 階層項目預約_編輯項目名稱_儲存提示</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4116_100105.png" alt="5-3 階層項目預約_編輯項目名稱_完成編輯"></div><figcaption><span class="badge">桌面</span>5-3 階層項目預約_編輯項目名稱_完成編輯</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4207_66327.png" alt="5-3 階層項目預約_編輯項目名稱_Hover"></div><figcaption><span class="badge">桌面</span>5-3 階層項目預約_編輯項目名稱_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_85674.png" alt="5-3 階層項目預約_編輯項目名稱_Pressed"></div><figcaption><span class="badge">桌面</span>5-3 階層項目預約_編輯項目名稱_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4203_49545.png" alt="5-3 階層項目預約_編輯項目名稱_子項目清單_M"></div><figcaption><span class="badge">手機</span>5-3 階層項目預約_編輯項目名稱_子項目清單_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4203_51788.png" alt="5-3 階層項目預約_編輯項目名稱_Form_M"></div><figcaption><span class="badge">手機</span>5-3 階層項目預約_編輯項目名稱_Form_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4203_51905.png" alt="5-3 階層項目預約_編輯項目名稱_Placeholder_M"></div><figcaption><span class="badge">手機</span>5-3 階層項目預約_編輯項目名稱_Placeholder_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4203_52030.png" alt="5-3 階層項目預約_編輯項目名稱_完成輸入_M"></div><figcaption><span class="badge">手機</span>5-3 階層項目預約_編輯項目名稱_完成輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4203_52148.png" alt="5-3 階層項目預約_編輯項目名稱_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>5-3 階層項目預約_編輯項目名稱_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4703_53053.png" alt="5-3 階層項目預約_編輯項目名稱_儲存提示_M"></div><figcaption><span class="badge">手機</span>5-3 階層項目預約_編輯項目名稱_儲存提示_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4203_52282.png" alt="5-3 階層項目預約_編輯項目名稱_完成編輯_M"></div><figcaption><span class="badge">手機</span>5-3 階層項目預約_編輯項目名稱_完成編輯_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4203_52384.png" alt="5-3 階層項目預約_編輯項目名稱_Pressed_M"></div><figcaption><span class="badge">手機</span>5-3 階層項目預約_編輯項目名稱_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4203_47056" class="sec"><h3 class="sh">5-4 階層項目預約_編輯項目清單 <em>14 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3203_66042.png" alt="5-4 階層項目預約_編輯項目清單_Start"></div><figcaption><span class="badge">桌面</span>5-4 階層項目預約_編輯項目清單_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3794_66706.png" alt="5-4 階層項目預約_編輯項目清單"></div><figcaption><span class="badge">桌面</span>5-4 階層項目預約_編輯項目清單</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_51942.png" alt="5-4 階層項目預約_編輯項目清單_完成編輯"></div><figcaption><span class="badge">桌面</span>5-4 階層項目預約_編輯項目清單_完成編輯</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_52324.png" alt="5-4 階層項目預約_編輯項目清單_刪光所有項目"></div><figcaption><span class="badge">桌面</span>5-4 階層項目預約_編輯項目清單_刪光所有項目</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4093_53089.png" alt="5-4 階層項目預約_編輯項目清單_儲存時提醒（有刪除才提醒）"></div><figcaption><span class="badge">桌面</span>5-4 階層項目預約_編輯項目清單_儲存時提醒（有刪除才提醒）</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4111_46266.png" alt="5-4 階層項目預約_編輯項目清單_儲存變更成功"></div><figcaption><span class="badge">桌面</span>5-4 階層項目預約_編輯項目清單_儲存變更成功</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4203_46400.png" alt="5-4 階層項目預約_編輯項目清單_Hover"></div><figcaption><span class="badge">桌面</span>5-4 階層項目預約_編輯項目清單_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4203_46699.png" alt="5-4 階層項目預約_編輯項目清單_Pressed"></div><figcaption><span class="badge">桌面</span>5-4 階層項目預約_編輯項目清單_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_62886.png" alt="5-4 階層項目預約_編輯項目清單_M"></div><figcaption><span class="badge">手機</span>5-4 階層項目預約_編輯項目清單_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_63002.png" alt="5-4 階層項目預約_編輯項目清單_完成編輯_M"></div><figcaption><span class="badge">手機</span>5-4 階層項目預約_編輯項目清單_完成編輯_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_63113.png" alt="5-4 階層項目預約_編輯項目清單_刪光所有項目_M"></div><figcaption><span class="badge">手機</span>5-4 階層項目預約_編輯項目清單_刪光所有項目_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4203_46015.png" alt="5-4 階層項目預約_編輯項目清單_儲存時提醒（有刪除才提醒）_M"></div><figcaption><span class="badge">手機</span>5-4 階層項目預約_編輯項目清單_儲存時提醒（有刪除才提醒）_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4196_62850.png" alt="5-4 階層項目預約_編輯項目清單_儲存變更成功_M"></div><figcaption><span class="badge">手機</span>5-4 階層項目預約_編輯項目清單_儲存變更成功_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4203_46211.png" alt="5-4 階層項目預約_編輯項目清單_Pressed_M"></div><figcaption><span class="badge">手機</span>5-4 階層項目預約_編輯項目清單_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4212_68521" class="sec"><h3 class="sh">5-5 階層項目預約_新增子項目 <em>11 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/1944_47871.png" alt="5-5 階層項目預約_新增子項目_Start"></div><figcaption><span class="badge">桌面</span>5-5 階層項目預約_新增子項目_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3473_89668.png" alt="5-5 階層項目預約_新增子項目"></div><figcaption><span class="badge">桌面</span>5-5 階層項目預約_新增子項目</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3473_89951.png" alt="5-5 階層項目預約_新增子項目_輸入完成"></div><figcaption><span class="badge">桌面</span>5-5 階層項目預約_新增子項目_輸入完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3473_90206.png" alt="5-5 階層項目預約_新增子項目_輸入錯誤"></div><figcaption><span class="badge">桌面</span>5-5 階層項目預約_新增子項目_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3473_90460.png" alt="5-5 階層項目預約_新增子項目_新增完成"></div><figcaption><span class="badge">桌面</span>5-5 階層項目預約_新增子項目_新增完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4726_52648.png" alt="5-5 階層項目預約_新增子項目_Null"></div><figcaption><span class="badge">桌面</span>5-5 階層項目預約_新增子項目_Null</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4210_66594.png" alt="5-5 階層項目預約_新增子項目_M"></div><figcaption><span class="badge">手機</span>5-5 階層項目預約_新增子項目_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4212_68167.png" alt="5-5 階層項目預約_新增子項目_輸入完成_M"></div><figcaption><span class="badge">手機</span>5-5 階層項目預約_新增子項目_輸入完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4212_68293.png" alt="5-5 階層項目預約_新增子項目_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>5-5 階層項目預約_新增子項目_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4212_68416.png" alt="5-5 階層項目預約_新增子項目_新增完成_M"></div><figcaption><span class="badge">手機</span>5-5 階層項目預約_新增子項目_新增完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4726_52877.png" alt="5-5 階層項目預約_新增子項目_Null_M"></div><figcaption><span class="badge">手機</span>5-5 階層項目預約_新增子項目_Null_M</figcaption></figure>
+</div></section>
+<section id="s-4215_88822" class="sec"><h3 class="sh">5-6 階層項目預約_編輯子項目名稱 <em>18 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3445_81317.png" alt="5-6 階層項目預約_編輯子項目名稱_Start"></div><figcaption><span class="badge">桌面</span>5-6 階層項目預約_編輯子項目名稱_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3605_33547.png" alt="5-6 階層項目預約_編輯子項目名稱"></div><figcaption><span class="badge">桌面</span>5-6 階層項目預約_編輯子項目名稱</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3220_71768.png" alt="5-6 階層項目預約_編輯子項目名稱_Form"></div><figcaption><span class="badge">桌面</span>5-6 階層項目預約_編輯子項目名稱_Form</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3473_90763.png" alt="5-6 階層項目預約_編輯子項目名稱_Placeholder"></div><figcaption><span class="badge">桌面</span>5-6 階層項目預約_編輯子項目名稱_Placeholder</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_84991.png" alt="5-6 階層項目預約_編輯子項目名稱_輸入完成"></div><figcaption><span class="badge">桌面</span>5-6 階層項目預約_編輯子項目名稱_輸入完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3473_103765.png" alt="5-6 階層項目預約_編輯子項目名稱_輸入錯誤"></div><figcaption><span class="badge">桌面</span>5-6 階層項目預約_編輯子項目名稱_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4703_51901.png" alt="5-6 階層項目預約_編輯子項目名稱_儲存提示"></div><figcaption><span class="badge">桌面</span>5-6 階層項目預約_編輯子項目名稱_儲存提示</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_81537.png" alt="5-6 階層項目預約_編輯子項目名稱_編輯完成"></div><figcaption><span class="badge">桌面</span>5-6 階層項目預約_編輯子項目名稱_編輯完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_85921.png" alt="5-6 階層項目預約_編輯子項目名稱_Hover"></div><figcaption><span class="badge">桌面</span>5-6 階層項目預約_編輯子項目名稱_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_87602.png" alt="5-6 階層項目預約_編輯子項目名稱_Pressed"></div><figcaption><span class="badge">桌面</span>5-6 階層項目預約_編輯子項目名稱_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_67780.png" alt="5-6 階層項目預約_編輯子項目名稱_M"></div><figcaption><span class="badge">手機</span>5-6 階層項目預約_編輯子項目名稱_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4212_70156.png" alt="5-6 階層項目預約_編輯子項目名稱_Form_M"></div><figcaption><span class="badge">手機</span>5-6 階層項目預約_編輯子項目名稱_Form_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_68332.png" alt="5-6 階層項目預約_編輯子項目名稱_Placeholder_M"></div><figcaption><span class="badge">手機</span>5-6 階層項目預約_編輯子項目名稱_Placeholder_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_85334.png" alt="5-6 階層項目預約_編輯子項目名稱_輸入完成_M"></div><figcaption><span class="badge">手機</span>5-6 階層項目預約_編輯子項目名稱_輸入完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_80908.png" alt="5-6 階層項目預約_編輯子項目名稱_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>5-6 階層項目預約_編輯子項目名稱_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4703_52242.png" alt="5-6 階層項目預約_編輯子項目名稱_儲存提示_M"></div><figcaption><span class="badge">手機</span>5-6 階層項目預約_編輯子項目名稱_儲存提示_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_81230.png" alt="5-6 階層項目預約_編輯子項目名稱_M"></div><figcaption><span class="badge">手機</span>5-6 階層項目預約_編輯子項目名稱_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_88444.png" alt="5-6 階層項目預約_編輯子項目名稱_Pressed_M"></div><figcaption><span class="badge">手機</span>5-6 階層項目預約_編輯子項目名稱_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4215_93161" class="sec"><h3 class="sh">5-7 階層項目預約_新增時段 <em>8 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3445_89345.png" alt="5-7 階層項目預約_新增時段_Start"></div><figcaption><span class="badge">桌面</span>5-7 階層項目預約_新增時段_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4130_102465.png" alt="5-7 階層項目預約_新增時段"></div><figcaption><span class="badge">桌面</span>5-7 階層項目預約_新增時段</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4130_102890.png" alt="5-7 階層項目預約_新增時段_新增完成"></div><figcaption><span class="badge">桌面</span>5-7 階層項目預約_新增時段_新增完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4130_103273.png" alt="5-7 階層項目預約_時段清單_展開"></div><figcaption><span class="badge">桌面</span>5-7 階層項目預約_時段清單_展開</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4726_53724.png" alt="5-7 階層項目預約_時段清單_Null"></div><figcaption><span class="badge">桌面</span>5-7 階層項目預約_時段清單_Null</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_92601.png" alt="5-7 階層項目預約_新增時段_M"></div><figcaption><span class="badge">手機</span>5-7 階層項目預約_新增時段_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_92551.png" alt="5-7 階層項目預約_新增時段_新增完成_M"></div><figcaption><span class="badge">手機</span>5-7 階層項目預約_新增時段_新增完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4726_54116.png" alt="5-7 階層項目預約_時段清單_Null_M"></div><figcaption><span class="badge">手機</span>5-7 階層項目預約_時段清單_Null_M</figcaption></figure>
+</div></section>
+<section id="s-4215_95995" class="sec"><h3 class="sh">5-8 階層項目預約_編輯時段 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4130_103714.png" alt="5-8 階層項目預約_編輯時段_Start"></div><figcaption><span class="badge">桌面</span>5-8 階層項目預約_編輯時段_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4130_104034.png" alt="5-8 階層項目預約_編輯時段"></div><figcaption><span class="badge">桌面</span>5-8 階層項目預約_編輯時段</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4130_104427.png" alt="5-8 階層項目預約_編輯時段_編輯完成"></div><figcaption><span class="badge">桌面</span>5-8 階層項目預約_編輯時段_編輯完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_95479.png" alt="5-8 階層項目預約_編輯時段_M"></div><figcaption><span class="badge">手機</span>5-8 階層項目預約_編輯時段_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_95431.png" alt="5-8 階層項目預約_編輯時段_編輯完成_M"></div><figcaption><span class="badge">手機</span>5-8 階層項目預約_編輯時段_編輯完成_M</figcaption></figure>
+</div></section>
+<section id="s-4215_101397" class="sec"><h3 class="sh">5-9 階層項目預約_刪除時段 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4130_104756.png" alt="5-9 階層項目預約_刪除時段_Start"></div><figcaption><span class="badge">桌面</span>5-9 階層項目預約_刪除時段_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4130_105076.png" alt="5-9 階層項目預約_刪除時段"></div><figcaption><span class="badge">桌面</span>5-9 階層項目預約_刪除時段</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4130_105430.png" alt="5-9 階層項目預約_刪除時段_完成刪除"></div><figcaption><span class="badge">桌面</span>5-9 階層項目預約_刪除時段_完成刪除</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_100360.png" alt="5-8 階層項目預約_編輯時段_編輯完成_M"></div><figcaption><span class="badge">手機</span>5-8 階層項目預約_編輯時段_編輯完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4215_100970.png" alt="5-9 階層項目預約_刪除時段_完成刪除_M"></div><figcaption><span class="badge">手機</span>5-9 階層項目預約_刪除時段_完成刪除_M</figcaption></figure>
+</div></section>
+<section id="s-4026_148377" class="sec"><h3 class="sh">6-1 預約時段-總量控管 <em>10 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/1944_64319.png" alt="6-1 預約時段-總量控管_Start"></div><figcaption><span class="badge">桌面</span>6-1 預約時段-總量控管_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/1944_64773.png" alt="6-1 預約時段-總量控管"></div><figcaption><span class="badge">桌面</span>6-1 預約時段-總量控管</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/1944_65150.png" alt="6-1 預約時段-總量控管_展開"></div><figcaption><span class="badge">桌面</span>6-1 預約時段-總量控管_展開</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4026_144936.png" alt="6-1 預約時段-總量控管_Null"></div><figcaption><span class="badge">桌面</span>6-1 預約時段-總量控管_Null</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4026_145139.png" alt="6-1 預約時段-總量控管_Hover"></div><figcaption><span class="badge">桌面</span>6-1 預約時段-總量控管_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4026_145856.png" alt="6-1 預約時段-總量控管_Pressed"></div><figcaption><span class="badge">桌面</span>6-1 預約時段-總量控管_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4026_146366.png" alt="6-1 預約時段-總量控管_M"></div><figcaption><span class="badge">手機</span>6-1 預約時段-總量控管_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4026_146477.png" alt="6-1 預約時段-總量控管_展開_M"></div><figcaption><span class="badge">手機</span>6-1 預約時段-總量控管_展開_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4026_146449.png" alt="6-1 預約時段-總量控管_Null_M"></div><figcaption><span class="badge">手機</span>6-1 預約時段-總量控管_Null_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4026_146401.png" alt="6-1 預約時段-總量控管_Pressed_M"></div><figcaption><span class="badge">手機</span>6-1 預約時段-總量控管_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4050_153229" class="sec"><h3 class="sh">6-2 總量控管_新增時段 <em>11 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/1944_66509.png" alt="6-2 總量控管_新增時段_Start"></div><figcaption><span class="badge">桌面</span>6-2 總量控管_新增時段_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/3547_145581.png" alt="6-2 總量控管_新增時段"></div><figcaption><span class="badge">桌面</span>6-2 總量控管_新增時段</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4026_150098.png" alt="6-2 總量控管_新增時段_輸入"></div><figcaption><span class="badge">桌面</span>6-2 總量控管_新增時段_輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4026_149657.png" alt="6-2 總量控管_新增時段_輸入完成"></div><figcaption><span class="badge">桌面</span>6-2 總量控管_新增時段_輸入完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4044_150607.png" alt="6-2 總量控管_新增時段_輸入錯誤"></div><figcaption><span class="badge">桌面</span>6-2 總量控管_新增時段_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_151125.png" alt="6-2 總量控管_新增時段_新增完成"></div><figcaption><span class="badge">桌面</span>6-2 總量控管_新增時段_新增完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_151648.png" alt="6-2 總量控管_新增時段_M"></div><figcaption><span class="badge">手機</span>6-2 總量控管_新增時段_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_151763.png" alt="6-2 總量控管_新增時段_輸入_M"></div><figcaption><span class="badge">手機</span>6-2 總量控管_新增時段_輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_151947.png" alt="6-2 總量控管_新增時段_輸入完成_M"></div><figcaption><span class="badge">手機</span>6-2 總量控管_新增時段_輸入完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_152070.png" alt="6-2 總量控管_新增時段_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>6-2 總量控管_新增時段_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_151609.png" alt="6-2 總量控管_新增時段_新增完成_M"></div><figcaption><span class="badge">手機</span>6-2 總量控管_新增時段_新增完成_M</figcaption></figure>
+</div></section>
+<section id="s-4050_155469" class="sec"><h3 class="sh">6-3 總量控管_編輯時段 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_157648.png" alt="6-3 總量控管_編輯時段_Start"></div><figcaption><span class="badge">桌面</span>6-3 總量控管_編輯時段_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_154520.png" alt="6-3 總量控管_編輯時段"></div><figcaption><span class="badge">桌面</span>6-3 總量控管_編輯時段</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_154086.png" alt="6-3 總量控管_編輯時段_編輯完成"></div><figcaption><span class="badge">桌面</span>6-3 總量控管_編輯時段_編輯完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_154931.png" alt="6-2 總量控管_新增時段_輸入完成_M"></div><figcaption><span class="badge">手機</span>6-2 總量控管_新增時段_輸入完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_154898.png" alt="6-3 總量控管_編輯時段_編輯完成_M"></div><figcaption><span class="badge">手機</span>6-3 總量控管_編輯時段_編輯完成_M</figcaption></figure>
+</div></section>
+<section id="s-4050_158079" class="sec"><h3 class="sh">6-4 總量控管_刪除時段 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_157217.png" alt="6-4 總量控管_刪除時段_Start"></div><figcaption><span class="badge">桌面</span>6-4 總量控管_刪除時段_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_155985.png" alt="6-4 總量控管_刪除時段_Popup"></div><figcaption><span class="badge">桌面</span>6-4 總量控管_刪除時段_Popup</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_155896.png" alt="6-4 總量控管_刪除時段_完成刪除"></div><figcaption><span class="badge">桌面</span>6-4 總量控管_刪除時段_完成刪除</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_156705.png" alt="6-4 總量控管_刪除時段_Popup_M"></div><figcaption><span class="badge">手機</span>6-4 總量控管_刪除時段_Popup_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4050_156749.png" alt="6-4 總量控管_刪除時段_完成刪除_M"></div><figcaption><span class="badge">手機</span>6-4 總量控管_刪除時段_完成刪除_M</figcaption></figure>
+</div></section>
+<section id="s-time-notes" class="sec"><h3 class="sh">📋 說明卡與其他 <em>14 張</em></h3><div class="grid">
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/1698_15499.png" alt="3-1 預約時段-基本預約_說明"></div><figcaption><span class="badge">手機</span>3-1 預約時段-基本預約_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3105_49114.png" alt="3-2 基本人數預約_新增時段_說明"></div><figcaption><span class="badge">手機</span>3-2 基本人數預約_新增時段_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4212_68165.png" alt="3-2a 選擇時間範圍_說明"></div><figcaption><span class="badge">手機</span>3-2a 選擇時間範圍_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4043_45868.png" alt="3-3 基本人數預約_編輯時段_說明"></div><figcaption><span class="badge">手機</span>3-3 基本人數預約_編輯時段_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4043_45870.png" alt="3-4 基本人數預約_刪除時段_說明"></div><figcaption><span class="badge">手機</span>3-4 基本人數預約_刪除時段_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4076_161092.png" alt="4-3 服務項目預約_編輯項目清單_說明"></div><figcaption><span class="badge">手機</span>4-3 服務項目預約_編輯項目清單_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4203_49543.png" alt="5-4 階層項目預約_編輯項目清單_說明"></div><figcaption><span class="badge">手機</span>5-4 階層項目預約_編輯項目清單_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/3473_90700.png" alt="5-5 階層項目預約_新增子項目_說明"></div><figcaption><span class="badge">手機</span>5-5 階層項目預約_新增子項目_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4026_150604.png" alt="6-2 總量控管_新增時段_說明"></div><figcaption><span class="badge">手機</span>6-2 總量控管_新增時段_說明</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4116_97798.png" alt="預約時段與規則_1024"></div><figcaption><span class="badge">桌面</span>預約時段與規則_1024</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4116_98475.png" alt="預約時段與規則_1280"></div><figcaption><span class="badge">桌面</span>預約時段與規則_1280</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4116_96874.png" alt="預約時段與規則_1440"></div><figcaption><span class="badge">桌面</span>預約時段與規則_1440</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4225_51516.png" alt="自訂預約單位"></div><figcaption><span class="badge">桌面</span>自訂預約單位</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4225_51394.png" alt="自訂預約單位_展開"></div><figcaption><span class="badge">桌面</span>自訂預約單位_展開</figcaption></figure>
+</div></section>
+<h2 class="gh">④ 例外預約規則</h2>
+<section id="s-4641_161351" class="sec"><h3 class="sh">7-1 例外時段-基本人數預約 <em>16 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4259_68068.png" alt="7-1 例外時段-基本人數預約"></div><figcaption><span class="badge">桌面</span>7-1 例外時段-基本人數預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_72935.png" alt="7-1 例外時段-基本人數預約_展開"></div><figcaption><span class="badge">桌面</span>7-1 例外時段-基本人數預約_展開</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_75358.png" alt="7-1 例外時段-基本人數預約_查看預約單位"></div><figcaption><span class="badge">桌面</span>7-1 例外時段-基本人數預約_查看預約單位</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_73837.png" alt="7-1 例外時段-基本人數預約_Null"></div><figcaption><span class="badge">桌面</span>7-1 例外時段-基本人數預約_Null</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_74115.png" alt="7-1 例外時段-基本人數預約_整日關閉"></div><figcaption><span class="badge">桌面</span>7-1 例外時段-基本人數預約_整日關閉</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_73962.png" alt="7-1 例外時段-基本人數預約_Month Picker"></div><figcaption><span class="badge">桌面</span>7-1 例外時段-基本人數預約_Month Picker</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_76236.png" alt="7-1 例外時段-基本人數預約_展開_Hover"></div><figcaption><span class="badge">桌面</span>7-1 例外時段-基本人數預約_展開_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_76424.png" alt="7-1 例外時段-基本人數預約_展開_Pressed"></div><figcaption><span class="badge">桌面</span>7-1 例外時段-基本人數預約_展開_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_151878.png" alt="7-1 例外時段-選單_M"></div><figcaption><span class="badge">手機</span>7-1 例外時段-選單_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_78664.png" alt="7-1 例外時段-基本人數預約_M"></div><figcaption><span class="badge">手機</span>7-1 例外時段-基本人數預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_152575.png" alt="7-1 例外時段-基本人數預約_展開_M"></div><figcaption><span class="badge">手機</span>7-1 例外時段-基本人數預約_展開_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_154036.png" alt="7-1 例外時段-基本人數預約_查看預約單位_M"></div><figcaption><span class="badge">手機</span>7-1 例外時段-基本人數預約_查看預約單位_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_154792.png" alt="7-1 例外時段-基本人數預約_Null_M"></div><figcaption><span class="badge">手機</span>7-1 例外時段-基本人數預約_Null_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_155099.png" alt="7-1 例外時段-基本人數預約_整日關閉_M"></div><figcaption><span class="badge">手機</span>7-1 例外時段-基本人數預約_整日關閉_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_154997.png" alt="7-1 例外時段-基本人數預約_Month Picker_M"></div><figcaption><span class="badge">手機</span>7-1 例外時段-基本人數預約_Month Picker_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_154866.png" alt="7-1 例外時段-基本人數預約_展開_Pressed_M"></div><figcaption><span class="badge">手機</span>7-1 例外時段-基本人數預約_展開_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4627_71194" class="sec"><h3 class="sh">7-2 基本人數預約_關閉預約 <em>7 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_71446.png" alt="7-2 基本人數預約_關閉預約_Start"></div><figcaption><span class="badge">桌面</span>7-2 基本人數預約_關閉預約_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_71195.png" alt="7-2 基本人數預約_關閉預約"></div><figcaption><span class="badge">桌面</span>7-2 基本人數預約_關閉預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_71571.png" alt="7-2 基本人數預約_關閉預約_完成"></div><figcaption><span class="badge">桌面</span>7-2 基本人數預約_關閉預約_完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_71276.png" alt="7-2 基本人數預約_關閉預約_Hover"></div><figcaption><span class="badge">桌面</span>7-2 基本人數預約_關閉預約_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_71357.png" alt="7-2 基本人數預約_關閉預約_Pressed"></div><figcaption><span class="badge">桌面</span>7-2 基本人數預約_關閉預約_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_71697.png" alt="7-2 基本人數預約_關閉預約_Ｍ"></div><figcaption><span class="badge">手機</span>7-2 基本人數預約_關閉預約_Ｍ</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_71727.png" alt="7-2 基本人數預約_關閉預約_Pressed_Ｍ"></div><figcaption><span class="badge">手機</span>7-2 基本人數預約_關閉預約_Pressed_Ｍ</figcaption></figure>
+</div></section>
+<section id="s-4651_221561" class="sec"><h3 class="sh">7-3 基本人數預約_新增例外規則 <em>17 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4645_87900.png" alt="7-3 基本人數預約_新增例外規則_Start"></div><figcaption><span class="badge">桌面</span>7-3 基本人數預約_新增例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_162210.png" alt="7-3 基本人數預約_新增例外規則"></div><figcaption><span class="badge">桌面</span>7-3 基本人數預約_新增例外規則</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_163103.png" alt="7-3 基本人數預約_新增例外規則_輸入"></div><figcaption><span class="badge">桌面</span>7-3 基本人數預約_新增例外規則_輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_163325.png" alt="7-3 基本人數預約_新增例外規則_完成輸入"></div><figcaption><span class="badge">桌面</span>7-3 基本人數預約_新增例外規則_完成輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_162649.png" alt="7-3 基本人數預約_新增例外規則_輸入錯誤"></div><figcaption><span class="badge">桌面</span>7-3 基本人數預約_新增例外規則_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_162870.png" alt="7-3 基本人數預約_新增例外規則_所選日期選項已設定關閉"></div><figcaption><span class="badge">桌面</span>7-3 基本人數預約_新增例外規則_所選日期選項已設定關閉</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_216610.png" alt="7-3 基本人數預約_新增例外規則_新增完成"></div><figcaption><span class="badge">桌面</span>7-3 基本人數預約_新增例外規則_新增完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_165032.png" alt="Date Picker"></div><figcaption><span class="badge">手機</span>Date Picker</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_165071.png" alt="Date Picker_Hover"></div><figcaption><span class="badge">手機</span>Date Picker_Hover</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_165110.png" alt="Date Picker_Hover2"></div><figcaption><span class="badge">手機</span>Date Picker_Hover2</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_219350.png" alt="7-3 基本人數預約_新增例外規則_M_選單"></div><figcaption><span class="badge">手機</span>7-3 基本人數預約_新增例外規則_M_選單</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_217256.png" alt="7-3 基本人數預約_新增例外規則_M"></div><figcaption><span class="badge">手機</span>7-3 基本人數預約_新增例外規則_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_217918.png" alt="7-3 基本人數預約_新增例外規則_輸入_M"></div><figcaption><span class="badge">手機</span>7-3 基本人數預約_新增例外規則_輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_217558.png" alt="7-3 基本人數預約_新增例外規則_完成輸入_M"></div><figcaption><span class="badge">手機</span>7-3 基本人數預約_新增例外規則_完成輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_217388.png" alt="7-3 基本人數預約_新增例外規則_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>7-3 基本人數預約_新增例外規則_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_217702.png" alt="7-3 基本人數預約_新增例外規則_所選日期選項已設定關閉_M"></div><figcaption><span class="badge">手機</span>7-3 基本人數預約_新增例外規則_所選日期選項已設定關閉_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_220249.png" alt="7-3 基本人數預約_新增例外規則_新增完成_M"></div><figcaption><span class="badge">手機</span>7-3 基本人數預約_新增例外規則_新增完成_M</figcaption></figure>
+</div></section>
+<section id="s-4651_224660" class="sec"><h3 class="sh">7-4 基本人數預約_編輯例外規則 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_222444.png" alt="7-4 基本人數預約_編輯例外規則_Start"></div><figcaption><span class="badge">桌面</span>7-4 基本人數預約_編輯例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_222982.png" alt="7-4 基本人數預約_編輯例外規則"></div><figcaption><span class="badge">桌面</span>7-4 基本人數預約_編輯例外規則</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_223411.png" alt="7-4 基本人數預約_編輯例外規則_編輯完成"></div><figcaption><span class="badge">桌面</span>7-4 基本人數預約_編輯例外規則_編輯完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_223953.png" alt="7-4 基本人數預約_編輯例外規則_M"></div><figcaption><span class="badge">手機</span>7-4 基本人數預約_編輯例外規則_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_224248.png" alt="7-4 基本人數預約_編輯例外規則_編輯完成_M"></div><figcaption><span class="badge">手機</span>7-4 基本人數預約_編輯例外規則_編輯完成_M</figcaption></figure>
+</div></section>
+<section id="s-4651_226507" class="sec"><h3 class="sh">7-5 基本人數預約_複製例外規則 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_226900.png" alt="7-5 基本人數預約_複製例外規則_Start"></div><figcaption><span class="badge">桌面</span>7-5 基本人數預約_複製例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_226715.png" alt="7-5 基本人數預約_複製例外規則"></div><figcaption><span class="badge">桌面</span>7-5 基本人數預約_複製例外規則</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_227024.png" alt="7-5 基本人數預約_複製例外規則_完成"></div><figcaption><span class="badge">桌面</span>7-5 基本人數預約_複製例外規則_完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_226581.png" alt="7-4 基本人數預約_編輯例外規則_M"></div><figcaption><span class="badge">手機</span>7-4 基本人數預約_編輯例外規則_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_226508.png" alt="7-4 基本人數預約_編輯例外規則_編輯完成_M"></div><figcaption><span class="badge">手機</span>7-4 基本人數預約_編輯例外規則_編輯完成_M</figcaption></figure>
+</div></section>
+<section id="s-4651_233699" class="sec"><h3 class="sh">7-6 基本人數預約_刪除例外規則 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_231000.png" alt="7-6 基本人數預約_刪除例外規則_Start"></div><figcaption><span class="badge">桌面</span>7-6 基本人數預約_刪除例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_231536.png" alt="7-6 基本人數預約_刪除例外規則_popup"></div><figcaption><span class="badge">桌面</span>7-6 基本人數預約_刪除例外規則_popup</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_232087.png" alt="7-6 基本人數預約_刪除例外規則_完成"></div><figcaption><span class="badge">桌面</span>7-6 基本人數預約_刪除例外規則_完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_232627.png" alt="7-6 基本人數預約_刪除例外規則_popup_M"></div><figcaption><span class="badge">手機</span>7-6 基本人數預約_刪除例外規則_popup_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_233169.png" alt="7-6 基本人數預約_刪除例外規則_完成_M"></div><figcaption><span class="badge">手機</span>7-6 基本人數預約_刪除例外規則_完成_M</figcaption></figure>
+</div></section>
+<section id="s-4627_69452" class="sec"><h3 class="sh">8-1 例外時段-預約項目預約 <em>15 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4398_55666.png" alt="8-1 例外時段-預約項目預約"></div><figcaption><span class="badge">桌面</span>8-1 例外時段-預約項目預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_59237.png" alt="8-1 例外時段-預約項目預約_展開"></div><figcaption><span class="badge">桌面</span>8-1 例外時段-預約項目預約_展開</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_60124.png" alt="8-1 例外時段-預約項目預約_Null"></div><figcaption><span class="badge">桌面</span>8-1 例外時段-預約項目預約_Null</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_60527.png" alt="8-1 例外時段-預約項目預約_整日關閉"></div><figcaption><span class="badge">桌面</span>8-1 例外時段-預約項目預約_整日關閉</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_60374.png" alt="8-1 例外時段-預約項目預約_Month Picker"></div><figcaption><span class="badge">桌面</span>8-1 例外時段-預約項目預約_Month Picker</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_60249.png" alt="8-1 例外時段-預約項目預約_未設定預約項目"></div><figcaption><span class="badge">桌面</span>8-1 例外時段-預約項目預約_未設定預約項目</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_59532.png" alt="8-1 例外時段-預約項目預約_展開_Hover"></div><figcaption><span class="badge">桌面</span>8-1 例外時段-預約項目預約_展開_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_59829.png" alt="8-1 例外時段-預約項目預約_展開_Pressed"></div><figcaption><span class="badge">桌面</span>8-1 例外時段-預約項目預約_展開_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_64538.png" alt="8-1 例外時段-預約項目預約_M"></div><figcaption><span class="badge">手機</span>8-1 例外時段-預約項目預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_64884.png" alt="8-1 例外時段-預約項目預約_展開_M"></div><figcaption><span class="badge">手機</span>8-1 例外時段-預約項目預約_展開_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_64736.png" alt="8-1 例外時段-預約項目預約_Null_M"></div><figcaption><span class="badge">手機</span>8-1 例外時段-預約項目預約_Null_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_65462.png" alt="8-1 例外時段-預約項目預約_整日關閉_M"></div><figcaption><span class="badge">手機</span>8-1 例外時段-預約項目預約_整日關閉_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_65360.png" alt="8-1 例外時段-預約項目預約_Month Picker_M"></div><figcaption><span class="badge">手機</span>8-1 例外時段-預約項目預約_Month Picker_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_64810.png" alt="8-1 例外時段-預約項目預約_未設定預約項目_M"></div><figcaption><span class="badge">手機</span>8-1 例外時段-預約項目預約_未設定預約項目_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_65120.png" alt="8-1 例外時段-預約項目預約_展開_Pressed_M"></div><figcaption><span class="badge">手機</span>8-1 例外時段-預約項目預約_展開_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4627_69453" class="sec"><h3 class="sh">8-2 預約項目預約_關閉預約 <em>7 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_69705.png" alt="8-2 預約項目預約_關閉預約_Start"></div><figcaption><span class="badge">桌面</span>8-2 預約項目預約_關閉預約_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_69454.png" alt="8-2 預約項目預約_關閉預約"></div><figcaption><span class="badge">桌面</span>8-2 預約項目預約_關閉預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_69830.png" alt="8-2 預約項目預約_關閉預約_完成"></div><figcaption><span class="badge">桌面</span>8-2 預約項目預約_關閉預約_完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_69535.png" alt="8-2 預約項目預約_關閉預約_Hover"></div><figcaption><span class="badge">桌面</span>8-2 預約項目預約_關閉預約_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_69616.png" alt="8-2 預約項目預約_關閉預約_Pressed"></div><figcaption><span class="badge">桌面</span>8-2 預約項目預約_關閉預約_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_69956.png" alt="8-2 預約項目預約_關閉預約_Ｍ"></div><figcaption><span class="badge">手機</span>8-2 預約項目預約_關閉預約_Ｍ</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_69986.png" alt="8-2 預約項目預約_關閉預約_Pressed_Ｍ"></div><figcaption><span class="badge">手機</span>8-2 預約項目預約_關閉預約_Pressed_Ｍ</figcaption></figure>
+</div></section>
+<section id="s-4651_233700" class="sec"><h3 class="sh">8-3 預約項目預約_新增例外規則 <em>18 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_235205.png" alt="8-3 預約項目預約_新增例外規則_Start"></div><figcaption><span class="badge">桌面</span>8-3 預約項目預約_新增例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_233701.png" alt="8-3 預約項目預約_新增例外規則"></div><figcaption><span class="badge">桌面</span>8-3 預約項目預約_新增例外規則</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_234338.png" alt="8-3 預約項目預約_新增例外規則_輸入"></div><figcaption><span class="badge">桌面</span>8-3 預約項目預約_新增例外規則_輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_234677.png" alt="8-3 預約項目預約_新增例外規則_完成輸入"></div><figcaption><span class="badge">桌面</span>8-3 預約項目預約_新增例外規則_完成輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_233884.png" alt="8-3 預約項目預約_新增例外規則_輸入錯誤"></div><figcaption><span class="badge">桌面</span>8-3 預約項目預約_新增例外規則_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_234105.png" alt="8-3 預約項目預約_新增例外規則_所選日期選項已設定關閉"></div><figcaption><span class="badge">桌面</span>8-3 預約項目預約_新增例外規則_所選日期選項已設定關閉</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_234872.png" alt="8-3 預約項目預約_新增例外規則_選擇整日關閉"></div><figcaption><span class="badge">桌面</span>8-3 預約項目預約_新增例外規則_選擇整日關閉</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_234995.png" alt="8-3 預約項目預約_新增例外規則_選擇整日關閉_儲存提醒"></div><figcaption><span class="badge">桌面</span>8-3 預約項目預約_新增例外規則_選擇整日關閉_儲存提醒</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_235330.png" alt="8-3 預約項目預約_新增例外規則_新增完成"></div><figcaption><span class="badge">桌面</span>8-3 預約項目預約_新增例外規則_新增完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_235465.png" alt="8-3 預約項目預約_新增例外規則_M"></div><figcaption><span class="badge">手機</span>8-3 預約項目預約_新增例外規則_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_236340.png" alt="8-3 預約項目預約_新增例外規則_輸入_M"></div><figcaption><span class="badge">手機</span>8-3 預約項目預約_新增例外規則_輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_235899.png" alt="8-3 預約項目預約_新增例外規則_完成輸入_M"></div><figcaption><span class="badge">手機</span>8-3 預約項目預約_新增例外規則_完成輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_235729.png" alt="8-3 預約項目預約_新增例外規則_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>8-3 預約項目預約_新增例外規則_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_236043.png" alt="8-3 預約項目預約_新增例外規則_所選日期選項已設定關閉_M"></div><figcaption><span class="badge">手機</span>8-3 預約項目預約_新增例外規則_所選日期選項已設定關閉_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_236187.png" alt="8-3 預約項目預約_新增例外規則_選擇整日關閉_M"></div><figcaption><span class="badge">手機</span>8-3 預約項目預約_新增例外規則_選擇整日關閉_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_236259.png" alt="8-3 預約項目預約_新增例外規則_選擇整日關閉_儲存提醒_M"></div><figcaption><span class="badge">手機</span>8-3 預約項目預約_新增例外規則_選擇整日關閉_儲存提醒_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_235127.png" alt="8-3 預約項目預約_新增例外規則_新增完成_M"></div><figcaption><span class="badge">手機</span>8-3 預約項目預約_新增例外規則_新增完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_235597.png" alt="8-3 預約項目預約_新增例外規則_Pressed_M"></div><figcaption><span class="badge">手機</span>8-3 預約項目預約_新增例外規則_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4651_241385" class="sec"><h3 class="sh">8-4 預約項目預約_編輯例外規則 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_241608.png" alt="8-4 預約項目預約_編輯例外規則_Start"></div><figcaption><span class="badge">桌面</span>8-4 預約項目預約_編輯例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_242103.png" alt="8-4 預約項目預約_編輯例外規則"></div><figcaption><span class="badge">桌面</span>8-4 預約項目預約_編輯例外規則</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_241855.png" alt="8-4 預約項目預約_編輯例外規則_編輯完成"></div><figcaption><span class="badge">桌面</span>8-4 預約項目預約_編輯例外規則_編輯完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_241464.png" alt="8-4 預約項目預約_編輯例外規則_M"></div><figcaption><span class="badge">手機</span>8-4 預約項目預約_編輯例外規則_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_241386.png" alt="8-4 預約項目預約_編輯例外規則_編輯完成_M"></div><figcaption><span class="badge">手機</span>8-4 預約項目預約_編輯例外規則_編輯完成_M</figcaption></figure>
+</div></section>
+<section id="s-4651_244376" class="sec"><h3 class="sh">8-5 預約項目預約_編輯已關閉預約的項目 <em>3 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_244625.png" alt="8-5 預約項目預約_編輯已關閉預約的項目_Start"></div><figcaption><span class="badge">桌面</span>8-5 預約項目預約_編輯已關閉預約的項目_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_244872.png" alt="8-5 預約項目預約_編輯已關閉預約的項目"></div><figcaption><span class="badge">桌面</span>8-5 預約項目預約_編輯已關閉預約的項目</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_244377.png" alt="8-5 預約項目預約_編輯已關閉預約的項目_編輯完成"></div><figcaption><span class="badge">桌面</span>8-5 預約項目預約_編輯已關閉預約的項目_編輯完成</figcaption></figure>
+</div></section>
+<section id="s-4651_246524" class="sec"><h3 class="sh">8-6 預約項目預約_複製例外規則 <em>3 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_246708.png" alt="8-6 預約項目預約_複製例外規則_Start"></div><figcaption><span class="badge">桌面</span>8-6 預約項目預約_複製例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_246525.png" alt="8-6 預約項目預約_複製例外規則"></div><figcaption><span class="badge">桌面</span>8-6 預約項目預約_複製例外規則</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_246955.png" alt="8-6 預約項目預約_複製例外規則_完成"></div><figcaption><span class="badge">桌面</span>8-6 預約項目預約_複製例外規則_完成</figcaption></figure>
+</div></section>
+<section id="s-4651_248232" class="sec"><h3 class="sh">8-7 預約項目預約_刪除例外規則 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_248233.png" alt="8-7 預約項目預約_刪除例外規則_Start"></div><figcaption><span class="badge">桌面</span>8-7 預約項目預約_刪除例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_249100.png" alt="8-7 預約項目預約_刪除例外規則_Popup"></div><figcaption><span class="badge">桌面</span>8-7 預約項目預約_刪除例外規則_Popup</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_248666.png" alt="8-7 預約項目預約_刪除例外規則_完成"></div><figcaption><span class="badge">桌面</span>8-7 預約項目預約_刪除例外規則_完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_249542.png" alt="8-7 預約項目預約_刪除例外規則_Popup_M"></div><figcaption><span class="badge">手機</span>8-7 預約項目預約_刪除例外規則_Popup_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4651_249749.png" alt="8-7 預約項目預約_刪除例外規則_Popup_M2"></div><figcaption><span class="badge">手機</span>8-7 預約項目預約_刪除例外規則_Popup_M2</figcaption></figure>
+</div></section>
+<section id="s-4542_12815" class="sec"><h3 class="sh">9-1 例外時段-階層項目預約 <em>16 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4398_56981.png" alt="9-1 例外時段-階層項目預約"></div><figcaption><span class="badge">桌面</span>9-1 例外時段-階層項目預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4474_6993.png" alt="9-1 例外時段-階層項目預約_展開"></div><figcaption><span class="badge">桌面</span>9-1 例外時段-階層項目預約_展開</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4442_5023.png" alt="9-1 例外時段-階層項目預約_Null"></div><figcaption><span class="badge">桌面</span>9-1 例外時段-階層項目預約_Null</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4442_61471.png" alt="9-1 例外時段-階層項目預約_整日關閉"></div><figcaption><span class="badge">桌面</span>9-1 例外時段-階層項目預約_整日關閉</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4474_11379.png" alt="9-1 例外時段-階層項目預約_Month Picker"></div><figcaption><span class="badge">桌面</span>9-1 例外時段-階層項目預約_Month Picker</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4542_66507.png" alt="9-1 例外時段-階層項目預約_未設定預約項目"></div><figcaption><span class="badge">桌面</span>9-1 例外時段-階層項目預約_未設定預約項目</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4474_10192.png" alt="9-1 例外時段-階層項目預約_展開_Hover"></div><figcaption><span class="badge">桌面</span>9-1 例外時段-階層項目預約_展開_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4474_15908.png" alt="9-1 例外時段-階層項目預約_展開_Pressed"></div><figcaption><span class="badge">桌面</span>9-1 例外時段-階層項目預約_展開_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4509_9102.png" alt="9-1 例外時段-階層項目預約_M_選單"></div><figcaption><span class="badge">手機</span>9-1 例外時段-階層項目預約_M_選單</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4456_6134.png" alt="9-1 例外時段-階層項目預約_M"></div><figcaption><span class="badge">手機</span>9-1 例外時段-階層項目預約_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4547_11022.png" alt="9-1 例外時段-階層項目預約_展開_M"></div><figcaption><span class="badge">手機</span>9-1 例外時段-階層項目預約_展開_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4509_10461.png" alt="9-1 例外時段-階層項目預約_Null_M"></div><figcaption><span class="badge">手機</span>9-1 例外時段-階層項目預約_Null_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4542_10393.png" alt="9-1 例外時段-階層項目預約_整日關閉_M"></div><figcaption><span class="badge">手機</span>9-1 例外時段-階層項目預約_整日關閉_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4542_10764.png" alt="9-1 例外時段-階層項目預約_Month Picker_M"></div><figcaption><span class="badge">手機</span>9-1 例外時段-階層項目預約_Month Picker_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4542_67004.png" alt="9-1 例外時段-階層項目預約_未設定預約項目_M"></div><figcaption><span class="badge">手機</span>9-1 例外時段-階層項目預約_未設定預約項目_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4542_11742.png" alt="9-1 例外時段-階層項目預約_展開_Pressed_M"></div><figcaption><span class="badge">手機</span>9-1 例外時段-階層項目預約_展開_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4542_66013" class="sec"><h3 class="sh">9-2 階層項目預約_關閉預約 <em>7 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4542_12816.png" alt="9-2 階層項目預約_關閉預約_Start"></div><figcaption><span class="badge">桌面</span>9-2 階層項目預約_關閉預約_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4413_56066.png" alt="9-2 階層項目預約_關閉預約"></div><figcaption><span class="badge">桌面</span>9-2 階層項目預約_關閉預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4542_13307.png" alt="9-2 階層項目預約_關閉預約_完成"></div><figcaption><span class="badge">桌面</span>9-2 階層項目預約_關閉預約_完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4542_65523.png" alt="9-2 階層項目預約_關閉預約_Hover"></div><figcaption><span class="badge">桌面</span>9-2 階層項目預約_關閉預約_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4542_65731.png" alt="9-2 階層項目預約_關閉預約_Pressed"></div><figcaption><span class="badge">桌面</span>9-2 階層項目預約_關閉預約_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4542_65215.png" alt="9-2 階層項目預約_關閉預約_Ｍ"></div><figcaption><span class="badge">手機</span>9-2 階層項目預約_關閉預約_Ｍ</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4542_65939.png" alt="9-2 階層項目預約_關閉預約_Pressed_Ｍ"></div><figcaption><span class="badge">手機</span>9-2 階層項目預約_關閉預約_Pressed_Ｍ</figcaption></figure>
+</div></section>
+<section id="s-4596_22213" class="sec"><h3 class="sh">9-3 階層項目預約_新增例外規則 <em>21 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4542_66014.png" alt="9-3 階層項目預約_新增例外規則_Start"></div><figcaption><span class="badge">桌面</span>9-3 階層項目預約_新增例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4413_57268.png" alt="9-3 階層項目預約_新增例外規則"></div><figcaption><span class="badge">桌面</span>9-3 階層項目預約_新增例外規則</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4542_67409.png" alt="9-3 階層項目預約_新增例外規則_輸入"></div><figcaption><span class="badge">桌面</span>9-3 階層項目預約_新增例外規則_輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4565_13159.png" alt="9-3 階層項目預約_新增例外規則_完成輸入"></div><figcaption><span class="badge">桌面</span>9-3 階層項目預約_新增例外規則_完成輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4565_14245.png" alt="9-3 階層項目預約_新增例外規則_輸入錯誤"></div><figcaption><span class="badge">桌面</span>9-3 階層項目預約_新增例外規則_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_30030.png" alt="9-3 階層項目預約_新增例外規則_所選日期選項已設定關閉"></div><figcaption><span class="badge">桌面</span>9-3 階層項目預約_新增例外規則_所選日期選項已設定關閉</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4585_16224.png" alt="9-3 階層項目預約_新增例外規則_選擇整日關閉"></div><figcaption><span class="badge">桌面</span>9-3 階層項目預約_新增例外規則_選擇整日關閉</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_32243.png" alt="9-3 階層項目預約_新增例外規則_選擇整日關閉_儲存提醒"></div><figcaption><span class="badge">桌面</span>9-3 階層項目預約_新增例外規則_選擇整日關閉_儲存提醒</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4585_16683.png" alt="9-3 階層項目預約_新增例外規則_新增完成"></div><figcaption><span class="badge">桌面</span>9-3 階層項目預約_新增例外規則_新增完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4585_15505.png" alt="Date Picker"></div><figcaption><span class="badge">手機</span>Date Picker</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4585_15644.png" alt="Date Picker_Hover"></div><figcaption><span class="badge">手機</span>Date Picker_Hover</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4585_17201.png" alt="Date Picker_Hover2"></div><figcaption><span class="badge">手機</span>Date Picker_Hover2</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4585_17349.png" alt="9-3 階層項目預約_新增例外規則_M"></div><figcaption><span class="badge">手機</span>9-3 階層項目預約_新增例外規則_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4585_18408.png" alt="9-3 階層項目預約_新增例外規則_輸入_M"></div><figcaption><span class="badge">手機</span>9-3 階層項目預約_新增例外規則_輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4596_19591.png" alt="9-3 階層項目預約_新增例外規則_完成輸入_M"></div><figcaption><span class="badge">手機</span>9-3 階層項目預約_新增例外規則_完成輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4596_19930.png" alt="9-3 階層項目預約_新增例外規則_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>9-3 階層項目預約_新增例外規則_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_31459.png" alt="9-3 階層項目預約_新增例外規則_所選日期選項已設定關閉_M"></div><figcaption><span class="badge">手機</span>9-3 階層項目預約_新增例外規則_所選日期選項已設定關閉_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4596_21188.png" alt="9-3 階層項目預約_新增例外規則_選擇整日關閉_M"></div><figcaption><span class="badge">手機</span>9-3 階層項目預約_新增例外規則_選擇整日關閉_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_32555.png" alt="9-3 階層項目預約_新增例外規則_選擇整日關閉_儲存提醒_M"></div><figcaption><span class="badge">手機</span>9-3 階層項目預約_新增例外規則_選擇整日關閉_儲存提醒_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4596_21509.png" alt="9-3 階層項目預約_新增例外規則_新增完成_M"></div><figcaption><span class="badge">手機</span>9-3 階層項目預約_新增例外規則_新增完成_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4596_21904.png" alt="9-3 階層項目預約_新增例外規則_Pressed_M"></div><figcaption><span class="badge">手機</span>9-3 階層項目預約_新增例外規則_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4604_27215" class="sec"><h3 class="sh">9-4 階層項目預約_編輯例外規則 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4596_22289.png" alt="9-4 階層項目預約_編輯例外規則_Start"></div><figcaption><span class="badge">桌面</span>9-4 階層項目預約_編輯例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4596_23419.png" alt="9-4 階層項目預約_編輯例外規則"></div><figcaption><span class="badge">桌面</span>9-4 階層項目預約_編輯例外規則</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_23870.png" alt="9-4 階層項目預約_編輯例外規則_編輯完成"></div><figcaption><span class="badge">桌面</span>9-4 階層項目預約_編輯例外規則_編輯完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_26472.png" alt="9-4 階層項目預約_編輯例外規則_M"></div><figcaption><span class="badge">手機</span>9-4 階層項目預約_編輯例外規則_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_26788.png" alt="9-4 階層項目預約_編輯例外規則_編輯完成_M"></div><figcaption><span class="badge">手機</span>9-4 階層項目預約_編輯例外規則_編輯完成_M</figcaption></figure>
+</div></section>
+<section id="s-4604_38763" class="sec"><h3 class="sh">9-5 階層項目預約_編輯已關閉預約的項目 <em>3 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_37074.png" alt="9-5 階層項目預約_編輯已關閉預約的項目_Start"></div><figcaption><span class="badge">桌面</span>9-5 階層項目預約_編輯已關閉預約的項目_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_37769.png" alt="9-5 階層項目預約_編輯已關閉預約的項目"></div><figcaption><span class="badge">桌面</span>9-5 階層項目預約_編輯已關閉預約的項目</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_38066.png" alt="9-5 階層項目預約_編輯已關閉預約的項目_編輯完成"></div><figcaption><span class="badge">桌面</span>9-5 階層項目預約_編輯已關閉預約的項目_編輯完成</figcaption></figure>
+</div></section>
+<section id="s-4604_40322" class="sec"><h3 class="sh">9-6 階層項目預約_複製例外規則 <em>3 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_38917.png" alt="9-6 階層項目預約_複製例外規則_Start"></div><figcaption><span class="badge">桌面</span>9-6 階層項目預約_複製例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_29580.png" alt="9-6 階層項目預約_複製例外規則"></div><figcaption><span class="badge">桌面</span>9-6 階層項目預約_複製例外規則</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_39637.png" alt="9-6 階層項目預約_複製例外規則_完成"></div><figcaption><span class="badge">桌面</span>9-6 階層項目預約_複製例外規則_完成</figcaption></figure>
+</div></section>
+<section id="s-4604_44658" class="sec"><h3 class="sh">9-7 階層項目預約_刪除例外規則 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_28251.png" alt="9-7 階層項目預約_刪除例外規則_Start"></div><figcaption><span class="badge">桌面</span>9-7 階層項目預約_刪除例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_41279.png" alt="9-7 階層項目預約_刪除例外規則_Popup"></div><figcaption><span class="badge">桌面</span>9-7 階層項目預約_刪除例外規則_Popup</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_42187.png" alt="9-7 階層項目預約_刪除例外規則_完成"></div><figcaption><span class="badge">桌面</span>9-7 階層項目預約_刪除例外規則_完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_43072.png" alt="9-7 階層項目預約_刪除例外規則_Popup_M"></div><figcaption><span class="badge">手機</span>9-7 階層項目預約_刪除例外規則_Popup_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_43597.png" alt="9-7 階層項目預約_刪除例外規則_Popup_M2"></div><figcaption><span class="badge">手機</span>9-7 階層項目預約_刪除例外規則_Popup_M2</figcaption></figure>
+</div></section>
+<section id="s-4655_260756" class="sec"><h3 class="sh">10-1 例外時段-總量控管 <em>13 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4398_58287.png" alt="10-1 例外時段-總量控管"></div><figcaption><span class="badge">桌面</span>10-1 例外時段-總量控管</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_252074.png" alt="10-1 例外時段-總量控管_展開"></div><figcaption><span class="badge">桌面</span>10-1 例外時段-總量控管_展開</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_252238.png" alt="10-1 例外時段-總量控管_Null"></div><figcaption><span class="badge">桌面</span>10-1 例外時段-總量控管_Null</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_252516.png" alt="10-1 例外時段-總量控管_整日關閉"></div><figcaption><span class="badge">桌面</span>10-1 例外時段-總量控管_整日關閉</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_252363.png" alt="10-1 例外時段-總量控管_Month Picker"></div><figcaption><span class="badge">桌面</span>10-1 例外時段-總量控管_Month Picker</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_252641.png" alt="10-1 例外時段-總量控管_展開_Hover"></div><figcaption><span class="badge">桌面</span>10-1 例外時段-總量控管_展開_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_252807.png" alt="10-1 例外時段-總量控管_展開_Pressed"></div><figcaption><span class="badge">桌面</span>10-1 例外時段-總量控管_展開_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_256385.png" alt="10-1 例外時段-總量控管_M"></div><figcaption><span class="badge">手機</span>10-1 例外時段-總量控管_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_256469.png" alt="10-1 例外時段-總量控管_展開_M"></div><figcaption><span class="badge">手機</span>10-1 例外時段-總量控管_展開_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_256955.png" alt="10-1 例外時段-總量控管_Null_M"></div><figcaption><span class="badge">手機</span>10-1 例外時段-總量控管_Null_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_257237.png" alt="10-1 例外時段-總量控管_整日關閉_M"></div><figcaption><span class="badge">手機</span>10-1 例外時段-總量控管_整日關閉_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_257135.png" alt="10-1 例外時段-總量控管_Month Picker_M"></div><figcaption><span class="badge">手機</span>10-1 例外時段-總量控管_Month Picker_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_257029.png" alt="10-1 例外時段-總量控管_展開_Pressed_M"></div><figcaption><span class="badge">手機</span>10-1 例外時段-總量控管_展開_Pressed_M</figcaption></figure>
+</div></section>
+<section id="s-4655_260757" class="sec"><h3 class="sh">10-2 總量控管_關閉預約 <em>7 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_261009.png" alt="10-2 總量控管_關閉預約_Start"></div><figcaption><span class="badge">桌面</span>10-2 總量控管_關閉預約_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_260758.png" alt="10-2 總量控管_關閉預約"></div><figcaption><span class="badge">桌面</span>10-2 總量控管_關閉預約</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_261134.png" alt="10-2 總量控管_關閉預約_完成"></div><figcaption><span class="badge">桌面</span>10-2 總量控管_關閉預約_完成</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_260839.png" alt="10-2 總量控管_關閉預約_Hover"></div><figcaption><span class="badge">桌面</span>10-2 總量控管_關閉預約_Hover</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_260920.png" alt="10-2 總量控管_關閉預約_Pressed"></div><figcaption><span class="badge">桌面</span>10-2 總量控管_關閉預約_Pressed</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_261260.png" alt="10-2 總量控管_關閉預約_Ｍ"></div><figcaption><span class="badge">手機</span>10-2 總量控管_關閉預約_Ｍ</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_261290.png" alt="10-2 總量控管_關閉預約_Pressed_Ｍ"></div><figcaption><span class="badge">手機</span>10-2 總量控管_關閉預約_Pressed_Ｍ</figcaption></figure>
+</div></section>
+<section id="s-4655_262501" class="sec"><h3 class="sh">10-3 總量控管_新增例外規則 <em>14 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_262703.png" alt="10-3 總量控管_新增例外規則_Start"></div><figcaption><span class="badge">桌面</span>10-3 總量控管_新增例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_262828.png" alt="10-3 總量控管_新增例外規則"></div><figcaption><span class="badge">桌面</span>10-3 總量控管_新增例外規則</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_263409.png" alt="10-3 總量控管_新增例外規則_輸入"></div><figcaption><span class="badge">桌面</span>10-3 總量控管_新增例外規則_輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_263628.png" alt="10-3 總量控管新增例外規則_完成輸入"></div><figcaption><span class="badge">桌面</span>10-3 總量控管新增例外規則_完成輸入</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_262992.png" alt="10-3 總量控管預約_新增例外規則_輸入錯誤"></div><figcaption><span class="badge">桌面</span>10-3 總量控管預約_新增例外規則_輸入錯誤</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_263195.png" alt="10-3 總量控管_新增例外規則_所選日期選項已設定關閉"></div><figcaption><span class="badge">桌面</span>10-3 總量控管_新增例外規則_所選日期選項已設定關閉</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_262577.png" alt="10-3 總量控管_新增例外規則_新增完成"></div><figcaption><span class="badge">桌面</span>10-3 總量控管_新增例外規則_新增完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_264050.png" alt="10-3 總量控管_新增例外規則_M_選單"></div><figcaption><span class="badge">手機</span>10-3 總量控管_新增例外規則_M_選單</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_263936.png" alt="10-3 總量控管_新增例外規則_M"></div><figcaption><span class="badge">手機</span>10-3 總量控管_新增例外規則_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_264576.png" alt="10-3 總量控管_新增例外規則_輸入_M"></div><figcaption><span class="badge">手機</span>10-3 總量控管_新增例外規則_輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_264316.png" alt="10-3 總量控管_新增例外規則_完成輸入_M"></div><figcaption><span class="badge">手機</span>10-3 總量控管_新增例外規則_完成輸入_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_264164.png" alt="10-3 總量控管_新增例外規則_輸入錯誤_M"></div><figcaption><span class="badge">手機</span>10-3 總量控管_新增例外規則_輸入錯誤_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_264450.png" alt="10-3 總量控管_新增例外規則_所選日期選項已設定關閉_M"></div><figcaption><span class="badge">手機</span>10-3 總量控管_新增例外規則_所選日期選項已設定關閉_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_262502.png" alt="10-3 總量控管_新增例外規則_新增完成_M"></div><figcaption><span class="badge">手機</span>10-3 總量控管_新增例外規則_新增完成_M</figcaption></figure>
+</div></section>
+<section id="s-4655_264747" class="sec"><h3 class="sh">10-4 總量控管_編輯例外規則 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_265142.png" alt="10-4 總量控管_編輯例外規則_Start"></div><figcaption><span class="badge">桌面</span>10-4 總量控管_編輯例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_264957.png" alt="10-4 總量控管_編輯例外規則"></div><figcaption><span class="badge">桌面</span>10-4 總量控管_編輯例外規則</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_265267.png" alt="10-4 總量控管_編輯例外規則_編輯完成"></div><figcaption><span class="badge">桌面</span>10-4 總量控管_編輯例外規則_編輯完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_264823.png" alt="10-4 總量控管_編輯例外規則_M"></div><figcaption><span class="badge">手機</span>10-4 總量控管_編輯例外規則_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_264748.png" alt="10-4 總量控管_編輯例外規則_編輯完成_M"></div><figcaption><span class="badge">手機</span>10-4 總量控管_編輯例外規則_編輯完成_M</figcaption></figure>
+</div></section>
+<section id="s-4655_265395" class="sec"><h3 class="sh">10-5 總量控管_複製例外規則 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_265778.png" alt="10-5 總量控管_複製例外規則_Start"></div><figcaption><span class="badge">桌面</span>10-5 總量控管_複製例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_265605.png" alt="10-5 總量控管_複製例外規則"></div><figcaption><span class="badge">桌面</span>10-5 總量控管_複製例外規則</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_265903.png" alt="10-5 總量控管_複製例外規則_完成"></div><figcaption><span class="badge">桌面</span>10-5 總量控管_複製例外規則_完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_265471.png" alt="10-5 總量控管_編輯例外規則_M"></div><figcaption><span class="badge">手機</span>10-5 總量控管_編輯例外規則_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_265396.png" alt="10-5 總量控管_編輯例外規則_編輯完成_M"></div><figcaption><span class="badge">手機</span>10-5 總量控管_編輯例外規則_編輯完成_M</figcaption></figure>
+</div></section>
+<section id="s-4655_266031" class="sec"><h3 class="sh">10-6 總量控管_刪除例外規則 <em>5 張</em></h3><div class="grid">
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_266210.png" alt="10-6 總量控管_刪除例外規則_Start"></div><figcaption><span class="badge">桌面</span>10-6 總量控管_刪除例外規則_Start</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_266461.png" alt="10-6 總量控管_刪除例外規則_popup"></div><figcaption><span class="badge">桌面</span>10-6 總量控管_刪除例外規則_popup</figcaption></figure>
+<figure class="card desk"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_266335.png" alt="10-6 總量控管_刪除例外規則_完成"></div><figcaption><span class="badge">桌面</span>10-6 總量控管_刪除例外規則_完成</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_266032.png" alt="10-6 總量控管_刪除例外規則_popup_M"></div><figcaption><span class="badge">手機</span>10-6 總量控管_刪除例外規則_popup_M</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4655_266125.png" alt="10-6 總量控管_刪除例外規則_完成_M"></div><figcaption><span class="badge">手機</span>10-6 總量控管_刪除例外規則_完成_M</figcaption></figure>
+</div></section>
+<section id="s-exc-notes" class="sec"><h3 class="sh">📋 說明卡與其他 <em>9 張</em></h3><div class="grid">
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4627_68164.png" alt="7-1 例外時段-基本人數預約_說明"></div><figcaption><span class="badge">手機</span>7-1 例外時段-基本人數預約_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_165698.png" alt="7-2 基本人數預約_關閉預約_說明"></div><figcaption><span class="badge">手機</span>7-2 基本人數預約_關閉預約_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4641_165696.png" alt="7-3 基本人數預約_新增例外規則_說明"></div><figcaption><span class="badge">手機</span>7-3 基本人數預約_新增例外規則_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4474_9128.png" alt="9-1 例外時段-階層項目預約_說明"></div><figcaption><span class="badge">手機</span>9-1 例外時段-階層項目預約_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_25576.png" alt="9-2 階層項目預約_關閉預約_說明"></div><figcaption><span class="badge">手機</span>9-2 階層項目預約_關閉預約_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4542_67377.png" alt="9-3 階層項目預約_新增例外規則_說明"></div><figcaption><span class="badge">手機</span>9-3 階層項目預約_新增例外規則_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_25578.png" alt="9-4 階層項目預約_編輯例外規則_說明"></div><figcaption><span class="badge">手機</span>9-4 階層項目預約_編輯例外規則_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_39635.png" alt="9-6 階層項目預約_複製例外規則_說明"></div><figcaption><span class="badge">手機</span>9-6 階層項目預約_複製例外規則_說明</figcaption></figure>
+<figure class="card mob"><div class="imwrap"><img loading="lazy" src="algo_assets/4604_43070.png" alt="9-7 階層項目預約_刪除例外規則_說明"></div><figcaption><span class="badge">手機</span>9-7 階層項目預約_刪除例外規則_說明</figcaption></figure>
+</div></section>
+</main>
+</div>
+<div id="lb" onclick="this.classList.remove('on')"><img id="lbimg" src=""></div>
+<script>
+document.querySelectorAll('.card img').forEach(function(im){
+  im.addEventListener('click',function(e){e.stopPropagation();var lb=document.getElementById('lb');document.getElementById('lbimg').src=im.src;lb.classList.add('on');});
+});
+</script>
+</body></html>
