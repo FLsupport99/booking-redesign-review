@@ -566,7 +566,7 @@ function renderChrome() {
       const excMap = { basic: 'basic', capacity: 'total', service: 'service', category: 'hier' };
       location.href = 'exception_rules.html?mode=' + (excMap[db.mode] || 'basic');
     }
-    else if (a.dataset.nav === '顧客預約頁') { location.href = 'hierarchical_booking.html'; }
+    else if (a.dataset.nav === '顧客預約頁') { location.hash = '#/customer'; }
     else toast('此頁面尚未做成互動 Demo');
   }));
 }
@@ -589,6 +589,8 @@ function setTitle(crumbs, h1) {
 function route() {
   closeModal();
   const h = location.hash || '#/rules';
+  const activeNav = h.startsWith('#/customer') ? '顧客預約頁' : '預約規則';
+  document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('active', a.dataset.nav === activeNav));
   const mGroup = h.match(/^#\/unit\/group\/(.+)$/);
   const mItemNew = h.match(/^#\/slots\/item\/([^/]+)\/new$/);
   const mItemEdit = h.match(/^#\/slots\/item\/([^/]+)\/edit\/(.+)$/);
@@ -596,6 +598,7 @@ function route() {
   const mEdit = h.match(/^#\/slots\/edit\/(.+)$/);
   if (h === '#/rules' || h === '') return viewRules();
   if (h === '#/mode') return viewModeChange();
+  if (h === '#/customer') return viewCustomer();
   const mCat = h.match(/^#\/slots\/cat\/([^/]+)$/);
   if (h === '#/slots') return db.mode === 'service' ? viewSvcItems() : db.mode === 'category' ? viewCatParents() : viewSlots();
   if (mCat) return viewCatSubs(decodeURIComponent(mCat[1]));
@@ -639,6 +642,32 @@ function viewRules() {
         <div class="g-row" onclick="location.hash='#/slots'">
           <div class="gr-main"><div class="gr-name">${slotTitle}</div>
           <div class="gr-sub">${slotDesc}</div></div>
+          <span class="arrow">${ICONS.chevR}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* =====================================================
+   顧客預約頁（顧客端互動原型入口）
+   ===================================================== */
+function viewCustomer() {
+  setTitle([['顧客預約頁', '#/customer']], '顧客預約頁');
+  $('#content').innerHTML = `
+    <div class="card">
+      <div class="card-head"><div class="ch-main">
+        <div class="ch-title">顧客端互動原型</div>
+        <div class="ch-desc">以顧客視角實際走完線上預約流程：選擇項目、人數、日期時段 → 填寫資料 → 付款／綁卡 → 預約成功，以及待審核、取消等各種狀態。</div>
+      </div></div>
+      <div class="rows">
+        <div class="g-row" onclick="location.href='hierarchical_booking.html'">
+          <div class="gr-main"><div class="gr-name">階層項目預約 — 完整流程原型</div>
+          <div class="gr-sub">可實際點擊操作的顧客端原型（含商家後台設定畫面），LINE QR 與付款串接為畫面示意</div></div>
+          <span class="arrow">${ICONS.chevR}</span>
+        </div>
+        <div class="g-row" onclick="location.href='designs.html'">
+          <div class="gr-main"><div class="gr-name">其他模式的顧客端設計稿</div>
+          <div class="gr-sub">基本人數預約（276 張）、服務項目＋階層項目預約（195 張）— 設計稿總覽</div></div>
           <span class="arrow">${ICONS.chevR}</span>
         </div>
       </div>
