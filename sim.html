@@ -562,7 +562,10 @@ function renderChrome() {
   document.querySelectorAll('[data-nav]').forEach(a => a.addEventListener('click', () => {
     closeDrawer();
     if (a.dataset.nav === '預約規則') { location.hash = '#/rules'; }
-    else if (a.dataset.nav === '例外預約規則') { location.href = 'exception_rules.html'; }
+    else if (a.dataset.nav === '例外預約規則') {
+      const excMap = { basic: 'basic', capacity: 'total', service: 'service', category: 'hier' };
+      location.href = 'exception_rules.html?mode=' + (excMap[db.mode] || 'basic');
+    }
     else if (a.dataset.nav === '顧客預約頁') { location.href = 'hierarchical_booking.html'; }
     else toast('此頁面尚未做成互動 Demo');
   }));
