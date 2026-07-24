@@ -324,7 +324,7 @@ select.sel:focus{border-color:var(--border-on)}
 /* =====================================================
    假資料層（模擬後端 API）— sessionStorage 持久化
    ===================================================== */
-const DB_KEY = 'sim_v2';
+const DB_KEY = 'sim_v3';
 const seed = () => ({
   seq: 100,
   mode: 'basic',
@@ -333,6 +333,12 @@ const seed = () => ({
       svcH: 2, svcM: 0, scope: 'all', limitPeople: 20, limitGroups: 20, deposit: 'd1', approval: false },
     { id: 's2', name: '時段 2', days: [6,7], type: 'custom', start: '11:00', end: '12:00', interval: 30, times: ['17:00','19:00'],
       svcH: 2, svcM: 0, scope: { g_indoor: 'all' }, limitPeople: null, limitGroups: null, deposit: null, approval: true },
+  ],
+  capSlots: [
+    { id: 'c1', name: '時段 1', days: [1,2,3,4,5], type: 'auto', start: '09:00', end: '14:30', interval: 30, times: [],
+      svcH: 2, svcM: 0, capLimit: 1000, limitGroups: 600, deposit: 'd1', approval: false },
+    { id: 'c2', name: '時段 2', days: [6,7], type: 'custom', start: '11:00', end: '12:00', interval: 30, times: ['17:00','19:00'],
+      svcH: 2, svcM: 0, capLimit: 800, limitGroups: null, deposit: 'd2', approval: true },
   ],
   groups: [
     { id: 'g_indoor',  name: '室內',     isDefault: false, merge: true,  mergeMax: 2 },
@@ -394,11 +400,17 @@ const api = {
   async setMode(m) { await delay(); db.mode = m; persist(); },
   async saveSlot(s) {
     await delay();
-    if (s.id) { const i = db.slots.findIndex(x => x.id === s.id); db.slots[i] = s; }
-    else { s.id = 's' + (++db.seq); s.name = '時段 ' + nextSlotNo(); db.slots.push(s); }
+    const list = slotList();
+    if (s.id) { const i = list.findIndex(x => x.id === s.id); list[i] = s; }
+    else { s.id = 's' + (++db.seq); s.name = '時段 ' + nextSlotNo(); list.push(s); }
     persist(); return s;
   },
-  async deleteSlot(id) { await delay(); db.slots = db.slots.filter(s => s.id !== id); persist(); },
+  async deleteSlot(id) {
+    await delay();
+    if (db.mode === 'capacity') db.capSlots = db.capSlots.filter(s => s.id !== id);
+    else db.slots = db.slots.filter(s => s.id !== id);
+    persist();
+  },
 };
 const DEPOSITS = [
   { id: 'd1', name: '平日', desc: '預先收款：2人以上，每人200元' },
@@ -407,7 +419,8 @@ const DEPOSITS = [
 ];
 const DAY_FULL = ['星期一','星期二','星期三','星期四','星期五','星期六','星期日'];
 const DAY_MINI = ['一','二','三','四','五','六','日'];
-function nextSlotNo() { let n = 1; while (db.slots.some(s => s.name === '時段 ' + n)) n++; return n; }
+function slotList() { return db.mode === 'capacity' ? db.capSlots : db.slots; }
+function nextSlotNo() { let n = 1; while (slotList().some(s => s.name === '時段 ' + n)) n++; return n; }
 function toMin(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
 function toHM(min) { return String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0'); }
 function slotTimes(s) {
@@ -429,7 +442,7 @@ function slotCap(s) { const us = scopeUnits(s); return { count: us.length, cap: 
 function slotConflicts(s) {
   const mine = new Set(slotTimes(s));
   const hits = new Set();
-  for (const o of db.slots) {
+  for (const o of slotList()) {
     if (o.id === s.id) continue;
     if (!o.days.some(d => s.days.includes(d))) continue;
     for (const t of slotTimes(o)) if (mine.has(t)) hits.add(t);
@@ -563,7 +576,7 @@ function viewRules() {
           <div class="gr-sub">設定可供預約的單位及容納人數，如桌位、設備、服務人員等</div></div>
           <span class="arrow">${ICONS.chevR}</span>
         </div>
-        <div class="g-row" onclick="${db.mode === 'basic' ? "location.hash='#/slots'" : `toast('「${slotTitle}」目前僅基本人數預約模式有互動 Demo')`}">
+        <div class="g-row" onclick="${(db.mode === 'basic' || db.mode === 'capacity') ? "location.hash='#/slots'" : `toast('「${slotTitle}」此模式的互動 Demo 建置中')`}">
           <div class="gr-main"><div class="gr-name">${slotTitle}</div>
           <div class="gr-sub">${slotDesc}</div></div>
           <span class="arrow">${ICONS.chevR}</span>
@@ -901,11 +914,12 @@ function openEditUnit(uid) {
 const slotOpen = new Set();
 function viewSlots() {
   setTitle([['預約規則', '#/rules'], ['預約時段與規則', '#/slots']], '');
-  const rows = db.slots.map(s => {
+  const capMode = db.mode === 'capacity';
+  const rows = slotList().map(s => {
     const times = slotTimes(s);
-    const { count, cap } = slotCap(s);
+    const { count, cap } = capMode ? { count: 0, cap: 0 } : slotCap(s);
     const dep = DEPOSITS.find(d => d.id === s.deposit);
-    const noUnits = count === 0;
+    const noUnits = !capMode && count === 0;
     const tag = s.type === 'auto'
       ? `<span class="slot-tag">${s.start} - ${s.end}｜間隔${s.interval}分鐘</span>`
       : times.slice(0, 4).map(t => `<span class="slot-tag">${t}</span>`).join('') + (times.length > 4 ? '<span class="slot-tag">⋯</span>' : '');
@@ -930,10 +944,12 @@ function viewSlots() {
           <div class="pills">${times.map(t => `<span class="p">${t}</span>`).join('') || '<span class="none-hint">—</span>'}</div>
         </div>
         <div class="slot-col">
-          ${noUnits
-            ? `<div style="color:var(--emphasis-d);font-weight:500">尚未設定預約單位</div>`
-            : `<li>開放預約單位：${count}個（最多可承接${cap}人）</li><span class="link-green" data-units="${s.id}">查看預約單位</span>`}
-          ${s.limitPeople ? `<li>店內總人數上限：${s.limitPeople}人</li>` : ''}
+          ${capMode
+            ? `<li>開放預約人數：${s.capLimit}人</li>`
+            : noUnits
+              ? `<div style="color:var(--emphasis-d);font-weight:500">尚未設定預約單位</div>`
+              : `<li>開放預約單位：${count}個（最多可承接${cap}人）</li><span class="link-green" data-units="${s.id}">查看預約單位</span>`}
+          ${!capMode && s.limitPeople ? `<li>店內總人數上限：${s.limitPeople}人</li>` : ''}
           ${s.limitGroups ? `<li>店內總組數上限：${s.limitGroups}組</li>` : ''}
           ${dep ? `<div class="dep-line"><span class="dn">💰 ${esc(dep.name)}</span><span class="dd">${esc(dep.desc)}</span></div>` : ''}
           ${s.approval ? '<span class="appr-line">✓ 預約需審核</span>' : ''}
@@ -957,7 +973,7 @@ function viewSlots() {
   }));
   document.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => location.hash = '#/slots/edit/' + b.dataset.edit));
   document.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
-    const s = db.slots.find(x => x.id === b.dataset.del);
+    const s = slotList().find(x => x.id === b.dataset.del);
     openModal(`
       <h3>確定刪除嗎？</h3>
       <div class="m-body"><p>刪除時段將影響線上預約可選預約時段。此操作無法復原，確定刪除嗎？</p></div>
@@ -968,7 +984,7 @@ function viewSlots() {
     $('#delSlotOk').addEventListener('click', async () => { await api.deleteSlot(s.id); closeModal(); toast('已刪除時段'); viewSlots(); });
   }));
   document.querySelectorAll('[data-units]').forEach(a => a.addEventListener('click', () => {
-    const s = db.slots.find(x => x.id === a.dataset.units);
+    const s = slotList().find(x => x.id === a.dataset.units);
     const us = scopeUnits(s);
     openModal(`
       <h3>開放預約單位（${us.length}）</h3>
@@ -985,13 +1001,14 @@ function viewSlots() {
    時段設定 — 新增／編輯表單（3-2/3-3）
    ===================================================== */
 function viewSlotForm(editId) {
-  const src = editId ? db.slots.find(x => x.id === editId) : null;
+  const capMode = db.mode === 'capacity';
+  const src = editId ? slotList().find(x => x.id === editId) : null;
   if (editId && !src) { location.hash = '#/slots'; return; }
   const f = src ? JSON.parse(JSON.stringify(src)) : {
     id: null, name: null, days: [], type: 'auto', start: '11:00', end: '12:00', interval: 30,
-    times: [], svcH: 2, svcM: 0, scope: 'all', limitPeople: null, limitGroups: null, deposit: null, approval: false,
+    times: [], svcH: 2, svcM: 0, scope: 'all', capLimit: null, limitPeople: null, limitGroups: null, deposit: null, approval: false,
   };
-  if (f.scope !== 'all' && typeof f.scope !== 'object') f.scope = 'all';
+  if (!capMode && f.scope !== 'all' && typeof f.scope !== 'object') f.scope = 'all';
   const title = src ? '編輯' + src.name : '新增時段規則';
   setTitle([['預約規則', '#/rules'], ['預約時段與規則', '#/slots'], [title, '']], title);
 
@@ -1049,6 +1066,11 @@ function viewSlotForm(editId) {
     </div>
     <div class="fsec">
       <div class="fst">設定預約承接量</div>
+      ${capMode ? `
+      <div class="field">
+        <div class="field-label">開放預約人數上限 <span class="err-msg${err.capLimit ? ' show' : ''}">請輸入大於或等於 1 的數字</span></div>
+        <div class="input num-input" style="width:140px"><input type="number" min="1" id="i_capLimit" placeholder="請輸入數字" value="${f.capLimit === null ? '' : f.capLimit}"></div>
+      </div>` : `
       <div class="field">
         <div class="field-label">開放預約單位 <span class="err-msg${err.scope ? ' show' : ''}">請選擇預約單位</span></div>
         <div class="hint" style="margin-top:-4px">請選擇設定方式</div>
@@ -1077,18 +1099,19 @@ function viewSlotForm(editId) {
           </div>
         </div>
       </div>
-      <div class="pills-box"><span class="lb">最多可承接人數總計</span><b style="font-size:18px">${cap}</b></div>
+      <div class="pills-box"><span class="lb">最多可承接人數總計</span><b style="font-size:18px">${cap}</b></div>`}
     </div>
     <div class="fsec">
       <div class="fst">進階設定</div>
       <div>
+        ${capMode ? '' : `
         <div class="adv-item">
           <label class="check" data-adv="limitPeople"><span class="box${f.limitPeople !== null ? ' on' : ''}"></span>
             <span><span class="ck-label">限制店內總人數</span><div class="ck-desc">限制同一時段店內的總人數（含現場客）。達上限後將暫停開放該時段的線上預約，但仍可自建預約</div></span></label>
           <div class="adv-sub${f.limitPeople !== null ? ' show' : ''}">人數上限
             <div class="input num-input"><input type="number" min="1" id="i_lp" value="${f.limitPeople === null ? 1 : f.limitPeople}"></div>
             <span class="err-msg${err.lp ? ' show' : ''}">請輸入大於或等於 1 的數字</span></div>
-        </div>
+        </div>`}
         <div class="adv-item">
           <label class="check" data-adv="limitGroups"><span class="box${f.limitGroups !== null ? ' on' : ''}"></span>
             <span><span class="ck-label">限制店內總組數</span><div class="ck-desc">限制同一時段店內的顧客組數（含現場客）。達上限後將暫停開放該時段的線上預約，但仍可自建預約</div></span></label>
@@ -1163,6 +1186,7 @@ function viewSlotForm(editId) {
       render();
     }));
     $('#i_lp') && $('#i_lp').addEventListener('change', () => { f.limitPeople = $('#i_lp').value === '' ? f.limitPeople : +$('#i_lp').value; });
+    $('#i_capLimit') && $('#i_capLimit').addEventListener('input', () => { f.capLimit = $('#i_capLimit').value === '' ? null : +$('#i_capLimit').value; });
     $('#i_lg') && $('#i_lg').addEventListener('change', () => { f.limitGroups = $('#i_lg').value === '' ? f.limitGroups : +$('#i_lg').value; });
     document.querySelectorAll('[data-dep]').forEach(o => o.addEventListener('click', () => { f.deposit = o.dataset.dep; render(); }));
     $('#slotSave').addEventListener('click', async () => {
@@ -1170,8 +1194,9 @@ function viewSlotForm(editId) {
       if (!f.days.length) err.days = true;
       if (f.type === 'custom' && !f.times.length) err.times = true;
       if (f.svcH === 0 && f.svcM === 0) err.svc = true;
-      if (f.scope !== 'all' && scopeUnits(f).length === 0) err.scope = true;
-      if (f.limitPeople !== null && (!f.limitPeople || f.limitPeople < 1)) err.lp = true;
+      if (capMode) { if (!f.capLimit || f.capLimit < 1) err.capLimit = true; }
+      else if (f.scope !== 'all' && scopeUnits(f).length === 0) err.scope = true;
+      if (!capMode && f.limitPeople !== null && (!f.limitPeople || f.limitPeople < 1)) err.lp = true;
       if (f.limitGroups !== null && (!f.limitGroups || f.limitGroups < 1)) err.lg = true;
       if (Object.keys(err).length) { render(); toast('內容未正確輸入'); return; }
       if (slotConflicts(f).length) { render(); toast('預約時段不可重複'); return; }
