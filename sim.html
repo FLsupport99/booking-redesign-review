@@ -347,6 +347,24 @@ const seed = () => ({
     { id: 'v3', itemId: 'i2', name: '時段 1', days: [3,4,5], type: 'custom', start: '11:00', end: '12:00', interval: 30, times: ['14:00'],
       svcH: 1, svcM: 30, scope: 'all', limitPeople: null, limitGroups: null, deposit: null, approval: false },
   ],
+  catParents: [
+    { id: 'p1', name: '精緻主廚特餐' },
+    { id: 'p2', name: '自助吧吃到飽' },
+    { id: 'p3', name: '星空酒吧' },
+  ],
+  catSubs: [
+    { id: 'sb1', pid: 'p1', name: '早午時光' },
+    { id: 'sb2', pid: 'p1', name: '精緻午茶' },
+    { id: 'sb3', pid: 'p1', name: '晚安佳餚' },
+    { id: 'sb4', pid: 'p2', name: '平日自助吧' },
+    { id: 'sb5', pid: 'p2', name: '假日自助吧' },
+  ],
+  catSlots: [
+    { id: 'k1', itemId: 'sb1', name: '時段 1', days: [1,2,3,4,5], type: 'auto', start: '07:00', end: '09:30', interval: 30, times: [],
+      svcH: 2, svcM: 0, scope: 'all', limitPeople: 20, limitGroups: 20, deposit: 'd1', approval: false },
+    { id: 'k2', itemId: 'sb1', name: '時段 2', days: [6,7], type: 'auto', start: '07:00', end: '12:00', interval: 30, times: [],
+      svcH: 2, svcM: 0, scope: 'all', limitPeople: null, limitGroups: null, deposit: null, approval: false },
+  ],
   capSlots: [
     { id: 'c1', name: '時段 1', days: [1,2,3,4,5], type: 'auto', start: '09:00', end: '14:30', interval: 30, times: [],
       svcH: 2, svcM: 0, capLimit: 1000, limitGroups: 600, deposit: 'd1', approval: false },
@@ -432,7 +450,21 @@ const DEPOSITS = [
 ];
 const DAY_FULL = ['星期一','星期二','星期三','星期四','星期五','星期六','星期日'];
 const DAY_MINI = ['一','二','三','四','五','六','日'];
-function slotList() { return db.mode === 'capacity' ? db.capSlots : db.mode === 'service' ? db.svcSlots : db.slots; }
+function slotList() {
+  return db.mode === 'capacity' ? db.capSlots
+    : db.mode === 'service' ? db.svcSlots
+    : db.mode === 'category' ? db.catSlots
+    : db.slots;
+}
+function slotOwner(itemId) {
+  if (!itemId) return null;
+  if (db.mode === 'category') {
+    const sub = db.catSubs.find(x => x.id === itemId);
+    return sub ? { name: sub.name, parent: db.catParents.find(p => p.id === sub.pid) } : null;
+  }
+  const it = db.svcItems.find(x => x.id === itemId);
+  return it ? { name: it.name, parent: null } : null;
+}
 function nextSlotNo(itemId) {
   const pool = slotList().filter(s => !itemId || s.itemId === itemId);
   let n = 1; while (pool.some(s => s.name === '時段 ' + n)) n++; return n;
@@ -561,7 +593,9 @@ function route() {
   const mEdit = h.match(/^#\/slots\/edit\/(.+)$/);
   if (h === '#/rules' || h === '') return viewRules();
   if (h === '#/mode') return viewModeChange();
-  if (h === '#/slots') return db.mode === 'service' ? viewSvcItems() : viewSlots();
+  const mCat = h.match(/^#\/slots\/cat\/([^/]+)$/);
+  if (h === '#/slots') return db.mode === 'service' ? viewSvcItems() : db.mode === 'category' ? viewCatParents() : viewSlots();
+  if (mCat) return viewCatSubs(decodeURIComponent(mCat[1]));
   if (h === '#/slots/new') return viewSlotForm(null);
   if (mItemNew) return viewSlotForm(null, decodeURIComponent(mItemNew[1]));
   if (mItemEdit) return viewSlotForm(decodeURIComponent(mItemEdit[2]), decodeURIComponent(mItemEdit[1]));
@@ -599,7 +633,7 @@ function viewRules() {
           <div class="gr-sub">設定可供預約的單位及容納人數，如桌位、設備、服務人員等</div></div>
           <span class="arrow">${ICONS.chevR}</span>
         </div>
-        <div class="g-row" onclick="${db.mode !== 'category' ? "location.hash='#/slots'" : `toast('「${slotTitle}」此模式的互動 Demo 建置中')`}">
+        <div class="g-row" onclick="location.hash='#/slots'">
           <div class="gr-main"><div class="gr-name">${slotTitle}</div>
           <div class="gr-sub">${slotDesc}</div></div>
           <span class="arrow">${ICONS.chevR}</span>
@@ -1025,14 +1059,200 @@ function viewSvcItems() {
 }
 
 /* =====================================================
-   時段設定 — 清單頁（3-1 / 4-5 / 6-1）
+   階層項目 — 父層項目清單（5-1）＋子項目頁（5-5）
+   ===================================================== */
+let catAddOpen = false, catSubAddOpen = false;
+function viewCatParents() {
+  setTitle([['預約規則', '#/rules'], ['預約項目與時段規則', '#/slots']], '管理預約項目與時段');
+  const subsOf = (pid) => db.catSubs.filter(s => s.pid === pid).length;
+  $('#content').innerHTML = `
+    <div class="card">
+      <div class="card-head">
+        <div class="ch-main">
+          <div class="ch-title">預約項目</div>
+          <div class="ch-desc">設定預約項目及其子項目供顧客進行預約，並可各別設置多個開放預約的時段，以及可預約人數、單位與訂金等規則。</div>
+        </div>
+        <button class="btn-md primary" id="catAddBtn">${ICONS.plus} 項目</button>
+      </div>
+      <div id="catAddSlot"></div>
+      <div class="rows">
+        ${db.catParents.map(p => `
+        <div class="g-row" data-cat="${p.id}">
+          <div class="gr-main"><div class="gr-name">${esc(p.name)}</div>
+          <div class="gr-sub">${subsOf(p.id)}個子項目</div></div>
+          <span class="arrow">${ICONS.chevR}</span>
+        </div>`).join('') || '<div class="empty">尚未建立預約項目</div>'}
+      </div>
+    </div>`;
+  const renderAdd = () => {
+    $('#catAddSlot').innerHTML = `
+      <div class="inline-form">
+        <div class="if-title">新增預約項目</div>
+        <div class="field" id="f_pname">
+          <div class="field-label">預約項目名稱 <span class="err-msg" id="e_pname"></span></div>
+          <div class="input"><input id="i_pname" maxlength="12" placeholder="如：顧客諮詢"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-md ghost" id="pCancel">取消</button>
+          <button class="btn-md primary disabled" id="pSave">儲存</button>
+        </div>
+      </div>`;
+    const inp = $('#i_pname'), save = $('#pSave');
+    inp.addEventListener('input', () => { $('#f_pname').classList.remove('has-error'); $('#e_pname').classList.remove('show'); save.classList.toggle('disabled', !inp.value.trim()); });
+    $('#pCancel').addEventListener('click', () => { catAddOpen = false; viewCatParents(); });
+    save.addEventListener('click', async () => {
+      if (save.classList.contains('disabled')) return;
+      const name = inp.value.trim();
+      if (db.catParents.some(x => x.name === name)) { $('#f_pname').classList.add('has-error'); $('#e_pname').textContent = '此名稱已被使用'; $('#e_pname').classList.add('show'); return; }
+      await delay(); db.catParents.push({ id: 'p' + (++db.seq), name }); persist();
+      catAddOpen = false; toast('已新增預約項目'); viewCatParents();
+    });
+    inp.focus();
+  };
+  $('#catAddBtn').addEventListener('click', () => { if (!catAddOpen) { catAddOpen = true; renderAdd(); } });
+  if (catAddOpen) renderAdd();
+  document.querySelectorAll('[data-cat]').forEach(r => r.addEventListener('click', () => location.hash = '#/slots/cat/' + r.dataset.cat));
+}
+
+function viewCatSubs(pid) {
+  const p = db.catParents.find(x => x.id === pid);
+  if (!p) { location.hash = '#/slots'; return; }
+  const subs = db.catSubs.filter(s => s.pid === pid);
+  setTitle([['預約規則', '#/rules'], ['預約項目與時段規則', '#/slots'], [p.name, '']], '');
+  $('#content').innerHTML = `
+    <div class="grp-head-card">
+      <div class="ghc-main"><div class="ghc-name">${esc(p.name)}</div>
+      <div class="ghc-sub">${subs.length} 個子項目</div></div>
+      <button class="btn-md ghost" id="catRenameBtn">${ICONS.edit} 編輯</button>
+      <button class="btn-md ghost-red" id="catDelBtn">刪除項目</button>
+    </div>
+    <div class="card">
+      <div class="sec-head">
+        <div class="t">子項目 (${subs.length})</div>
+        <button class="btn-md primary" id="subAddBtn">${ICONS.plus} 子項目</button>
+      </div>
+      <div id="subAddSlot"></div>
+      <div class="rows">
+        ${subs.map(s => `
+        <div class="g-row" data-sub="${s.id}">
+          <div class="gr-main"><div class="gr-name">${esc(s.name)}</div>
+          <div class="gr-sub">${db.catSlots.filter(x => x.itemId === s.id).length}個時段</div></div>
+          <button class="icon-btn" data-subren="${s.id}">${ICONS.edit}</button>
+          <button class="icon-btn danger" data-subdel="${s.id}">${ICONS.trash}</button>
+          <span class="arrow">${ICONS.chevR}</span>
+        </div>`).join('') || '<div class="empty">尚未建立子項目</div>'}
+      </div>
+    </div>`;
+  const subForm = (title, init, onSave) => {
+    $('#subAddSlot').innerHTML = `
+      <div class="inline-form">
+        <div class="if-title">${title}</div>
+        <div class="field" id="f_sname">
+          <div class="field-label">子項目名稱 <span class="err-msg" id="e_sname"></span></div>
+          <div class="input"><input id="i_sname" maxlength="12" placeholder="如：限時體驗" value="${esc(init || '')}"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-md ghost" id="sCancel">取消</button>
+          <button class="btn-md primary${init ? '' : ' disabled'}" id="sSave">儲存</button>
+        </div>
+      </div>`;
+    const inp = $('#i_sname'), save = $('#sSave');
+    inp.addEventListener('input', () => { $('#f_sname').classList.remove('has-error'); $('#e_sname').classList.remove('show'); save.classList.toggle('disabled', !inp.value.trim()); });
+    $('#sCancel').addEventListener('click', () => { catSubAddOpen = false; viewCatSubs(pid); });
+    save.addEventListener('click', async () => {
+      if (save.classList.contains('disabled')) return;
+      await onSave(inp.value.trim());
+    });
+    inp.focus();
+  };
+  $('#subAddBtn').addEventListener('click', () => {
+    if (catSubAddOpen) return;
+    catSubAddOpen = true;
+    subForm('新增子項目', '', async (name) => {
+      if (subs.some(x => x.name === name)) { $('#f_sname').classList.add('has-error'); $('#e_sname').textContent = '此名稱已被使用'; $('#e_sname').classList.add('show'); return; }
+      await delay(); db.catSubs.push({ id: 'sb' + (++db.seq), pid, name }); persist();
+      catSubAddOpen = false; toast('已新增子項目'); viewCatSubs(pid);
+    });
+  });
+  $('#catRenameBtn').addEventListener('click', () => {
+    openModal(`
+      <h3>編輯預約項目名稱</h3>
+      <div class="field" id="f_rn"><div class="field-label">預約項目名稱 <span class="err-msg" id="e_rn"></span></div>
+      <div class="input"><input id="i_rn" maxlength="12" value="${esc(p.name)}"></div></div>
+      <div class="btn-row">
+        <button class="btn-md ghost" onclick="closeModal()">取消</button>
+        <button class="btn-md primary" id="rnSave">儲存</button>
+      </div>`);
+    $('#rnSave').addEventListener('click', async () => {
+      const name = $('#i_rn').value.trim();
+      if (!name) return;
+      if (db.catParents.some(x => x.name === name && x.id !== pid)) { $('#f_rn').classList.add('has-error'); $('#e_rn').textContent = '此名稱已被使用'; $('#e_rn').classList.add('show'); return; }
+      await delay(); p.name = name; persist(); closeModal(); toast('已儲存變更'); viewCatSubs(pid);
+    });
+  });
+  $('#catDelBtn').addEventListener('click', () => {
+    openModal(`
+      <h3>確定刪除嗎？</h3>
+      <div class="m-body"><p>刪除後，此預約項目的子項目及其時段規則將一併刪除。此操作無法復原，確定刪除項目「${esc(p.name)}」嗎？</p></div>
+      <div class="btn-row">
+        <button class="btn-md ghost" onclick="closeModal()">取消</button>
+        <button class="btn-md" style="background:var(--alert);color:#fff" id="catDelOk">刪除</button>
+      </div>`);
+    $('#catDelOk').addEventListener('click', async () => {
+      await delay();
+      const subIds = db.catSubs.filter(s => s.pid === pid).map(s => s.id);
+      db.catParents = db.catParents.filter(x => x.id !== pid);
+      db.catSubs = db.catSubs.filter(s => s.pid !== pid);
+      db.catSlots = db.catSlots.filter(s => !subIds.includes(s.itemId));
+      persist(); closeModal(); toast('已刪除預約項目'); location.hash = '#/slots';
+    });
+  });
+  document.querySelectorAll('[data-subren]').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const sub = db.catSubs.find(x => x.id === b.dataset.subren);
+    catSubAddOpen = true;
+    subForm('編輯子項目名稱', sub.name, async (name) => {
+      if (subs.some(x => x.name === name && x.id !== sub.id)) { $('#f_sname').classList.add('has-error'); $('#e_sname').textContent = '此名稱已被使用'; $('#e_sname').classList.add('show'); return; }
+      await delay(); sub.name = name; persist();
+      catSubAddOpen = false; toast('已儲存變更'); viewCatSubs(pid);
+    });
+  }));
+  document.querySelectorAll('[data-subdel]').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const sub = db.catSubs.find(x => x.id === b.dataset.subdel);
+    openModal(`
+      <h3>確定刪除嗎？</h3>
+      <div class="m-body"><p>刪除子項目將同時刪除其時段規則。此操作無法復原，確定刪除子項目「${esc(sub.name)}」嗎？</p></div>
+      <div class="btn-row">
+        <button class="btn-md ghost" onclick="closeModal()">取消</button>
+        <button class="btn-md" style="background:var(--alert);color:#fff" id="subDelOk">刪除</button>
+      </div>`);
+    $('#subDelOk').addEventListener('click', async () => {
+      await delay();
+      db.catSubs = db.catSubs.filter(x => x.id !== sub.id);
+      db.catSlots = db.catSlots.filter(s => s.itemId !== sub.id);
+      persist(); closeModal(); toast('已刪除子項目'); viewCatSubs(pid);
+    });
+  }));
+  document.querySelectorAll('[data-sub]').forEach(r => r.addEventListener('click', (e) => {
+    if (e.target.closest('.icon-btn')) return;
+    location.hash = '#/slots/item/' + r.dataset.sub;
+  }));
+}
+
+/* =====================================================
+   時段設定 — 清單頁（3-1 / 4-5 / 5-7 / 6-1）
    ===================================================== */
 const slotOpen = new Set();
 function viewSlots(itemId) {
-  const item = itemId ? db.svcItems.find(x => x.id === itemId) : null;
-  if (itemId && !item) { location.hash = '#/slots'; return; }
-  if (item) setTitle([['預約規則', '#/rules'], ['預約項目與時段規則', '#/slots'], [item.name, '']], item.name);
-  else setTitle([['預約規則', '#/rules'], ['預約時段與規則', '#/slots']], '');
+  const owner = slotOwner(itemId);
+  if (itemId && !owner) { location.hash = '#/slots'; return; }
+  if (owner) {
+    const crumbs = [['預約規則', '#/rules'], ['預約項目與時段規則', '#/slots']];
+    if (owner.parent) crumbs.push([owner.parent.name, '#/slots/cat/' + owner.parent.id]);
+    crumbs.push([owner.name, '']);
+    setTitle(crumbs, owner.name);
+  } else setTitle([['預約規則', '#/rules'], ['預約時段與規則', '#/slots']], '');
   const capMode = db.mode === 'capacity';
   const rows = slotList().filter(s => !itemId || s.itemId === itemId).map(s => {
     const times = slotTimes(s);
@@ -1124,7 +1344,7 @@ function viewSlots(itemId) {
    ===================================================== */
 function viewSlotForm(editId, itemId) {
   const capMode = db.mode === 'capacity';
-  const item = itemId ? db.svcItems.find(x => x.id === itemId) : null;
+  const owner = slotOwner(itemId);
   const backHash = itemId ? '#/slots/item/' + itemId : '#/slots';
   const src = editId ? slotList().find(x => x.id === editId) : null;
   if (editId && !src) { location.hash = backHash; return; }
@@ -1134,8 +1354,9 @@ function viewSlotForm(editId, itemId) {
   };
   if (!capMode && f.scope !== 'all' && typeof f.scope !== 'object') f.scope = 'all';
   const title = src ? '編輯' + src.name : '新增時段規則';
-  const crumbs = [['預約規則', '#/rules'], [item ? '預約項目與時段規則' : '預約時段與規則', '#/slots']];
-  if (item) crumbs.push([item.name, backHash]);
+  const crumbs = [['預約規則', '#/rules'], [owner ? '預約項目與時段規則' : '預約時段與規則', '#/slots']];
+  if (owner && owner.parent) crumbs.push([owner.parent.name, '#/slots/cat/' + owner.parent.id]);
+  if (owner) crumbs.push([owner.name, backHash]);
   crumbs.push([title, '']);
   setTitle(crumbs, title);
 
