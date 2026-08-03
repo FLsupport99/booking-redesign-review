@@ -34,6 +34,14 @@ PAGES = [
         "title": "演算法改版・後台設定 — 設計稿總覽",
         "subtitle": "2025 Oct. 系統架構演算法優化 · 照 Figma 原稿渲染",
     },
+    {
+        "manifest": "manifest_p3.json",
+        "html": "p3_gallery.html",
+        "assets": "p3_assets",
+        "title": "演算法改版 Part3・自建預約 — 設計稿總覽",
+        "subtitle": "2026 Jul. 預約系統操作優化 · 照 Figma 原稿渲染",
+        "margin": 0,  # exported via REST /v1/images — exact node bounds, no padding
+    },
 ]
 
 CSS = """  *{box-sizing:border-box;margin:0;padding:0}
@@ -75,17 +83,22 @@ def anchor(sec_id):
 MARGIN = 40  # get_screenshot renders sections/frames with a 40px margin on each side
 
 
-def render_geometry(im_w, node_w):
-    """Return (scale, offset) for a rendered PNG vs the node's natural width."""
-    if abs(im_w - (node_w + 2 * MARGIN)) <= 3:
-        return 1.0, MARGIN
+def render_geometry(im_w, node_w, margin=MARGIN):
+    """Return (scale, offset) for a rendered PNG vs the node's natural width.
+
+    `margin` is the per-side padding the exporter added: 40px for MCP
+    get_screenshot, 0 for REST /v1/images (which renders exact node bounds and
+    may downscale uniformly when the node exceeds Figma's pixel cap).
+    """
+    if margin and abs(im_w - (node_w + 2 * margin)) <= 3:
+        return 1.0, margin
     if abs(im_w - node_w) <= 3:
         return 1.0, 0
-    r = im_w / (node_w + 2 * MARGIN)
-    return r, MARGIN * r
+    r = im_w / (node_w + 2 * margin)
+    return r, margin * r
 
 
-def crop_sections(manifest, assets_dir, report):
+def crop_sections(manifest, assets_dir, report, margin=MARGIN):
     for g in manifest["groups"]:
         for s in g["sections"]:
             src = os.path.join(SCRATCH, "exports2", "sections", s["id"].replace(":", "_") + ".png")
@@ -93,7 +106,7 @@ def crop_sections(manifest, assets_dir, report):
                 report["missing_sections"].append((g["key"], s["id"], s["name"]))
                 continue
             im = Image.open(src)
-            r, off = render_geometry(im.width, s["w"])
+            r, off = render_geometry(im.width, s["w"], margin)
             if abs(r - 1.0) > 0.02:
                 report["scaled"].append((s["id"], round(r, 3)))
             for fid, name, x, y, w, h in s["fr"]:
@@ -107,7 +120,7 @@ def crop_sections(manifest, assets_dir, report):
             im.close()
 
 
-def copy_loose(manifest, assets_dir, report):
+def copy_loose(manifest, assets_dir, report, margin=MARGIN):
     for g in manifest["groups"]:
         for l in g["loose"]:
             fid, w, h = l[0], l[2], l[3]
@@ -117,7 +130,7 @@ def copy_loose(manifest, assets_dir, report):
                 report["missing_loose"].append((g["key"], fid, l[1]))
                 continue
             im = Image.open(src)
-            r, off = render_geometry(im.width, w)
+            r, off = render_geometry(im.width, w, margin)
             if off:
                 im = im.crop((round(off), round(off), round(off + w * r), round(off + h * r)))
             im.save(out, optimize=True)
@@ -137,8 +150,9 @@ def build_page(page):
     os.makedirs(assets_dir, exist_ok=True)
     report = {"missing_sections": [], "missing_loose": [], "bad_crops": [], "scaled": []}
 
-    crop_sections(manifest, assets_dir, report)
-    copy_loose(manifest, assets_dir, report)
+    margin = page.get("margin", MARGIN)
+    crop_sections(manifest, assets_dir, report, margin)
+    copy_loose(manifest, assets_dir, report, margin)
 
     nav, body, total = [], [], 0
     for g in manifest["groups"]:
@@ -202,7 +216,10 @@ document.querySelectorAll('.card img').forEach(function(im){{
 
 
 if __name__ == "__main__":
-    for page in PAGES:
+    # optional args: manifest keys to rebuild (e.g. `p3`); default = all pages
+    only = sys.argv[1:]
+    pages = [p for p in PAGES if not only or any(k in p["manifest"] for k in only)]
+    for page in pages:
         name, total, rep = build_page(page)
         print(f"== {name}: {total} 張")
         for k, v in rep.items():
