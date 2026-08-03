@@ -644,6 +644,8 @@ function seedBookings() {
     B({ id: 'b15', code: '48003', start: '09:30', dur: 60, unitIds: ['u4'], name: '王小明', phone: '0911222333', status: 'confirmed', walkin: true, item: '', source: '自建' }),
   ];
 }
+/* 預約區 UI 狀態；宣告要早於 renderChrome() 的呼叫點，否則會踩到 TDZ */
+const bk = { date: DEMO_DAY, view: 'timeline', lsTab: 'confirmed', clTab: 'confirmed', clFold: false };
 let db = JSON.parse(sessionStorage.getItem(DB_KEY) || 'null') || seed();
 const persist = () => sessionStorage.setItem(DB_KEY, JSON.stringify(db));
 const delay = (ms = 260) => new Promise(r => setTimeout(r, ms));
@@ -835,7 +837,7 @@ const NAV = [
 ];
 
 function renderChrome() {
-  const area = (location.hash || '').startsWith('#/book') ? '預約' : '設定';
+  const area = (location.hash || '#/book/timeline').startsWith('#/book') ? '預約' : '設定';
   $('#railList').innerHTML = RAIL.map(([n]) =>
     `<div class="nav-item${n === area ? ' active' : ''}" data-rail="${n}">${RAIL_SVG[n]}<span>${n}</span></div>`).join('');
   document.querySelectorAll('[data-rail]').forEach(el => el.addEventListener('click', () => {
@@ -848,7 +850,14 @@ function renderChrome() {
     <div><div class="nav-group-title"><span class="dot"></span>${g}</div>
     <div class="nav-sub">${items.map(i => `<a data-nav="${i}" class="${i === '預約規則' ? 'active' : ''}">${i}</a>`).join('')}</div></div>`).join('');
   $('#settingsNav').innerHTML = navHtml;
-  $('#drawer').innerHTML = navHtml;
+  // 手機版抽屜多一組「預約管理」——這個寬度下 icon rail 收起來，否則回不去預約區
+  $('#drawer').innerHTML = `
+    <div><div class="nav-group-title"><span class="dot"></span>預約管理</div>
+    <div class="nav-sub">${[['timeline', '時間軸'], ['space', '空間圖'], ['list', '清單']].map(([v, n]) =>
+      `<a data-book="${v}" class="${area === '預約' && bk.view === v ? 'active' : ''}">${n}</a>`).join('')}</div></div>` + navHtml;
+  document.querySelectorAll('[data-book]').forEach(a => a.addEventListener('click', () => {
+    closeDrawer(); bk.view = a.dataset.book; location.hash = '#/book/' + a.dataset.book;
+  }));
   document.querySelectorAll('[data-nav]').forEach(a => a.addEventListener('click', () => {
     closeDrawer();
     if (a.dataset.nav === '預約規則') { location.hash = '#/rules'; }
@@ -879,7 +888,7 @@ function setTitle(crumbs, h1) {
 function route() {
   closeModal();
   if (typeof closePopover === 'function') closePopover();
-  const h = location.hash || '#/rules';
+  const h = location.hash || '#/book/timeline';   // 落地頁＝預約（與真實後台一致），設定在 rail 上一鍵可達
   renderChrome();
   const mBook = h.match(/^#\/book(?:\/(timeline|space|list))?$/);
   if (mBook) { bk.view = mBook[1] || bk.view; return viewBooking(); }
@@ -1907,7 +1916,6 @@ const TL_COLS = 24;      // 每格 30 分，到 21:30
 const TL_COLW = 74;
 const DEMO_NOW = 720;    // 設計稿的「現在」= 12:00
 
-const bk = { date: DEMO_DAY, view: 'timeline', lsTab: 'confirmed', clTab: 'confirmed', clFold: false };
 
 /* toMin 沿用設定區既有的同名函式 */
 const toHHMM = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
