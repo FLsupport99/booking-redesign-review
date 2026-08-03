@@ -1,6 +1,7 @@
 <!doctype html>
 <!-- MENU店+ 後台模擬器 · 假資料互動 Demo · 維護：FindLife Support -->
-<!-- 畫面依 Figma「2025 Oct. 系統架構演算法優化」刻製；資料層為 sessionStorage mock API -->
+<!-- 設定區依 Figma「2025 Oct. 系統架構演算法優化」；預約區依「2026 Jul. 預約系統操作優化」Part3 自建預約 -->
+<!-- 資料層為 sessionStorage mock API，設定區與預約區共用同一份 db（改設定會直接影響預約區） -->
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
@@ -276,6 +277,229 @@ select.sel:focus{border-color:var(--border-on)}
   .modal-mask{align-items:flex-end;padding:0}
   .modal{border-radius:12px 12px 0 0}
 }
+/* =====================================================
+   預約區（Part3 自建預約）— 依 Figma「2026 Jul. 預約系統操作優化」刻製
+   ===================================================== */
+body.area-book .settings-nav,
+body.area-book .page-title{display:none}
+body.area-book .content{padding:0;gap:0}
+
+.bk-head{padding:16px 20px 10px;display:flex;flex-direction:column;gap:10px;background:var(--bg-surface);border-bottom:1px solid var(--border-card)}
+.bk-head .r1{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.bk-head h1{font-size:24px;line-height:32px;font-weight:500}
+.bk-date{display:flex;align-items:center;gap:10px;margin:0 auto;font-size:15px;font-weight:500}
+.bk-date button{width:24px;height:24px;border-radius:50%;border:none;background:var(--primary-l3);color:var(--primary-dark);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.bk-date button svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.4}
+.bk-date .today{border:1px solid var(--border-field);background:var(--bg-surface);border-radius:100px;padding:2px 10px;font-size:13px;width:auto;height:auto;color:var(--text-body)}
+.bk-views{display:flex;background:var(--bg-page);border-radius:var(--r-btn);padding:3px;gap:2px}
+.bk-views button{border:none;background:none;padding:6px 16px;border-radius:6px;font-size:14px;color:var(--text-body);cursor:pointer}
+.bk-views button.on{background:var(--primary-l3);color:var(--primary-dark);font-weight:500}
+.bk-chips{display:flex;gap:10px;flex-wrap:wrap}
+.bk-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;line-height:18px;padding:3px 10px;border-radius:100px;background:var(--bg-page);color:var(--text-body)}
+.bk-chip.warn{background:#fdecec;color:var(--alert)}
+.bk-chip svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.bk-head .r3{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bk-sms{font-size:13px;color:var(--emphasis-d)}
+.bk-tools{margin-left:auto;display:flex;align-items:center;gap:6px}
+.bk-tools .ico{width:32px;height:32px;border-radius:50%;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--icon-muted)}
+.bk-tools .ico.on{background:var(--primary-l3);color:var(--emphasis-d)}
+.bk-tools .ico svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.7}
+
+.bk-body{display:flex;align-items:stretch;min-height:520px}
+.bk-main{flex:1;min-width:0;overflow:hidden}
+
+/* ---- 時間軸 ---- */
+.tl{display:flex;align-items:flex-start;font-size:12px}
+.tl-side{flex:0 0 auto;display:flex;flex-direction:column;background:var(--bg-surface);border-right:1px solid var(--border-card);position:sticky;left:0;z-index:3}
+.tl-side .sh{height:30px;display:flex;align-items:center;padding:0 10px;color:var(--text-body);border-bottom:1px solid var(--border-card);font-size:12px}
+.tl-g{display:flex;border-bottom:1px solid var(--border-card)}
+.tl-gl{flex:0 0 38px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--text-body);border-right:1px solid var(--border-card);text-align:center;line-height:1.3;padding:0 2px}
+.tl-us{flex:0 0 52px}
+.tl-us div{height:50px;display:flex;align-items:center;justify-content:center;color:var(--text-body);border-bottom:1px solid var(--border-card)}
+.tl-us div:last-child{border-bottom:none}
+.tl-scroll{flex:1;min-width:0;overflow-x:auto}
+.tl-inner{position:relative}
+.tl-th{height:30px;display:flex;border-bottom:1px solid var(--border-card);background:var(--bg-surface)}
+.tl-th span{flex:0 0 74px;padding-left:6px;line-height:30px;color:var(--text-body)}
+.tl-row{height:50px;position:relative;border-bottom:1px solid var(--border-card);background-image:linear-gradient(to right,var(--border-card) 1px,transparent 1px);background-size:74px 100%}
+.tl-row.alt{background-color:#fcfcfc}
+.tl-now{position:absolute;top:30px;bottom:0;width:2px;background:#ff5b5b;z-index:4;pointer-events:none}
+.tl-chip{position:absolute;top:4px;height:42px;border-radius:5px;padding:4px 6px;overflow:hidden;cursor:pointer;line-height:15px;z-index:2;border:1px solid transparent}
+.tl-chip .n{display:flex;align-items:center;gap:3px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-chip .p{opacity:.85;white-space:nowrap}
+.tl-chip .cnt{position:absolute;right:5px;bottom:3px;display:flex;align-items:center;gap:2px;font-size:11px}
+.tl-chip .bang{position:absolute;right:4px;top:3px;width:14px;height:14px;border-radius:3px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff}
+.tl-chip svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* ---- 空間圖 ---- */
+.sp-tabs{display:flex;gap:2px;padding:14px 16px 0}
+.sp-tabs button{border:none;background:var(--bg-page);color:var(--text-body);padding:9px 22px;border-radius:8px 8px 0 0;font-size:14px;cursor:pointer}
+.sp-tabs button.on{background:var(--bg-surface);color:var(--text-strong);font-weight:500}
+.sp-canvas{background:var(--bg-surface);padding:34px 26px;display:flex;flex-wrap:wrap;gap:30px;align-content:flex-start;min-height:420px}
+.sp-u{width:78px;position:relative;cursor:pointer;text-align:center}
+.sp-shape{height:78px;border:1px solid var(--border-field);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;line-height:17px;position:relative;overflow:hidden;background:var(--bg-surface)}
+.sp-u.rect .sp-shape{border-radius:6px}
+.sp-u.circ .sp-shape{border-radius:50%}
+.sp-shape .cap{font-size:11px;opacity:.7}
+.sp-shape .bar{position:absolute;left:0;right:0;bottom:0;height:15px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;line-height:15px}
+.sp-u .bang{position:absolute;right:-2px;top:-4px;width:16px;height:16px;border-radius:50%;background:var(--alert);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:2}
+.sp-u .bell{position:absolute;right:6px;bottom:20px;width:16px;height:16px;border-radius:50%;background:var(--alert);color:#fff;display:flex;align-items:center;justify-content:center;z-index:2}
+.sp-u .bell svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* ---- 清單 ---- */
+.ls-tabs{display:flex;gap:4px;padding:12px 16px 0;overflow-x:auto;background:var(--bg-surface);border-bottom:1px solid var(--border-card)}
+.ls-tabs button{border:none;background:none;padding:8px 10px 12px;font-size:14px;color:var(--text-body);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent}
+.ls-tabs button.on{color:var(--primary-dark);font-weight:500;border-bottom-color:var(--primary)}
+.ls-body{padding:0 0 30px}
+.ls-daybar{padding:14px 18px 6px;font-size:15px;font-weight:500}
+.ls-timebar{background:var(--bg-page);padding:7px 18px;font-size:13px;color:var(--text-body);display:flex;align-items:center;gap:12px}
+.ls-timebar svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8}
+.ls-card{display:flex;gap:14px;padding:16px 18px;border-bottom:1px solid var(--border-card);background:var(--bg-surface)}
+.ls-l{flex:0 0 92px;font-size:15px;font-weight:500}
+.ls-l .dur{font-size:12px;color:var(--text-muted);font-weight:400;margin-top:3px}
+.ls-c{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;font-size:13px;color:var(--text-body)}
+.ls-c .nm{font-size:17px;font-weight:500;color:var(--text-strong);display:flex;align-items:baseline;gap:6px}
+.ls-c .nm em{font-style:normal;font-size:12px;color:var(--text-muted)}
+.ls-c .pax{margin-left:auto;color:var(--primary-dark);font-size:13px}
+.ls-c .pax b{font-size:19px}
+.ls-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ls-tag{border:1px solid var(--border-field);border-radius:var(--r-tag);padding:1px 7px;font-size:12px;color:var(--text-body)}
+.ls-tag.unit{background:var(--bg-page);border-color:transparent}
+.ls-note{background:var(--bg-page);border-radius:6px;padding:7px 10px;font-size:12px}
+.ls-foot{font-size:11px;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap}
+.ls-r{flex:0 0 118px;display:flex;flex-direction:column;align-items:stretch;gap:8px;font-size:12px}
+.ls-r .st{justify-content:flex-end}
+.ls-r button{width:100%;justify-content:center}
+.ls-r .st{display:flex;align-items:center;gap:5px}
+.ls-r .st i{width:7px;height:7px;border-radius:50%;background:currentColor;display:block}
+.ls-empty{padding:56px 20px;text-align:center;color:var(--text-muted);font-size:14px}
+
+/* ---- 右側顧客清單 ---- */
+.cl{flex:0 0 292px;border-left:1px solid var(--border-card);background:var(--bg-surface);display:flex;flex-direction:column;min-width:0}
+.cl.mini{flex-basis:44px}
+.cl-tabs{display:flex;align-items:center;border-bottom:1px solid var(--border-card)}
+.cl-tabs button{flex:1;border:none;background:none;padding:12px 8px;font-size:14px;color:var(--text-body);cursor:pointer}
+.cl-tabs button.on{color:var(--text-strong);font-weight:500;background:var(--bg-page)}
+.cl-tabs .fold{flex:0 0 34px;padding:0;height:34px;border-radius:50%;color:var(--icon-muted)}
+.cl-tabs .fold svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+.cl-pills{display:flex;gap:8px;padding:10px;overflow-x:auto}
+.cl-pills button{flex:0 0 auto;border:none;border-radius:var(--r-btn);background:var(--bg-page);color:var(--text-body);padding:8px 12px;cursor:pointer;font-size:12px;line-height:17px;text-align:center}
+.cl-pills button.on{background:var(--primary-l2);color:var(--primary-dark);font-weight:500}
+.cl-pills button b{display:block;font-size:15px}
+.cl-list{flex:1;overflow:auto;padding:0 10px 14px;display:flex;flex-direction:column;gap:10px}
+.cl-card{border:1px solid var(--border-card);border-radius:var(--r-card);overflow:hidden;font-size:12px;color:var(--text-body)}
+.cl-card .hd{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border-card);font-size:13px;color:var(--text-strong)}
+.cl-card .hd .st{margin-left:auto;font-size:12px;display:flex;align-items:center;gap:4px}
+.cl-card .hd .st i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.cl-card .bd{padding:9px 10px;display:flex;flex-direction:column;gap:6px}
+.cl-card .nm{font-size:16px;font-weight:500;color:var(--text-strong);display:flex;align-items:baseline;gap:5px}
+.cl-card .nm em{font-style:normal;font-size:11px;color:var(--text-muted)}
+.cl-card .nm .pax{margin-left:auto;color:var(--primary-dark);font-size:12px}
+.cl-card .nm .pax b{font-size:17px}
+.cl-acts{display:flex;border-top:1px solid var(--border-card)}
+.cl-acts button{flex:1;border:none;background:var(--bg-page);color:var(--text-body);padding:9px;font-size:13px;cursor:pointer;border-left:1px solid var(--border-card)}
+.cl-acts button:first-child{border-left:none}
+.cl-acts button.pri{background:var(--primary);color:#fff}
+.cl-mini{writing-mode:vertical-rl;padding:14px 0;color:var(--text-body);font-size:13px;cursor:pointer;letter-spacing:2px}
+
+/* ---- popover ---- */
+.pop-mask{position:fixed;inset:0;z-index:150;display:none}
+.pop-mask.show{display:block}
+.pop{position:absolute;width:324px;background:var(--bg-surface);border-radius:var(--r-card);box-shadow:0 6px 28px rgba(0,0,0,.22);overflow:hidden;font-size:13px;color:var(--text-body)}
+.pop .hd{display:flex;align-items:center;background:var(--bg-page)}
+.pop .hd .t{flex:1;padding:9px 12px;font-size:14px;color:var(--text-strong)}
+.pop .hd .s{padding:9px 12px;font-size:13px}
+.pop .bd{padding:11px 13px;display:flex;flex-direction:column;gap:7px}
+.pop .ft{display:flex;justify-content:flex-end;padding:0 13px 13px}
+
+/* ---- 新增／修改預約 側邊表單 ---- */
+.bkf-mask{position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:210;display:none}
+.bkf-mask.show{display:block}
+.bkf{position:fixed;top:0;right:0;bottom:0;width:350px;max-width:100vw;background:var(--bg-surface);z-index:211;display:none;flex-direction:column;box-shadow:-4px 0 20px rgba(0,0,0,.14)}
+.bkf.show{display:flex}
+.bkf-hd{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border-card)}
+.bkf-hd h3{flex:1;text-align:center;font-size:16px;font-weight:500;color:var(--primary-dark)}
+.bkf-hd button{border:none;background:none;cursor:pointer;color:var(--icon-muted);width:24px;height:24px}
+.bkf-hd button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
+.bkf-bd{flex:1;overflow:auto;padding:14px 16px 20px;display:flex;flex-direction:column;gap:14px}
+.bkf-ft{padding:12px 16px;border-top:1px solid var(--border-card)}
+.bkf-ft button{width:100%;border:none;border-radius:var(--r-btn);background:var(--primary);color:#fff;padding:12px;font-size:15px;cursor:pointer}
+.bkf-ft button:disabled{background:var(--btn-disabled);cursor:not-allowed}
+.bkf .walkin{border:1px solid var(--border-field);border-radius:var(--r-input);padding:11px 13px;display:flex;gap:9px;align-items:flex-start;cursor:pointer}
+.bkf .walkin span{font-size:14px;color:var(--text-strong)}
+.bkf .walkin small{display:block;font-size:11px;color:var(--text-muted);margin-top:2px}
+.bkf .itembox{background:var(--primary-l3);border-radius:var(--r-input);padding:9px 13px;text-align:center}
+.bkf .itembox label{font-size:11px;color:var(--primary-dark)}
+.bkf .itembox select{width:100%;border:none;background:none;font-size:15px;text-align:center;color:var(--text-strong);cursor:pointer;margin-top:3px}
+.bkf .dateline{text-align:center;font-size:15px}
+.bkf .dateline input{border:none;background:none;font-size:15px;text-align:center;cursor:pointer;color:var(--text-strong)}
+.bkf .timeline-v{text-align:center}
+.bkf .timeline-v .big{font-size:20px;letter-spacing:2px;color:var(--text-strong)}
+.bkf .timeline-v .big.empty{color:var(--text-disabled)}
+.bkf .timeline-v .hint{font-size:12px;color:var(--emphasis-d);margin-top:2px}
+.bkf .timeline-v select{margin-top:8px;border:1px solid var(--border-field);border-radius:100px;padding:5px 12px;font-size:13px;background:var(--bg-surface)}
+.bkf .pax{display:flex;gap:10px}
+.bkf .pax > div{flex:1;text-align:center}
+.bkf .pax .lb{font-size:14px;color:var(--text-strong);margin-bottom:6px}
+.bkf .stepper{display:flex;align-items:center;justify-content:center;gap:14px}
+.bkf .stepper button{width:26px;height:26px;border-radius:50%;border:1px solid var(--primary);background:none;color:var(--primary);font-size:15px;line-height:1;cursor:pointer}
+.bkf .stepper button:disabled{border-color:var(--btn-disabled);color:var(--btn-disabled);cursor:not-allowed}
+.bkf .stepper .v{min-width:24px;font-size:16px}
+.bkf .fld{display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border-field);padding-bottom:7px}
+.bkf .fld svg{width:15px;height:15px;stroke:var(--icon-muted);fill:none;stroke-width:1.8;flex:0 0 15px}
+.bkf .fld input{flex:1;border:none;background:none;font-size:14px;outline:none}
+.bkf .fld.err{border-bottom-color:var(--alert)}
+.bkf .errmsg{font-size:11px;color:var(--alert);margin-top:-8px}
+.bkf .radios{display:flex;gap:16px;font-size:14px}
+.bkf .radios label{display:flex;align-items:center;gap:5px;cursor:pointer}
+.bkf .unitbox{background:var(--bg-page);border-radius:var(--r-input);padding:10px 12px;font-size:12px}
+.bkf .unitbox .top{display:flex;align-items:center}
+.bkf .unitbox .top a{margin-left:auto;color:var(--primary-dark);cursor:pointer}
+.bkf .unitbox .gname{display:inline-block;border:1px solid var(--border-field);border-radius:var(--r-tag);padding:0 6px;margin:7px 0 4px;font-size:11px}
+.bkf .unitbox .names{font-size:14px;color:var(--text-strong)}
+.bkf .acc{background:var(--bg-page);border-radius:var(--r-input);padding:11px 12px}
+.bkf .acc .top{display:flex;align-items:center;font-size:12px;cursor:pointer}
+.bkf .acc .top svg{margin-left:auto;width:15px;height:15px;stroke:var(--icon-muted);fill:none;stroke-width:2}
+.bkf .acc .in{display:flex;flex-direction:column;gap:10px;margin-top:11px}
+.bkf .acc .in label{font-size:12px;color:var(--text-body)}
+.bkf .acc input[type=text],.bkf .acc select{width:100%;border:1px solid var(--border-field);border-radius:6px;padding:7px 9px;font-size:13px;background:var(--bg-surface);margin-top:4px}
+.bkf .qopts{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px}
+.bkf .qopts button{border:1px solid var(--border-field);background:var(--bg-surface);border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer}
+.bkf .qopts button.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.bkf .toggline{display:flex;align-items:center;font-size:15px}
+.bkf .togg{margin-left:auto;width:44px;height:24px;border-radius:100px;background:var(--btn-disabled);position:relative;cursor:pointer;border:none;flex:0 0 44px}
+.bkf .togg.on{background:var(--primary)}
+.bkf .togg i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}
+.bkf .togg.on i{left:23px}
+.bkf .togg.lock{opacity:.55;cursor:not-allowed}
+.bkf .subbox{background:var(--bg-page);border-radius:var(--r-input);padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:12px}
+.bkf .subbox label{display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer}
+
+/* 選擇預約單位子面板 */
+.bku-sum{background:var(--primary-l3);border-radius:var(--r-input);padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.bku-sum b{color:var(--primary-dark);font-size:17px;margin:0 4px}
+.bku-sum .lack b{color:var(--alert)}
+.bku-bar{display:flex;align-items:center;gap:12px}
+.bku-bar button.all{flex:1;border:1px solid var(--primary);border-radius:var(--r-btn);background:none;color:var(--primary-dark);padding:8px;font-size:14px;cursor:pointer}
+.bku-bar select{border:none;background:none;font-size:13px;color:var(--text-body)}
+.bku-g{display:flex;flex-direction:column;gap:8px}
+.bku-g > label{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.bku-chips{background:var(--bg-page);border-radius:var(--r-input);padding:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bku-chips button{border:1px solid var(--border-field);border-radius:6px;background:var(--bg-surface);padding:7px 4px;font-size:12px;line-height:16px;cursor:pointer}
+.bku-chips button.on{border-color:var(--primary);background:var(--primary-l3);color:var(--primary-dark)}
+.bku-chips button small{display:block;font-size:10px;opacity:.7}
+.bku-ft{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--border-card)}
+.bku-ft button{flex:1;border-radius:var(--r-btn);padding:11px;font-size:15px;cursor:pointer;border:1px solid var(--border-field);background:var(--bg-surface)}
+.bku-ft button.pri{border-color:var(--primary);background:var(--primary);color:#fff}
+
+@media (max-width:860px){
+  .cl{display:none}
+  .bk-date{margin:0}
+  .ls-card{flex-wrap:wrap}
+  .ls-r{flex-basis:100%;flex-direction:row;align-items:center;gap:10px}
+  .ls-r .st{justify-content:flex-start;margin-right:auto}
+  .ls-r button{width:auto}
+}
 </style>
 </head>
 <body>
@@ -311,6 +535,12 @@ select.sel:focus{border-color:var(--border-on)}
   </div>
 </div>
 
+<!-- 預約卡片 popover -->
+<div class="pop-mask" id="popMask"><div class="pop" id="popBox"></div></div>
+<!-- 新增／修改預約 側邊表單 -->
+<div class="bkf-mask" id="bkfMask"></div>
+<div class="bkf" id="bkfPanel"></div>
+
 <!-- Modal 容器 -->
 <div class="modal-mask" id="modalMask"><div class="modal" id="modalBox"></div></div>
 <div class="toast" id="toast"></div>
@@ -324,7 +554,7 @@ select.sel:focus{border-color:var(--border-on)}
 /* =====================================================
    假資料層（模擬後端 API）— sessionStorage 持久化
    ===================================================== */
-const DB_KEY = 'sim_v3';
+const DB_KEY = 'sim_v4';
 const seed = () => ({
   seq: 100,
   mode: 'basic',
@@ -384,7 +614,36 @@ const seed = () => ({
     { id: 'u5', gid: 'g_default', name: 'Default 1', min: 1, max: 2 },
     { id: 'u6', gid: 'g_default', name: 'Default 2', min: 2, max: 4 },
   ],
+  bookings: seedBookings(),
 });
+
+/* 範例預約：日期一律相對於 DEMO_DAY，切模式不重生（各模式共用同一批預約） */
+const DEMO_DAY = '2026-07-17';
+function seedBookings() {
+  const B = (o) => Object.assign({
+    date: DEMO_DAY, adults: 2, kids: 0, title: '先生', email: '', note: '', shopNote: '',
+    item: '', unitIds: [], status: 'confirmed', source: '自建', deposit: 0, depositWay: 'prepay',
+    tags: [], q: '', dupe: false, pos: true, walkin: false,
+    createdAt: '2026-07-11 13:40', updatedAt: '2026-07-11 17:59',
+  }, o);
+  return [
+    B({ id: 'b1', code: '47989', start: '11:30', dur: 120, unitIds: ['u1'], name: '吳恩氣', phone: '0912345678', status: 'seated', item: '精緻主廚特餐－早午時光', tags: ['葷食', '商業午餐'], q: '問答題答案' }),
+    B({ id: 'b2', code: '47990', start: '11:30', dur: 90, unitIds: ['u2'], name: '熊', phone: '0978678567', status: 'seated', dupe: true, item: '精緻主廚特餐－早午時光' }),
+    B({ id: 'b3', code: '47991', start: '12:30', dur: 120, unitIds: ['u3'], name: '陳樂', phone: '0912345678', status: 'review', item: '自助吧吃到飽－平日自助吧' }),
+    B({ id: 'b4', code: '47992', start: '12:30', dur: 90, unitIds: ['u4'], name: '孫小美', phone: '0912345678', status: 'confirmed', dupe: true, adults: 2, kids: 1, title: '小姐', email: 'test@findlife.com.tw', note: '有抽菸，希望能安排在庭院的位置', shopNote: '老闆朋友，特別招待甜品', tags: ['葷食', '商業午餐', '兒童椅x1'], q: '問答題答案', item: '精緻主廚特餐－早午時光' }),
+    B({ id: 'b5', code: '47993', start: '10:30', dur: 90, unitIds: ['u5'], name: '河智昊', phone: '0912345678', status: 'done', item: '星空酒吧' }),
+    B({ id: 'b6', code: '47994', start: '12:30', dur: 120, unitIds: ['u6'], name: '廖文強', phone: '0912345678', status: 'confirmed', adults: 4, item: '精緻主廚特餐－精緻午茶' }),
+    B({ id: 'b7', code: '47995', start: '10:00', dur: 90, unitIds: ['u1'], name: '鹿', phone: '0912345678', status: 'done', item: '星空酒吧' }),
+    B({ id: 'b8', code: '47996', start: '13:00', dur: 120, unitIds: ['u2'], name: '楊', phone: '0922123123', status: 'arrived', dupe: true, item: '自助吧吃到飽－假日自助吧' }),
+    B({ id: 'b9', code: '47997', start: '13:00', dur: 90, unitIds: ['u3'], name: '邱', phone: '0988877777', status: 'arrived', dupe: true, item: '精緻主廚特餐－晚安佳餚' }),
+    B({ id: 'b10', code: '47998', start: '12:30', dur: 90, unitIds: ['u4'], name: '程樂樂', phone: '0912345678', status: 'confirmed', item: '精緻主廚特餐－早午時光' }),
+    B({ id: 'b11', code: '47999', start: '12:00', dur: 120, unitIds: ['u5'], name: '鄴瑜', phone: '0922123123', status: 'pay', dupe: true, deposit: 1000, item: '精緻主廚特餐－晚安佳餚' }),
+    B({ id: 'b12', code: '48000', start: '12:00', dur: 90, unitIds: ['u6'], name: '熊', phone: '0978678567', status: 'pay', deposit: 1000, item: '自助吧吃到飽－平日自助吧' }),
+    B({ id: 'b13', code: '48001', start: '18:00', dur: 120, unitIds: ['u1', 'u2'], name: '孫小美', phone: '0988123123', status: 'noshow', adults: 3, title: '小姐', item: '精緻主廚特餐－晚安佳餚', note: '顧客備註 Lorem ipsum dolor' }),
+    B({ id: 'b14', code: '48002', start: '19:00', dur: 90, unitIds: ['u3'], name: '廖文強', phone: '0988877777', status: 'cancelled', item: '星空酒吧', pos: false }),
+    B({ id: 'b15', code: '48003', start: '09:30', dur: 60, unitIds: ['u4'], name: '王小明', phone: '0911222333', status: 'confirmed', walkin: true, item: '', source: '自建' }),
+  ];
+}
 let db = JSON.parse(sessionStorage.getItem(DB_KEY) || 'null') || seed();
 const persist = () => sessionStorage.setItem(DB_KEY, JSON.stringify(db));
 const delay = (ms = 260) => new Promise(r => setTimeout(r, ms));
@@ -442,6 +701,30 @@ const api = {
     else db.slots = db.slots.filter(s => s.id !== id);
     persist();
   },
+  async listBookings(date) { await delay(120); return db.bookings.filter(b => b.date === date); },
+  async saveBooking(b) {
+    await delay();
+    const now = nowStamp();
+    if (b.id) {
+      const i = db.bookings.findIndex(x => x.id === b.id);
+      db.bookings[i] = Object.assign({}, db.bookings[i], b, { updatedAt: now });
+    } else {
+      b.id = 'b' + (++db.seq);
+      b.code = String(48000 + db.seq);
+      b.createdAt = now; b.updatedAt = now;
+      db.bookings.push(b);
+    }
+    persist(); return b;
+  },
+  async setBookingStatus(id, status) {
+    await delay(160);
+    const b = db.bookings.find(x => x.id === id);
+    b.status = status; b.updatedAt = nowStamp(); persist(); return b;
+  },
+};
+const nowStamp = () => {
+  const d = new Date(), p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 };
 const DEPOSITS = [
   { id: 'd1', name: '平日', desc: '預先收款：2人以上，每人200元' },
@@ -552,8 +835,15 @@ const NAV = [
 ];
 
 function renderChrome() {
-  $('#railList').innerHTML = RAIL.map(([n, act, active2]) =>
-    `<div class="nav-item${n === '設定' ? ' active' : ''}">${RAIL_SVG[n]}<span>${n}</span></div>`).join('');
+  const area = (location.hash || '').startsWith('#/book') ? '預約' : '設定';
+  $('#railList').innerHTML = RAIL.map(([n]) =>
+    `<div class="nav-item${n === area ? ' active' : ''}" data-rail="${n}">${RAIL_SVG[n]}<span>${n}</span></div>`).join('');
+  document.querySelectorAll('[data-rail]').forEach(el => el.addEventListener('click', () => {
+    const n = el.dataset.rail;
+    if (n === '預約') location.hash = '#/book/' + bk.view;
+    else if (n === '設定') location.hash = '#/rules';
+    else toast('此頁面尚未做成互動 Demo');
+  }));
   const navHtml = NAV.map(([g, items]) => `
     <div><div class="nav-group-title"><span class="dot"></span>${g}</div>
     <div class="nav-sub">${items.map(i => `<a data-nav="${i}" class="${i === '預約規則' ? 'active' : ''}">${i}</a>`).join('')}</div></div>`).join('');
@@ -588,7 +878,12 @@ function setTitle(crumbs, h1) {
 }
 function route() {
   closeModal();
+  if (typeof closePopover === 'function') closePopover();
   const h = location.hash || '#/rules';
+  renderChrome();
+  const mBook = h.match(/^#\/book(?:\/(timeline|space|list))?$/);
+  if (mBook) { bk.view = mBook[1] || bk.view; return viewBooking(); }
+  document.body.classList.remove('area-book');
   const activeNav = h.startsWith('#/customer') ? '顧客預約頁' : '預約規則';
   document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('active', a.dataset.nav === activeNav));
   const mGroup = h.match(/^#\/unit\/group\/(.+)$/);
@@ -1592,6 +1887,585 @@ function viewSlotForm(editId, itemId) {
    init
    ===================================================== */
 renderChrome();
+/* =====================================================
+   預約區（Part3 自建預約）— 時間軸／空間圖／清單＋新增／修改預約
+   畫面依 Figma「2026 Jul. 預約系統操作優化」page「自建預約」
+   ===================================================== */
+const ST = {
+  confirmed: { name: '確認預約', color: 'var(--primary-dark)', chipBg: 'var(--primary-l3)', chipFg: 'var(--primary-dark)', chipBd: 'var(--primary)', next: ['arrived', '到店'] },
+  arrived:   { name: '已到店',   color: 'var(--secondary)',    chipBg: 'var(--secondary)',  chipFg: '#fff',               chipBd: 'transparent',     next: ['seated', '入座'] },
+  seated:    { name: '已入座',   color: 'var(--primary)',      chipBg: 'var(--primary)',    chipFg: '#fff',               chipBd: 'transparent',     next: ['done', '完成'] },
+  done:      { name: '完成',     color: 'rgba(51,51,51,.5)',   chipBg: '#e6e6e6',           chipFg: 'var(--text-body)',   chipBd: 'transparent',     next: null },
+  review:    { name: '待審核',   color: 'var(--emphasis-d)',   chipBg: 'var(--emphasis-d)', chipFg: '#fff',               chipBd: 'transparent',     next: ['confirmed', '通過審核'] },
+  pay:       { name: '待付款/綁卡', color: '#5b6b8c',          chipBg: '#5b6b8c',           chipFg: '#fff',               chipBd: 'transparent',     next: ['confirmed', '已收款'] },
+  noshow:    { name: '未到店',   color: 'var(--alert)',        chipBg: '#f2f2f2',           chipFg: 'var(--text-muted)',  chipBd: 'var(--border-field)', next: null },
+  cancelled: { name: '取消預約', color: 'var(--text-muted)',   chipBg: '#f2f2f2',           chipFg: 'var(--text-disabled)', chipBd: 'var(--border-field)', next: null },
+};
+const ST_ORDER = ['confirmed', 'arrived', 'seated', 'done', 'review', 'pay', 'noshow', 'cancelled'];
+const TL_ORIGIN = 570;   // 09:30
+const TL_COLS = 24;      // 每格 30 分，到 21:30
+const TL_COLW = 74;
+const DEMO_NOW = 720;    // 設計稿的「現在」= 12:00
+
+const bk = { date: DEMO_DAY, view: 'timeline', lsTab: 'confirmed', clTab: 'confirmed', clFold: false };
+
+/* toMin 沿用設定區既有的同名函式 */
+const toHHMM = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+const durText = (m) => (m >= 60 ? Math.floor(m / 60) + '小時' : '') + (m % 60 ? (m % 60) + '分' : (m >= 60 ? '0分' : '0分'));
+const dateText = (s) => { const d = new Date(s + 'T00:00:00'); return s.replace(/-/g, '–') + '　' + ['週日', '週一', '週二', '週三', '週四', '週五', '週六'][d.getDay()]; };
+const shiftDate = (s, n) => { const d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const unitName = (id) => (db.units.find(u => u.id === id) || {}).name || '—';
+const todays = () => db.bookings.filter(b => b.date === bk.date);
+const live = (b) => b.status !== 'cancelled' && b.status !== 'noshow';
+/* 總量控管沒有預約單位的概念，其餘三模式都有 */
+const usesUnits = () => db.mode !== 'capacity';
+/* 預約項目來源直接讀設定區的資料，設定改了這裡就跟著改 */
+function itemOptions() {
+  if (db.mode === 'category') {
+    const out = [];
+    for (const p of db.catParents) for (const s of db.catSubs.filter(x => x.pid === p.id)) out.push(p.name + '－' + s.name);
+    return out;
+  }
+  if (db.mode === 'service') return db.svcItems.map(i => i.name);
+  return [];
+}
+function durOptions() {
+  const list = db.mode === 'capacity' ? db.capSlots : db.mode === 'service' ? db.svcSlots : db.mode === 'category' ? db.catSlots : db.slots;
+  const set = new Set(list.map(s => (s.svcH || 0) * 60 + (s.svcM || 0)).filter(Boolean));
+  if (!set.size) [60, 90, 120].forEach(v => set.add(v));
+  return [...set].sort((a, b) => a - b);
+}
+
+/* =====================================================
+   預約區外殼
+   ===================================================== */
+const SVG_CHEV_L = '<svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>';
+const SVG_CHEV_R = '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>';
+
+function viewBooking() {
+  document.body.classList.add('area-book');
+  setTitle([], '');
+  const live0 = todays().filter(live);
+  const dupCount = live0.filter(b => b.dupe).length;
+  $('#content').innerHTML = `
+    <div class="bk-head">
+      <div class="r1">
+        <h1>預約</h1>
+        <div class="bk-date">
+          <button id="dPrev" aria-label="前一天">${SVG_CHEV_L}</button>
+          <span>${esc(dateText(bk.date))}</span>
+          <button id="dNext" aria-label="後一天">${SVG_CHEV_R}</button>
+          <button class="today" id="dToday">今天</button>
+        </div>
+        <div class="bk-views">
+          ${[['timeline', '時間軸'], ['space', '空間圖'], ['list', '清單']].map(([v, n]) =>
+            `<button data-v="${v}" class="${bk.view === v ? 'on' : ''}">${n}</button>`).join('')}
+        </div>
+      </div>
+      <div class="bk-chips">
+        <span class="bk-chip"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>肚肚POS同步中</span>
+        ${dupCount ? `<span class="bk-chip warn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>有重複的預約</span>` : ''}
+      </div>
+      <div class="r3">
+        <span class="bk-sms">簡訊點數 1000</span>
+        <button class="btn-sm ghost" onclick="toast('Demo：不串接金流')">購買</button>
+        <div class="bk-tools">
+          <button class="ico" title="搜尋" onclick="toast('Demo：搜尋未實作')"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
+          <button class="ico on" title="顧客清單" id="clToggle"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M5.5 17c.7-1.8 2-2.7 3.5-2.7s2.8.9 3.5 2.7M15 9h4M15 13h4"/></svg></button>
+          <button class="ico" title="匯出" onclick="toast('Demo：匯出未實作')"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg></button>
+        </div>
+        <button class="btn-md ghost" onclick="toast('Demo：候位不在 Part3 範圍')">＋ 候位</button>
+        <button class="btn-md primary" id="bkNew">＋ 預約</button>
+      </div>
+    </div>
+    <div class="bk-body">
+      <div class="bk-main" id="bkMain"></div>
+      ${renderCustomerList()}
+    </div>`;
+
+  $('#dPrev').onclick = () => { bk.date = shiftDate(bk.date, -1); viewBooking(); };
+  $('#dNext').onclick = () => { bk.date = shiftDate(bk.date, 1); viewBooking(); };
+  $('#dToday').onclick = () => { bk.date = DEMO_DAY; viewBooking(); };
+  $('#clToggle').onclick = () => { bk.clFold = !bk.clFold; viewBooking(); };
+  $('#bkNew').onclick = () => openBookingForm(null);
+  document.querySelectorAll('.bk-views button').forEach(b => b.onclick = () => {
+    bk.view = b.dataset.v; location.hash = '#/book/' + bk.view;
+  });
+  bindCustomerList();
+  if (bk.view === 'timeline') renderTimeline();
+  else if (bk.view === 'space') renderSpace();
+  else renderList();
+}
+
+/* ---------- 時間軸 ---------- */
+function renderTimeline() {
+  const groups = db.groups.map(g => ({ g, us: db.units.filter(u => u.gid === g.id) })).filter(x => x.us.length);
+  if (!groups.length) { $('#bkMain').innerHTML = `<div class="ls-empty">尚未設定預約單位，請先到「設定 → 預約單位」建立群組與單位。</div>`; return; }
+  const rows = groups.flatMap(x => x.us);
+  const times = Array.from({ length: TL_COLS }, (_, i) => toHHMM(TL_ORIGIN + i * 30));
+  const bs = todays().filter(live);
+
+  const side = `<div class="tl-side"><div class="sh">組別/桌次</div>${groups.map(({ g, us }) => `
+      <div class="tl-g">
+        <div class="tl-gl">${esc(g.name)}<small>${Math.min(...us.map(u => u.min))}–${Math.max(...us.map(u => u.max))}</small></div>
+        <div class="tl-us">${us.map(u => `<div>${esc(u.name)}</div>`).join('')}</div>
+      </div>`).join('')}</div>`;
+
+  const rowHtml = rows.map((u, i) => {
+    const chips = bs.filter(b => (b.unitIds || []).includes(u.id)).map(b => {
+      const s = Math.max(TL_ORIGIN, toMin(b.start));
+      const e = Math.min(TL_ORIGIN + TL_COLS * 30, toMin(b.start) + b.dur);
+      if (e <= s) return '';
+      const m = ST[b.status];
+      return `<div class="tl-chip" data-b="${b.id}" style="left:${(s - TL_ORIGIN) / 30 * TL_COLW}px;width:${(e - s) / 30 * TL_COLW - 4}px;background:${m.chipBg};color:${m.chipFg};border-color:${m.chipBd}">
+        <div class="n">${esc(b.start)} ${b.pos ? '<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>' : ''}${esc(b.name)}</div>
+        <div class="p">${esc(b.phone)}</div>
+        <div class="cnt">${b.adults + b.kids} <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.3-3 4-4.4 7-4.4s5.7 1.4 7 4.4"/></svg></div>
+        ${b.dupe ? `<div class="bang" style="background:var(--alert)">!</div>` : b.status === 'seated' ? `<div class="bang" style="background:var(--emphasis)">!</div>` : ''}
+      </div>`;
+    }).join('');
+    return `<div class="tl-row${i % 2 ? ' alt' : ''}">${chips}</div>`;
+  }).join('');
+
+  $('#bkMain').innerHTML = `<div class="tl">${side}
+    <div class="tl-scroll"><div class="tl-inner" style="width:${TL_COLS * TL_COLW}px">
+      <div class="tl-th">${times.map(t => `<span>${t}</span>`).join('')}</div>
+      ${rowHtml}
+      <div class="tl-now" style="left:${(DEMO_NOW - TL_ORIGIN) / 30 * TL_COLW}px"></div>
+    </div></div></div>`;
+  document.querySelectorAll('.tl-chip').forEach(c => c.onclick = (e) => openPopover(c.dataset.b, e));
+}
+
+/* ---------- 空間圖 ---------- */
+function renderSpace() {
+  const groups = db.groups.filter(g => db.units.some(u => u.gid === g.id));
+  if (!groups.length) { $('#bkMain').innerHTML = `<div class="ls-empty">尚未設定預約單位。</div>`; return; }
+  if (!groups.some(g => g.id === bk.spTab)) bk.spTab = groups[0].id;
+  const bs = todays().filter(live);
+  const units = db.units.filter(u => u.gid === bk.spTab);
+
+  const shapes = units.map(u => {
+    const b = bs.find(x => (x.unitIds || []).includes(u.id) && toMin(x.start) <= DEMO_NOW && DEMO_NOW < toMin(x.start) + x.dur)
+           || bs.find(x => (x.unitIds || []).includes(u.id));
+    const m = b ? ST[b.status] : null;
+    const solid = b && (b.status === 'seated' || b.status === 'arrived' || b.status === 'pay');
+    const style = b ? `background:${solid ? m.chipBg : 'var(--primary-l3)'};color:${solid ? '#fff' : 'var(--text-strong)'};border-color:${solid ? 'transparent' : 'var(--primary)'}` : '';
+    return `<div class="sp-u ${u.max > 4 ? 'circ' : 'rect'}" ${b ? `data-b="${b.id}"` : ''}>
+      <div class="sp-shape" style="${style}">
+        <div>${esc(u.name)}</div><div class="cap">(${u.min}–${u.max})</div>
+        ${b && (b.status === 'arrived' || b.status === 'seated') ? `<div class="bar">${esc(b.start)}</div>` : ''}
+      </div>
+      ${b && b.dupe ? '<div class="bang">!</div>' : ''}
+      ${b && b.status === 'confirmed' ? '<div class="bell"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5 1.5 5h-15S6 13 6 9z"/><path d="M10.5 19a1.8 1.8 0 0 0 3 0"/></svg></div>' : ''}
+    </div>`;
+  }).join('');
+
+  $('#bkMain').innerHTML = `
+    <div class="sp-tabs">${groups.map(g => `<button data-g="${g.id}" class="${g.id === bk.spTab ? 'on' : ''}">${esc(g.name)}</button>`).join('')}</div>
+    <div class="sp-canvas">${shapes}</div>`;
+  document.querySelectorAll('.sp-tabs button').forEach(b => b.onclick = () => { bk.spTab = b.dataset.g; renderSpace(); });
+  document.querySelectorAll('.sp-u[data-b]').forEach(c => c.onclick = (e) => openPopover(c.dataset.b, e));
+}
+
+/* ---------- 清單 ---------- */
+function renderList() {
+  const all = todays();
+  const tabs = ST_ORDER.map(s => [s, ST[s].name, all.filter(b => b.status === s).length]);
+  const rows = all.filter(b => b.status === bk.lsTab).sort((a, b) => toMin(a.start) - toMin(b.start));
+
+  let body = '';
+  if (!rows.length) body = `<div class="ls-empty">這個狀態目前沒有預約。</div>`;
+  else {
+    body += `<div class="ls-daybar">${esc(dateText(bk.date))}</div>`;
+    let cur = null;
+    for (const b of rows) {
+      if (b.start !== cur) {
+        cur = b.start;
+        const same = rows.filter(x => x.start === cur);
+        body += `<div class="ls-timebar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>${esc(cur)}<span>組數：${same.length}</span><span>人數：${same.reduce((a, x) => a + x.adults + x.kids, 0)}</span></div>`;
+      }
+      body += listCard(b);
+    }
+  }
+  $('#bkMain').innerHTML = `
+    <div class="ls-tabs">${tabs.map(([s, n, c]) => `<button data-s="${s}" class="${bk.lsTab === s ? 'on' : ''}">${n} ${c}</button>`).join('')}</div>
+    <div class="ls-body">${body}</div>`;
+  document.querySelectorAll('.ls-tabs button').forEach(b => b.onclick = () => { bk.lsTab = b.dataset.s; renderList(); });
+  bindCardActions('#bkMain');
+}
+
+function listCard(b) {
+  const m = ST[b.status];
+  const units = (b.unitIds || []).map(unitName);
+  return `<div class="ls-card">
+    <div class="ls-l">${esc(b.start)}<div class="dur">${durText(b.dur)}</div></div>
+    <div class="ls-c">
+      <div class="nm">${esc(b.name)}<em>${esc(b.title)}</em>
+        <span class="pax"><b>${b.adults}</b>大人 <b>${b.kids}</b>小孩</span></div>
+      <div class="ls-row">${esc(b.phone)}${b.email ? '　' + esc(b.email) : ''}${b.deposit ? `　<span class="ls-tag">$ ${b.deposit}</span>` : ''}</div>
+      ${b.item || units.length ? `<div class="ls-row"><span style="flex:0 0 100%;font-size:12px">預約項目/子項目</span>
+        ${b.item ? `<span class="ls-tag unit">${esc(b.item)}</span>` : ''}${units.map(n => `<span class="ls-tag unit">${esc(n)}</span>`).join('')}</div>` : ''}
+      ${b.tags.length ? `<div class="ls-row">${b.tags.map(t => `<span class="ls-tag">${esc(t)}</span>`).join('')}</div>` : ''}
+      ${b.q ? `<div>1. ${esc(b.q)}</div>` : ''}
+      ${b.note ? `<div class="ls-note">👤 顧客備註 ${esc(b.note)}</div>` : ''}
+      ${b.shopNote ? `<div class="ls-note">📝 店家備註 ${esc(b.shopNote)}</div>` : ''}
+      <div class="ls-foot"><span style="color:${b.pos ? 'var(--primary-dark)' : 'var(--alert)'}">${b.pos ? '與肚肚同步: ' + b.updatedAt + ' ✓' : '未與肚肚同步: ' + b.updatedAt}</span></div>
+      <div class="ls-foot"><span>${esc(b.source)}</span><span>最後更新: ${esc(b.updatedAt)}</span><span>建立: ${esc(b.createdAt)}</span><span>預約代碼: ${esc(b.code)}</span></div>
+    </div>
+    <div class="ls-r">
+      <span class="st" style="color:${m.color}"><i></i>${m.name}</span>
+      <button class="btn-sm ghost" data-edit="${b.id}">✎ 修改</button>
+      ${m.next ? `<button class="btn-sm ghost" data-next="${b.id}">${m.next[1]}</button>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ---------- 右側顧客清單 ---------- */
+function renderCustomerList() {
+  if (bk.clFold) return `<div class="cl mini"><div class="cl-mini" id="clOpen">顧客清單 ›</div></div>`;
+  const all = todays();
+  const pills = ST_ORDER.map(s => [s, ST[s].name, all.filter(b => b.status === s).length]);
+  const rows = all.filter(b => b.status === bk.clTab).sort((a, b) => toMin(a.start) - toMin(b.start));
+  return `<div class="cl">
+    <div class="cl-tabs">
+      <button class="on">顧客清單</button>
+      <button onclick="toast('Demo：候位不在 Part3 範圍')">候位中</button>
+      <button class="fold" id="clFold" aria-label="收合">${SVG_CHEV_R}</button>
+    </div>
+    <div class="cl-pills">${pills.map(([s, n, c]) => `<button data-s="${s}" class="${bk.clTab === s ? 'on' : ''}">${n}<b>${c}</b></button>`).join('')}</div>
+    <div class="cl-list">${rows.length ? rows.map(clCard).join('') : `<div class="ls-empty">沒有預約</div>`}</div>
+  </div>`;
+}
+function clCard(b) {
+  const m = ST[b.status];
+  const units = (b.unitIds || []).map(unitName);
+  return `<div class="cl-card">
+    <div class="hd">${esc(b.start)} – ${esc(toHHMM(toMin(b.start) + b.dur))}
+      <span class="st" style="color:${m.color}"><i></i>${m.name}</span></div>
+    <div class="bd">
+      <div class="nm">${esc(b.name)}<em>${esc(b.title)}</em><span class="pax"><b>${b.adults}</b>大人 <b>${b.kids}</b>小孩</span></div>
+      <div>${esc(b.phone)}</div>
+      ${b.email ? `<div>${esc(b.email)}</div>` : ''}
+      ${b.item || units.length ? `<div>預約項目/子項目<div style="margin-top:4px;display:flex;gap:5px;flex-wrap:wrap">
+        ${b.item ? `<span class="ls-tag unit">${esc(b.item)}</span>` : ''}${units.map(n => `<span class="ls-tag unit">${esc(n)}</span>`).join('')}</div></div>` : ''}
+      ${b.tags.length ? `<div style="display:flex;gap:5px;flex-wrap:wrap">${b.tags.map(t => `<span class="ls-tag">${esc(t)}</span>`).join('')}</div>` : ''}
+      ${b.q ? `<div>1. ${esc(b.q)}</div>` : ''}
+      ${b.note ? `<div>👤 顧客備註 ${esc(b.note)}</div>` : ''}
+      <div style="font-size:11px;color:var(--text-muted)">${esc(b.source)}｜建立: ${esc(b.createdAt)}<br>最後更新: ${esc(b.updatedAt)}｜預約代碼: ${esc(b.code)}</div>
+    </div>
+    <div class="cl-acts">
+      <button data-edit="${b.id}">✎ 修改</button>
+      ${m.next ? `<button class="pri" data-next="${b.id}">${m.next[1]}</button>` : ''}
+    </div>
+  </div>`;
+}
+function bindCustomerList() {
+  if ($('#clOpen')) $('#clOpen').onclick = () => { bk.clFold = false; viewBooking(); };
+  if ($('#clFold')) $('#clFold').onclick = () => { bk.clFold = true; viewBooking(); };
+  document.querySelectorAll('.cl-pills button').forEach(b => b.onclick = () => { bk.clTab = b.dataset.s; viewBooking(); });
+  bindCardActions('.cl');
+}
+function bindCardActions(scope) {
+  const root = $(scope); if (!root) return;
+  root.querySelectorAll('[data-edit]').forEach(el => el.onclick = () => openBookingForm(el.dataset.edit));
+  root.querySelectorAll('[data-next]').forEach(el => el.onclick = async () => {
+    const b = db.bookings.find(x => x.id === el.dataset.next);
+    const [st, label] = ST[b.status].next;
+    el.disabled = true;
+    await api.setBookingStatus(b.id, st);
+    toast(`已標記為「${ST[st].name}」`);
+    viewBooking();
+  });
+}
+
+/* ---------- 預約卡片 popover ---------- */
+function openPopover(id, ev) {
+  const b = db.bookings.find(x => x.id === id); if (!b) return;
+  const m = ST[b.status];
+  const units = (b.unitIds || []).map(unitName);
+  const elapsed = DEMO_NOW - toMin(b.start);
+  $('#popBox').innerHTML = `
+    <div class="hd"><div class="t">${esc(b.start)} – ${esc(toHHMM(toMin(b.start) + b.dur))}</div>
+      <div class="s" style="background:${m.chipBg};color:${m.chipFg}">${m.name}</div></div>
+    <div class="bd">
+      ${b.status === 'seated' ? `<div style="display:flex;align-items:center;gap:8px">
+        <span style="color:var(--emphasis-d)">⏱ ${esc(b.start)} 入座</span>
+        <span style="margin-left:auto">累計時間：${durText(Math.max(0, elapsed))}</span></div>` : ''}
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <span style="font-size:17px;font-weight:500;color:var(--text-strong)">${esc(b.name)}</span>
+        <em style="font-style:normal;font-size:12px;color:var(--text-muted)">${esc(b.title)}</em>
+        <span style="margin-left:auto;color:var(--primary-dark)"><b style="font-size:17px">${b.adults}</b>大人 <b style="font-size:17px">${b.kids}</b>小孩</span></div>
+      <div>${esc(b.phone)}</div>
+      ${units.length ? `<div style="display:flex;gap:5px;flex-wrap:wrap">${units.map(n => `<span class="ls-tag unit">${esc(n)}</span>`).join('')}</div>` : ''}
+      ${b.item ? `<div>${esc(b.item)}</div>` : ''}
+      ${b.tags.length ? `<div style="display:flex;gap:5px;flex-wrap:wrap">${b.tags.map(t => `<span class="ls-tag">${esc(t)}</span>`).join('')}</div>` : ''}
+      ${b.q ? `<div>1. ${esc(b.q)}</div>` : ''}
+      ${b.note ? `<div>👤 顧客備註 ${esc(b.note)}</div>` : ''}
+      ${b.shopNote ? `<div>📝 店家備註 ${esc(b.shopNote)}</div>` : ''}
+      <div style="text-align:right;font-size:12px;color:${b.pos ? 'var(--primary-dark)' : 'var(--alert)'}">${b.pos ? '與肚肚同步: ' + esc(b.updatedAt) + ' ✓' : '未與肚肚同步'}</div>
+    </div>
+    <div class="ft" style="gap:8px">
+      <button class="btn-sm ghost" data-edit="${b.id}">✎ 修改</button>
+      ${m.next ? `<button class="btn-sm primary" data-next="${b.id}">${m.next[1]}</button>` : ''}
+    </div>`;
+  const mask = $('#popMask'); mask.classList.add('show');
+  const box = $('#popBox');
+  const r = ev.currentTarget.getBoundingClientRect();
+  const w = 324, h = box.offsetHeight;
+  box.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left)) + 'px';
+  box.style.top = (r.bottom + h + 8 < window.innerHeight ? r.bottom + 6 : Math.max(8, r.top - h - 6)) + 'px';
+  bindCardActions('#popBox');
+  box.querySelectorAll('[data-edit],[data-next]').forEach(el => {
+    const prev = el.onclick;
+    el.onclick = (e) => { closePopover(); prev(e); };
+  });
+}
+function closePopover() { $('#popMask').classList.remove('show'); }
+$('#popMask').addEventListener('click', (e) => { if (e.target === $('#popMask')) closePopover(); });
+
+/* =====================================================
+   新增／修改預約 表單（右側面板）
+   規格取自設計稿說明卡：勾選現場客不發任何通知、大人 default 1 且不可為 0、
+   服務時間長度依所選時段帶入、已要求訂金後不可再改、關閉前未儲存要提醒
+   ===================================================== */
+let bf = null;          // 表單狀態
+let bfSnapshot = '';    // 開啟當下的快照，用來判斷有沒有改過
+let bfPane = 'form';    // form | units
+
+function blankForm() {
+  const durs = durOptions();
+  return {
+    id: null, date: bk.date, start: '', dur: durs[0] || 120, adults: 1, kids: 0,
+    name: '', title: '其他', phone: '', email: '', note: '', shopNote: '',
+    item: itemOptions()[0] || '', unitIds: [], walkin: false, status: 'confirmed',
+    deposit: 0, depositOn: false, depositWay: 'prepay', notifyEmail: true, notifyLine: true,
+    qOpen: false, q: '', qChoice: [], qCount: '大人x1', tags: [], source: '自建', pos: true, dupe: false,
+  };
+}
+function openBookingForm(id) {
+  const b = id ? db.bookings.find(x => x.id === id) : null;
+  bf = b ? Object.assign(blankForm(), JSON.parse(JSON.stringify(b)), { depositOn: !!b.deposit, qOpen: !!b.q }) : blankForm();
+  bf.depositLocked = !!(b && b.deposit);   // 一旦要求訂金就不可再修改
+  bfSnapshot = JSON.stringify(bf);
+  bfPane = 'form';
+  $('#bkfMask').classList.add('show');
+  $('#bkfPanel').classList.add('show');
+  renderBookingForm();
+}
+function closeBookingForm(force) {
+  if (!force && JSON.stringify(bf) !== bfSnapshot) {
+    openModal(`<h3>尚未儲存這筆預約</h3>
+      <div class="m-body">還沒儲存的資料會遺失，確定要離開嗎？</div>
+      <div class="btn-row"><button class="btn-md ghost" onclick="closeModal()">繼續編輯</button>
+      <button class="btn-md primary" id="bfDiscard">捨棄並離開</button></div>`);
+    $('#bfDiscard').onclick = () => { closeModal(); closeBookingForm(true); };
+    return;
+  }
+  $('#bkfMask').classList.remove('show');
+  $('#bkfPanel').classList.remove('show');
+  bf = null;
+}
+$('#bkfMask').addEventListener('click', () => closeBookingForm(false));
+
+const SVG_X = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+function renderBookingForm() {
+  if (bfPane === 'units') return renderUnitPicker();
+  const editing = !!bf.id;
+  const items = itemOptions();
+  const durs = durOptions();
+  const times = Array.from({ length: TL_COLS + 1 }, (_, i) => toHHMM(TL_ORIGIN + i * 30));
+  const showItem = db.mode === 'category' || db.mode === 'service';
+  const gname = bf.unitIds.length ? (db.groups.find(g => g.id === (db.units.find(u => u.id === bf.unitIds[0]) || {}).gid) || {}).name : '';
+
+  $('#bkfPanel').innerHTML = `
+    <div class="bkf-hd"><span style="width:24px"></span><h3>${editing ? '修改預約' : '新增預約'}</h3>
+      <button id="bfClose" aria-label="關閉">${SVG_X}</button></div>
+    <div class="bkf-bd">
+      ${editing ? '' : `<label class="walkin"><input type="checkbox" id="bfWalkin" ${bf.walkin ? 'checked' : ''}>
+        <span>現場顧客<small>勾選後無需填寫顧客資訊</small></span></label>`}
+      ${showItem ? `<div class="itembox"><label>預約項目</label>
+        <select id="bfItem">${items.length ? items.map(o => `<option ${o === bf.item ? 'selected' : ''}>${esc(o)}</option>`).join('')
+          : '<option value="">尚未設定預約項目</option>'}</select></div>` : ''}
+      <div class="dateline"><input type="date" id="bfDate" value="${bf.date}"></div>
+      <div class="timeline-v">
+        <div class="big ${bf.start ? '' : 'empty'}">${bf.start ? esc(bf.start.replace(':', ' : ')) : '－－ : －－'}</div>
+        ${bf.start ? '' : '<div class="hint">請選擇時間</div>'}
+        <select id="bfStart"><option value="">選擇時間</option>${times.map(t => `<option ${t === bf.start ? 'selected' : ''}>${t}</option>`).join('')}</select>
+        <select id="bfDur">${durs.map(d => `<option value="${d}" ${d === bf.dur ? 'selected' : ''}>${durText(d)}</option>`).join('')}</select>
+      </div>
+      <div class="pax">
+        <div><div class="lb">大人</div><div class="stepper">
+          <button id="aMinus" ${bf.adults <= 1 ? 'disabled' : ''}>−</button><span class="v">${bf.adults}</span><button id="aPlus">＋</button></div></div>
+        <div><div class="lb">小孩</div><div class="stepper">
+          <button id="kMinus" ${bf.kids <= 0 ? 'disabled' : ''}>−</button><span class="v">${bf.kids}</span><button id="kPlus">＋</button></div></div>
+      </div>
+      ${bf.walkin ? `<div class="ls-note">現場顧客不會發送任何預約通知。</div>` : `
+      <div class="fld" id="fPhone"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/></svg>
+        <input id="bfPhone" placeholder="手機號碼*" value="${esc(bf.phone)}"></div>
+      <div class="fld" id="fName"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>
+        <input id="bfName" placeholder="姓名*" value="${esc(bf.name)}"></div>
+      <div class="radios">${['其他', '先生', '小姐'].map(t =>
+        `<label><input type="radio" name="bfTitle" value="${t}" ${bf.title === t ? 'checked' : ''}>${t}</label>`).join('')}</div>
+      <div class="fld"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+        <input id="bfEmail" placeholder="Email" value="${esc(bf.email)}"></div>`}
+      <div class="fld"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>
+        <input id="bfShopNote" placeholder="商家備註" value="${esc(bf.shopNote)}"></div>
+      ${usesUnits() ? `<div class="unitbox">
+        <div class="top"><span>預約單位</span><a id="bfPickUnits">${bf.unitIds.length ? '變更' : '選擇預約單位'} ›</a></div>
+        ${bf.unitIds.length ? `<div><span class="gname">${esc(gname)}</span>
+          <div class="names">${bf.unitIds.map(unitName).map(esc).join('、')}</div></div>` : ''}
+      </div>` : ''}
+      <div class="acc">
+        <div class="top" id="bfQTop">預約問卷<svg viewBox="0 0 24 24"><path d="${bf.qOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'}"/></svg></div>
+        ${bf.qOpen ? `<div class="in">
+          <div><label>問卷問答題</label><input type="text" id="bfQ" value="${esc(bf.q)}" placeholder="問卷答案"></div>
+          <div><label>問卷選擇題</label><div class="qopts">${['答案A', '答案B', '答案C'].map(o =>
+            `<button data-q="${o}" class="${bf.qChoice.includes(o) ? 'on' : ''}">${o}</button>`).join('')}</div></div>
+          <div><label>問卷數量統計</label><select id="bfQCount">${['大人x1', '大人x2', '小孩x1'].map(o =>
+            `<option ${o === bf.qCount ? 'selected' : ''}>${o}</option>`).join('')}</select></div>
+        </div>` : ''}
+      </div>
+      <div class="toggline">要求訂金
+        <button class="togg ${bf.depositOn ? 'on' : ''} ${bf.depositLocked ? 'lock' : ''}" id="bfDepTog"><i></i></button></div>
+      ${bf.depositLocked ? `<div class="errmsg" style="color:var(--text-muted);margin-top:0">已要求訂金的預約不可再修改訂金設定</div>` : ''}
+      ${bf.depositOn ? `
+        <div class="fld"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h5M9.5 14.5h5"/></svg>
+          <input id="bfDepAmt" value="${bf.deposit || ''}" placeholder="訂金金額" ${bf.depositLocked ? 'disabled' : ''}></div>
+        <div class="subbox"><span>收款方式</span>
+          <label><input type="radio" name="bfWay" value="prepay" ${bf.depositWay === 'prepay' ? 'checked' : ''} ${bf.depositLocked ? 'disabled' : ''}>預先收款</label>
+          <label><input type="radio" name="bfWay" value="card" ${bf.depositWay === 'card' ? 'checked' : ''} ${bf.depositLocked ? 'disabled' : ''}>信用卡授權綁定</label></div>
+        <div class="subbox"><span>訂金通知方式</span>
+          <label><input type="checkbox" id="bfNotifyE" ${bf.notifyEmail ? 'checked' : ''} ${bf.walkin ? 'disabled' : ''}>以email通知</label>
+          <label><input type="checkbox" id="bfNotifyL" ${bf.notifyLine ? 'checked' : ''} ${bf.walkin ? 'disabled' : ''}>以LINE/簡訊通知</label></div>` : ''}
+    </div>
+    <div class="bkf-ft"><button id="bfSubmit">${editing ? '儲存變更' : '新增預約'}</button></div>`;
+
+  const on = (sel, ev, fn) => { const el = $(sel); if (el) el.addEventListener(ev, fn); };
+  const rerender = (fn) => (e) => { fn(e); renderBookingForm(); };
+  $('#bfClose').onclick = () => closeBookingForm(false);
+  on('#bfWalkin', 'change', rerender(e => { bf.walkin = e.target.checked; }));
+  on('#bfItem', 'change', e => { bf.item = e.target.value; });
+  on('#bfDate', 'change', e => { bf.date = e.target.value; });
+  on('#bfStart', 'change', rerender(e => { bf.start = e.target.value; }));
+  on('#bfDur', 'change', e => { bf.dur = +e.target.value; });
+  $('#aMinus').onclick = () => { if (bf.adults > 1) { bf.adults--; renderBookingForm(); } };
+  $('#aPlus').onclick = () => { bf.adults++; renderBookingForm(); };
+  $('#kMinus').onclick = () => { if (bf.kids > 0) { bf.kids--; renderBookingForm(); } };
+  $('#kPlus').onclick = () => { bf.kids++; renderBookingForm(); };
+  on('#bfPhone', 'input', e => { bf.phone = e.target.value; });
+  on('#bfName', 'input', e => { bf.name = e.target.value; });
+  on('#bfEmail', 'input', e => { bf.email = e.target.value; });
+  on('#bfShopNote', 'input', e => { bf.shopNote = e.target.value; });
+  on('#bfQ', 'input', e => { bf.q = e.target.value; });
+  on('#bfQCount', 'change', e => { bf.qCount = e.target.value; });
+  document.querySelectorAll('input[name=bfTitle]').forEach(r => r.addEventListener('change', e => { bf.title = e.target.value; }));
+  document.querySelectorAll('input[name=bfWay]').forEach(r => r.addEventListener('change', e => { bf.depositWay = e.target.value; }));
+  document.querySelectorAll('[data-q]').forEach(b => b.onclick = rerender(() => {
+    const o = b.dataset.q;
+    bf.qChoice = bf.qChoice.includes(o) ? bf.qChoice.filter(x => x !== o) : bf.qChoice.concat(o);
+  }));
+  $('#bfQTop').onclick = () => { bf.qOpen = !bf.qOpen; renderBookingForm(); };
+  $('#bfDepTog').onclick = () => {
+    if (bf.depositLocked) return toast('已要求訂金，不可再修改');
+    bf.depositOn = !bf.depositOn; if (!bf.depositOn) bf.deposit = 0; renderBookingForm();
+  };
+  on('#bfDepAmt', 'input', e => { bf.deposit = +e.target.value || 0; });
+  on('#bfNotifyE', 'change', e => { bf.notifyEmail = e.target.checked; });
+  on('#bfNotifyL', 'change', e => { bf.notifyLine = e.target.checked; });
+  if ($('#bfPickUnits')) $('#bfPickUnits').onclick = () => {
+    if (!db.units.length) return toast('尚未設定預約單位，請先到「設定 → 預約單位」建立');
+    bfPane = 'units'; bfPick = bf.unitIds.slice(); bfFilter = 'all'; renderBookingForm();
+  };
+  $('#bfSubmit').onclick = submitBookingForm;
+}
+
+async function submitBookingForm() {
+  if (!bf.start) return toast('請選擇時間');
+  if (!bf.walkin && (!bf.phone.trim() || !bf.name.trim())) {
+    const bad = !bf.phone.trim() ? '#fPhone' : '#fName';
+    if ($(bad)) $(bad).classList.add('err');
+    return toast('請填寫手機號碼與姓名');
+  }
+  if (usesUnits() && !db.units.length) return toast('尚未設定預約單位，請先到「設定 → 預約單位」建立');
+  if (usesUnits() && !bf.unitIds.length) return toast('請選擇預約單位');
+  if (bf.depositOn && !bf.deposit) return toast('請填寫訂金金額');
+
+  const btn = $('#bfSubmit'); btn.disabled = true; btn.textContent = '儲存中…';
+  const payload = {
+    id: bf.id, date: bf.date, start: bf.start, dur: bf.dur, adults: bf.adults, kids: bf.kids,
+    name: bf.walkin ? (bf.name || '現場顧客') : bf.name, title: bf.title, phone: bf.phone, email: bf.email,
+    note: bf.note, shopNote: bf.shopNote, item: bf.item, unitIds: bf.unitIds, walkin: bf.walkin,
+    status: bf.status, deposit: bf.depositOn ? bf.deposit : 0, depositWay: bf.depositWay,
+    tags: bf.tags, q: bf.qOpen ? bf.q : '', source: '自建', pos: bf.pos, dupe: bf.dupe,
+  };
+  const editing = !!bf.id;
+  await api.saveBooking(payload);
+  closeBookingForm(true);
+  toast(editing ? '已儲存變更' : (payload.walkin ? '已新增預約（現場客不發送通知）' : '已新增預約'));
+  viewBooking();
+}
+
+/* ---------- 選擇預約單位 ---------- */
+let bfPick = [], bfFilter = 'all';
+function renderUnitPicker() {
+  const need = bf.adults + bf.kids;
+  const picked = db.units.filter(u => bfPick.includes(u.id));
+  const cap = picked.reduce((a, u) => a + u.max, 0);
+  const lack = Math.max(0, need - cap);
+  const groups = db.groups.filter(g => db.units.some(u => u.gid === g.id))
+    .filter(g => bfFilter === 'all' || g.id === bfFilter);
+
+  $('#bkfPanel').innerHTML = `
+    <div class="bkf-hd"><span style="width:24px"></span><h3 style="color:var(--text-strong)">選擇預約單位</h3>
+      <button id="bfUClose" aria-label="關閉">${SVG_X}</button></div>
+    <div class="bkf-bd">
+      <div class="bku-sum">
+        <div>預約人數 <b>${need}</b> 人</div>
+        <div>已選預約單位 <b>${picked.length}</b> 個</div>
+        <div class="lack">尚不足 <b>${lack}</b> 人</div>
+      </div>
+      <div class="bku-bar">
+        <button class="all" id="bfUAll">${bfPick.length === db.units.length ? '取消全選' : '選擇全部'}</button>
+        <select id="bfUFilter"><option value="all">所有群組</option>
+          ${db.groups.filter(g => db.units.some(u => u.gid === g.id)).map(g =>
+            `<option value="${g.id}" ${bfFilter === g.id ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select>
+      </div>
+      ${groups.map(g => {
+        const us = db.units.filter(u => u.gid === g.id);
+        const allOn = us.every(u => bfPick.includes(u.id));
+        return `<div class="bku-g">
+          <label><input type="checkbox" data-g="${g.id}" ${allOn ? 'checked' : ''}>${esc(g.name)} (${us.length})</label>
+          <div class="bku-chips">${us.map(u => `<button data-u="${u.id}" class="${bfPick.includes(u.id) ? 'on' : ''}">
+            ${esc(u.name)}<small>${u.min}–${u.max}</small></button>`).join('')}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="bku-ft"><button id="bfUBack">返回</button><button class="pri" id="bfUOk">確定</button></div>`;
+
+  $('#bfUClose').onclick = () => closeBookingForm(false);
+  $('#bfUBack').onclick = () => { bfPane = 'form'; renderBookingForm(); };
+  $('#bfUOk').onclick = () => {
+    if (lack > 0) return toast(`所選單位還不足 ${lack} 人`);
+    bf.unitIds = bfPick.slice(); bfPane = 'form'; renderBookingForm();
+  };
+  $('#bfUAll').onclick = () => {
+    bfPick = bfPick.length === db.units.length ? [] : db.units.map(u => u.id);
+    renderUnitPicker();
+  };
+  $('#bfUFilter').onchange = (e) => { bfFilter = e.target.value; renderUnitPicker(); };
+  document.querySelectorAll('[data-u]').forEach(b => b.onclick = () => {
+    const id = b.dataset.u;
+    bfPick = bfPick.includes(id) ? bfPick.filter(x => x !== id) : bfPick.concat(id);
+    renderUnitPicker();
+  });
+  document.querySelectorAll('[data-g]').forEach(c => c.onchange = () => {
+    const ids = db.units.filter(u => u.gid === c.dataset.g).map(u => u.id);
+    bfPick = c.checked ? [...new Set(bfPick.concat(ids))] : bfPick.filter(x => !ids.includes(x));
+    renderUnitPicker();
+  });
+}
+
 route();
 </script>
 </body>
