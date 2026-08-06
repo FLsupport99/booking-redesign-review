@@ -101,7 +101,7 @@ async function applySectionPreset(section) {
     pickFirstAvailable();
     fillForm();
     const res = await api.createBooking(collectPayload());
-    state.booking = { ...res.booking, status: "success" };
+    state.booking = res.booking;
   };
 
   switch (section) {
@@ -112,7 +112,7 @@ async function applySectionPreset(section) {
       await makeBooking(); renderSuccess(); fillForm(); enterModify(); break;
     case "1-5":
       await makeBooking();
-      state.booking.status = "cancelled";
+      state.booking.lifecycle = "cancelled";
       renderSuccess(); showView("view-success"); break;
     case "1-6": $("#modal-lookup").hidden = false; break;
     case "1-7": toggleLang(); break;
@@ -164,8 +164,12 @@ function renderShop() {
   $("#shop-notice").innerHTML = s.notice.map((n) => `<li>${n}</li>`).join("");
   $("#party-hint").textContent = s.party.hint;
   $("#party-over").textContent = s.party.over;
+  const hasDeposit = s.deposit.mode && s.deposit.mode !== "none";
   $("#deposit-text").textContent = s.deposit.text;
+  $("#deposit-text").hidden = !hasDeposit;
   $("#deposit-summary").textContent = s.deposit.summary;
+  $(".cta-deposit").hidden = !hasDeposit;
+  $("#shop-desc").hidden = !s.description;
 
   /* 訂金規則（1-3a 預先付款 / 1-3b 信用卡授權）：三處連動 */
   const dep = s.deposit;
@@ -190,8 +194,29 @@ function renderShop() {
   $("#branch-menu").innerHTML = s.branches.map((b) =>
     `<li class="${b === s.name ? "is-current" : ""}">${b}</li>`).join("");
 
-  $("#menu-carousel").innerHTML = s.menus.map((m) =>
-    `<figure class="menu-item"><img src="${m}" alt="菜單"></figure>`).join("");
+  const menuHtml = s.menus.map((m) => `<figure class="menu-item"><img src="${m}" alt="菜單"></figure>`).join("");
+  $("#menu-carousel").innerHTML = menuHtml;
+  $("#ok-menu-carousel").innerHTML = menuHtml;   // 各狀態頁底部也有菜單（定稿）
+
+  /* 空狀態：未開放預約 → 側邊卡按鈕停用、不顯示選擇區（定稿 1-1 未開放預約） */
+  const openBtn = $(".side-card-body .btn");
+  if (!s.reservationOpen) {
+    openBtn.disabled = true;
+    openBtn.textContent = "尚未開放預約";
+    openBtn.removeAttribute("data-scroll");
+    openBtn.removeAttribute("data-i18n");
+    $("#booking-section").hidden = true;
+    $(".mobile-cta").hidden = true;
+  }
+  /* 隱藏人數選項（定稿 1-1 隱藏人數選項） */
+  $("#party-col").hidden = s.showPartySize === false;
+  $("#booking-card").classList.toggle("no-party", s.showPartySize === false);
+
+  /* 店家沒設定的區塊就整塊不出現（定稿 Null（什麼都沒設定）） */
+  $(".announce").hidden = !s.announcement;
+  $(".notice").hidden = !s.notice?.length;
+  $(".other-info").hidden = !s.otherInfo?.length;
+  $$(".carousel-section")[0].hidden = !s.menus?.length;
 
   $("#share-carousel").innerHTML = [1, 2, 3, 4].map((i) => `
     <div class="share-card">
@@ -418,45 +443,106 @@ async function submitBooking() {
     $("#modal-full").hidden = false;
     return;
   }
-  state.booking = { ...res.booking, status: "success" };
+  state.booking = res.booking;
   renderSuccess();
   showView("view-success");
-  if (state.shop.showLineFriendReminder) $("#modal-line").hidden = false;
+  if (state.shop.showLineFriendReminder && !res.booking.payment && !res.booking.review) $("#modal-line").hidden = false;
 }
 
-/* ---------- 成功／查詢結果／已取消 共用畫面 ---------- */
-const STATUS_TEXT = {
-  success: "您已預約成功！",
-  pending_review: "您的預約待店家審核",
-  pending_payment: "您的預約待付款",
-  cancelled: "",   // 定稿的「完成取消」頁沒有大標，狀態由卡片內 badge 呈現
-  ended: "",
+/* ---------- 成功／查詢結果 共用畫面 ----------
+   狀態由三個獨立欄位組合，不用扁平 enum：
+     lifecycle  active | cancelled | ended
+     review     null（免審核）| "pending" | "approved"
+     payment    null | { kind:"prepay"|"card_auth", state:"pending"|"done", amount, deadline, countdown }
+   對應定稿：1-3 預約成功／待審核、1-3a 待付款／付款完成／待審核+待付款、
+            1-3b 待綁卡／綁卡完成／待審核+待綁卡、1-5 完成取消、1-6 查詢結果各狀態。 */
+const PAY_COPY = {
+  prepay: {
+    bannerPending: (b) => `請於${b.payment.deadline}前完成訂金付款，逾時系統將自動取消預約。`,
+    bannerDone: "付款完成，您已預約成功！",
+    due: (b) => `需預先付款 NT$${b.payment.amount}`,
+    paid: (b) => `已預先付款 NT$${b.payment.amount}`,
+    action: "前往付款",
+  },
+  card_auth: {
+    bannerPending: (b) => `請於 ${b.payment.countdown} 內完成信用卡授權，逾時系統將自動取消預約。`,
+    bannerDone: "授權信用卡完成，您已預約成功！",
+    due: (b) => `需授權信用卡預綁訂金 NT$${b.payment.amount}，作為預約保證`,
+    paid: (b) => `已授權信用卡預綁訂金 NT$${b.payment.amount}`,
+    action: "授權信用卡",
+  },
 };
+const REVIEW_BANNER = (b) => `商家正在確認您的預約，最晚將於 ${b.reviewDeadline || "2026/06/15 23:59"} 前確認結果。`;
+const REVIEW_BLOCKS_PAY = "待商家確認預約後，方可付款";
 
 function renderSuccess() {
   const b = state.booking;
-  const status = b.status || "success";
-  const title = STATUS_TEXT[status] ?? STATUS_TEXT.success;
-  $("#success-title").textContent = title;
-  $("#success-title").hidden = !title;
+  const inactive = b.lifecycle === "cancelled" || b.lifecycle === "ended";
+  const reviewing = b.review === "pending";
+  const pay = b.payment ? PAY_COPY[b.payment.kind] : null;
+  const payPending = !!pay && b.payment.state === "pending";
+  const payDone = !!pay && b.payment.state === "done";
+
+  /* 大標：待審核 > 待付款 > 已付款 > 一般成功；取消／結束沒有大標 */
+  let banner = "", tone = "ok";
+  if (!inactive) {
+    if (reviewing) { banner = REVIEW_BANNER(b); tone = "warn"; }
+    else if (payPending) { banner = pay.bannerPending(b); tone = "warn"; }
+    else if (payDone) { banner = pay.bannerDone; }
+    else { banner = "您已預約成功！"; }
+  }
+  const title = $("#success-title");
+  title.textContent = banner;
+  title.hidden = !banner;
+  title.classList.toggle("is-warn", tone === "warn");
+
   $("#ok-date").textContent = b.dateLabel;
   $("#ok-time").textContent = b.time;
   $("#ok-party").textContent = `${b.adults}大人 + ${b.children}小孩`;
-  const itemRow = $("#ok-item");
-  itemRow.hidden = !b.itemLabel;
-  itemRow.textContent = b.itemLabel || "";
   $("#ok-code").textContent = b.code;
   $("#ok-name").textContent = b.name;
   $("#ok-phone").textContent = b.phone;
   $("#ok-email").textContent = b.email;
+  const itemRow = $("#ok-item");
+  itemRow.hidden = !b.itemLabel;
+  itemRow.textContent = b.itemLabel || "";
 
-  const inactive = status === "cancelled" || status === "ended";
+  /* 已付款／已綁卡：人數下方多一行金額 */
+  const paidLine = $("#paid-line");
+  paidLine.hidden = !payDone;
+  paidLine.textContent = payDone ? pay.paid(b) : "";
+
+  /* 卡片內的付款動作區：待付款才出現；還在審核中只顯示金額與說明、不給按鈕 */
+  const action = $("#card-action");
+  action.hidden = inactive || !payPending;
+  if (!action.hidden) {
+    $("#card-amount").textContent = pay.due(b);
+    $("#card-amount-note").hidden = !reviewing;
+    $("#card-amount-note").textContent = reviewing ? REVIEW_BLOCKS_PAY : "";
+    $("#btn-pay").hidden = reviewing;
+    $("#btn-cancel-card").hidden = reviewing;   // 審核中改用底部那顆取消
+    $("#btn-pay-label").textContent = pay.action;
+  }
+
   $("#view-success").classList.toggle("is-cancelled", inactive);
   $("#cancel-badge").hidden = !inactive;
-  $("#cancel-badge").textContent = status === "cancelled" ? "您的預約已取消" : "此預約已結束";
+  $("#cancel-badge").textContent = b.lifecycle === "cancelled" ? "您的預約已取消" : "此預約已結束";
   $("#ok-arrive-note").hidden = inactive;
-  $("#ok-actions").hidden = inactive;      // 已取消／已結束不給修改與取消
-  $("#card-notes").hidden = inactive;
+  /* 定稿只有「無訂金的單純成功」那張有預約備註卡；待審核、待付款、付款完成、
+     綁卡完成、已取消都沒有。⚠️這是照定稿實作，產品上是否刻意要請設計確認。 */
+  $("#card-notes").hidden = inactive || reviewing || !!b.payment;
+
+  /* 聯絡卡的提醒文案：有訂金流程時多帶「及訂金」 */
+  $("#contact-note").textContent = b.payment
+    ? "預約及訂金資訊將傳送至您的LINE/簡訊與email。"
+    : "預約資訊將傳送至您的LINE/簡訊與email。";
+
+  /* 底部按鈕：可修改的只有「單純成功」；待付款的取消在卡片內；取消／結束都沒有 */
+  const canModify = !inactive && !reviewing && !b.payment;
+  const showBottomCancel = !inactive && !(payPending && !reviewing);
+  $("#ok-actions").hidden = !showBottomCancel;
+  $("#btn-modify").hidden = !canModify;
+  $("#ok-actions").classList.toggle("is-single", !canModify);
 
   const rows = [
     ["問卷問答題題目", b.q1], ["問卷選擇題", b.q2], ["問卷數量統計", b.q3], ["特殊需求/備註", b.note],
@@ -513,7 +599,7 @@ async function doLookup() {
 
   if (!res.ok) { $("#modal-nodata").hidden = false; return; }
   $("#modal-lookup").hidden = true;
-  state.booking = { status: "success", ...res.booking };
+  state.booking = res.booking;
   renderSuccess();
   showView("view-success");
 }
@@ -662,7 +748,7 @@ function bindEvents() {
     /* carousel */
     const car = e.target.closest(".car-btn");
     if (car) {
-      const el = $(car.dataset.car === "menu" ? "#menu-carousel" : "#share-carousel");
+      const el = $({ menu: "#menu-carousel", share: "#share-carousel", okmenu: "#ok-menu-carousel" }[car.dataset.car]);
       el.scrollBy({ left: 292 * +car.dataset.dir, behavior: "smooth" });
     }
 
@@ -713,10 +799,22 @@ function bindEvents() {
     $("#modal-confirm-edit").hidden = true;
     const res = await api.updateBooking({ ...collectPayload(), code: state.booking.code });
     exitModify();
-    state.booking = { ...res.booking, status: "success" };
+    state.booking = { ...state.booking, ...res.booking };
     renderSuccess();
     showView("view-success");
   });
+
+  /* 1-3a／1-3b 付款與信用卡授權 */
+  $("#btn-pay").addEventListener("click", async () => {
+    const btn = $("#btn-pay");
+    btn.disabled = true;
+    const res = await api.settlePayment(state.booking.code);
+    btn.disabled = false;
+    state.booking = { ...state.booking, payment: res.booking.payment };
+    renderSuccess();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  $("#btn-cancel-card").addEventListener("click", () => { $("#modal-cancel").hidden = false; });
 
   /* 1-5 取消 */
   $("#btn-cancel").addEventListener("click", () => { $("#modal-cancel").hidden = false; });
@@ -724,7 +822,7 @@ function bindEvents() {
   $("#btn-cancel-yes").addEventListener("click", async () => {
     await api.cancelBooking(state.booking.code);
     $("#modal-cancel").hidden = true;
-    state.booking = { ...state.booking, status: "cancelled" };
+    state.booking = { ...state.booking, lifecycle: "cancelled" };
     renderSuccess();
     showView("view-success");
   });

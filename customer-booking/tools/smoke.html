@@ -8,6 +8,15 @@ const MODES = ["basic", "service", "hier"];
 const MODE_FILE = { basic: "1-基本人數預約.html", service: "2-服務項目預約.html", hier: "3-階層項目預約.html" };
 const SECTIONS = ["1-1", "1-2", "1-3", "1-4", "1-5", "1-6", "1-7"];
 
+/* 空狀態與訂金模式（網址參數），只在 basic 模式各掃一次 */
+const VARIANTS = [
+  { q: "?state=closed", check: (d) => d.getElementById("booking-section").hidden || "booking-section 應隱藏" },
+  { q: "?state=null", check: (d) => d.querySelector(".announce").hidden || "announce 應隱藏" },
+  { q: "?state=no-party", check: (d) => d.getElementById("party-col").hidden || "party-col 應隱藏" },
+  { q: "?deposit=card_auth", check: (d) => !d.getElementById("deposit-notice").hidden || "信用卡授權紅字應顯示" },
+  { q: "?deposit=none", check: (d) => d.querySelector(".cta-deposit").hidden || "訂金摘要應隱藏" },
+];
+
 const files = [];
 for (const m of MODES) {
   files.push({ url: "../" + MODE_FILE[m], expect: "view-booking" });
@@ -15,6 +24,7 @@ for (const m of MODES) {
     files.push({ url: `../sections/${m}-${s}.html`, section: s, mode: m });
   }
 }
+for (const v of VARIANTS) files.push({ url: "../" + MODE_FILE.basic + v.q, variant: v });
 
 const EXPECT_VIEW = { "1-1": "view-booking", "1-2": "view-booking", "1-3": "view-form",
   "1-4": "view-modify", "1-5": "view-success", "1-6": "view-booking", "1-7": "view-booking" };
@@ -40,6 +50,10 @@ async function check(f) {
           if (modal && d.getElementById(modal).hidden) res.errors.push(`${modal} not open`);
           if (f.mode !== "basic" && f.section === "1-1" && d.getElementById("item-panel").hidden)
             res.errors.push("item-panel hidden in item mode");
+        }
+        if (f.variant) {
+          const r = f.variant.check(d);
+          if (r !== true) res.errors.push(String(r));
         }
         const broken = [...d.querySelectorAll("img")]
           .filter((i) => i.complete && i.naturalWidth === 0 && i.offsetParent !== null)

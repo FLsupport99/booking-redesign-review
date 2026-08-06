@@ -187,8 +187,8 @@
     <div class="carousel-head">
       <h3 class="t-h4">菜單</h3>
       <div class="carousel-nav">
-        <button type="button" class="car-btn" data-car="menu" data-dir="-1" aria-label="上一張"><img src="assets/icon-carousel-prev.svg" alt=""></button>
-        <button type="button" class="car-btn car-next" data-car="menu" data-dir="1" aria-label="下一張"><img src="assets/icon-carousel-prev.svg" alt=""></button>
+        <button type="button" class="car-btn" data-car="menu" data-dir="-1" aria-label="上一張"></button>
+        <button type="button" class="car-btn car-next" data-car="menu" data-dir="1" aria-label="下一張"></button>
       </div>
     </div>
     <div class="carousel menu-carousel" id="menu-carousel"></div>
@@ -198,8 +198,8 @@
     <div class="carousel-head">
       <h3 class="t-h4">MENU美食客分享</h3>
       <div class="carousel-nav">
-        <button type="button" class="car-btn" data-car="share" data-dir="-1" aria-label="上一張"><img src="assets/icon-carousel-prev.svg" alt=""></button>
-        <button type="button" class="car-btn car-next" data-car="share" data-dir="1" aria-label="下一張"><img src="assets/icon-carousel-prev.svg" alt=""></button>
+        <button type="button" class="car-btn" data-car="share" data-dir="-1" aria-label="上一張"></button>
+        <button type="button" class="car-btn car-next" data-car="share" data-dir="1" aria-label="下一張"></button>
       </div>
     </div>
     <div class="carousel share-carousel" id="share-carousel"></div>
@@ -331,11 +331,23 @@
       <p class="ok-date" id="ok-date"></p>
       <p class="ok-time" id="ok-time"></p>
       <p class="t-subtitle" id="ok-party"></p>
+      <p class="t-body text-75" id="paid-line" hidden></p>
       <p class="t-subtitle text-75" id="ok-item" hidden></p>
       <div class="cancel-badge" id="cancel-badge" hidden>您的預約已取消</div>
       <hr class="dashed">
       <p class="t-body"><span class="text-75">預約代碼</span>　<strong id="ok-code"></strong></p>
       <div class="ok-note-box t-body text-75" id="ok-arrive-note">請於預約時段準時到達，逾時10分鐘將取消訂位</div>
+
+      <!-- 待付款／待綁卡：金額提醒與付款動作留在卡片內（定稿 1-3a／1-3b） -->
+      <div class="card-action" id="card-action" hidden>
+        <hr class="dashed">
+        <p class="t-body card-amount" id="card-amount"></p>
+        <p class="t-body card-amount" id="card-amount-note" hidden></p>
+        <button class="btn btn-primary btn-lg w-full" type="button" id="btn-pay">
+          <span class="ext-ic" aria-hidden="true">↗</span><span id="btn-pay-label">前往付款</span>
+        </button>
+        <button class="btn btn-outline btn-lg w-full" type="button" id="btn-cancel-card">✕ 取消預約</button>
+      </div>
     </div>
   </div>
 
@@ -351,7 +363,7 @@
       <p class="t-subtitle summary-item"><img src="assets/icon-phone.svg" alt="" class="ic20"><span id="ok-phone"></span></p>
       <p class="t-subtitle summary-item"><img src="assets/icon-web.svg" alt="" class="ic20"><span id="ok-email"></span></p>
       <hr class="dashed">
-      <div class="ok-note-box t-body text-75">預約資訊將傳送至您的LINE/簡訊與email。<br>未收到通知？</div>
+      <div class="ok-note-box t-body text-75"><span id="contact-note">預約資訊將傳送至您的LINE/簡訊與email。</span><br>未收到通知？</div>
     </div>
   </div>
 
@@ -365,6 +377,16 @@
       <div class="line-qr" aria-hidden="true"></div>
       <p class="t-body">掃描 QR code 將 MENU店+ LINE官方帳號加入好友，協助管理您的預約！</p>
       <button class="btn btn-line btn-lg w-full" type="button">💬 加入 LINE 好友管理預約紀錄</button>
+    </div>
+    <div class="ok-menu">
+      <div class="carousel-head">
+        <h3 class="t-h4">菜單</h3>
+        <div class="carousel-nav">
+          <button type="button" class="car-btn" data-car="okmenu" data-dir="-1" aria-label="上一張"></button>
+          <button type="button" class="car-btn car-next" data-car="okmenu" data-dir="1" aria-label="下一張"></button>
+        </div>
+      </div>
+      <div class="carousel menu-carousel" id="ok-menu-carousel"></div>
     </div>
   </div>
 </main>

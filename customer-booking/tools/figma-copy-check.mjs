@@ -20,6 +20,13 @@ const TARGETS = [
   { id: "1272:19670", name: "① 1-4 修改預約" },
   { id: "1847:18646", name: "② 1-1 服務項目預約" },
   { id: "1637:65824", name: "③ 1-1 階層項目預約" },
+  { id: "1234:46579", name: "① 1-3 待審核" },
+  { id: "1122:32909", name: "① 1-3a 待付款" },
+  { id: "1225:43754", name: "① 1-3a 付款完成" },
+  { id: "1272:18141", name: "① 1-3a 待審核+待付款" },
+  { id: "1122:33308", name: "① 1-3b 待綁卡" },
+  { id: "1225:43911", name: "① 1-3b 綁卡完成" },
+  { id: "1023:25823", name: "① 1-1 未開放預約" },
 ];
 
 /* 這些是「資料」不是 UI 文案：店家自填內容、假資料、時間數字。不列入稽核。 */
@@ -50,7 +57,16 @@ const token = readFileSync(resolve(homedir(), "FL-Agent/FL-Salesapp/.env"), "utf
 const raw = ["src/template.html", "js/app.js", "js/api.js"]
   .map((f) => readFileSync(resolve(ROOT, f), "utf8")).join("\n");
 const stripped = raw.replace(/<[^>]+>/g, "").replace(/\s+/g, "");
-const implHas = (s) => raw.includes(s) || stripped.includes(s.replace(/\s+/g, ""));
+/* 句中帶動態值（金額、期限、倒數）的比對：兩邊都把數字與 ${...} 拿掉再比骨架。
+   例：定稿「請於2026-06-16 22:59前完成訂金付款，…」對上實作的
+       `請於${b.payment.deadline}前完成訂金付款，…` */
+const skeleton = (s) => s.replace(/\$\{[^}]*\}/g, "").replace(/[\d\s:/年月日.-]/g, "");
+const strippedSkeleton = skeleton(raw.replace(/<[^>]+>/g, ""));
+const implHas = (s) => {
+  const flat = s.replace(/\s+/g, "");
+  if (raw.includes(s) || stripped.includes(flat)) return true;
+  return /\d/.test(s) && strippedSkeleton.includes(skeleton(s));
+};
 
 const norm = (s) => s.replace(/\s+/g, " ").trim();
 

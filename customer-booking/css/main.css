@@ -221,10 +221,19 @@ a { color: inherit; }
 .carousel-section { background: #fff; padding: 32px; display: flex; flex-direction: column; gap: 12px; }
 .carousel-head { display: flex; align-items: center; justify-content: space-between; }
 .carousel-nav { display: flex; gap: 16px; }
-.car-btn { width: 24px; height: 24px; padding: 0; border-radius: 50%; transition: opacity .15s; }
+.car-btn {
+  width: 24px; height: 24px; padding: 0; border-radius: 50%; position: relative;
+  background: var(--gray-240); transition: background .15s;
+}
 .car-btn img { width: 100%; height: 100%; }
-.car-btn:hover { opacity: .7; }
-.car-next img { transform: scaleX(-1); }
+.car-btn:hover { background: var(--gray-220); }
+/* 箭頭用 CSS 畫（Figma 的三角形是獨立向量，未隨按鈕底圖一起匯出） */
+.car-btn::after {
+  content: ""; position: absolute; top: 50%; left: 52%;
+  width: 6px; height: 6px; border: solid var(--text-75); border-width: 0 1.5px 1.5px 0;
+  transform: translate(-50%, -50%) rotate(135deg);
+}
+.car-next::after { transform: translate(-50%, -50%) rotate(-45deg); left: 46%; }
 .carousel { display: flex; gap: 12px; overflow-x: auto; scroll-behavior: smooth; scrollbar-width: none; }
 .carousel::-webkit-scrollbar { display: none; }
 .menu-item {
@@ -424,6 +433,16 @@ a { color: inherit; }
 .modify-card { background: #fff; border: 1px solid var(--gray-240); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: 24px; }
 .modify-card:empty { display: none; }
 .modify-card .booking-card, .modify-card .form-card { border: none; box-shadow: none; padding: 0; }
+
+/* ---------- 各狀態（待審核／待付款／待綁卡／已付款） ---------- */
+.success-title.is-warn { color: var(--danger); font-size: 20px; line-height: 1.5; text-align: center; }
+.card-action { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.card-amount { color: var(--danger); text-align: center; }
+.ext-ic { font-size: 13px; }
+.paid-line { text-align: center; }
+.ok-actions.is-single .btn { flex: 1; }
+.ok-menu { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+.booking-card.no-party > .v-divider { display: none; }
 
 /* ---------- 取消完成 badge ---------- */
 .cancel-badge { background: var(--gray-245); border: 1px solid var(--gray-220); border-radius: var(--radius-md); padding: 12px 24px; font-size: 22px; font-weight: 500; letter-spacing: 1px; }

@@ -63,12 +63,24 @@
   </div>
 
   <div class="panel">
+    <h3>預約狀態（用「查詢預約」進入）</h3>
+    <p class="note">手機號碼一律 <code>0987654321</code>，代碼決定看到哪一種狀態。</p>
+    <table id="status-table"></table>
+  </div>
+
+  <div class="panel">
+    <h3>空狀態與訂金規則（網址參數）</h3>
+    <p class="note">加在任一模式檔後面即可，例如 <code>1-基本人數預約.html?state=closed</code>。</p>
+    <table id="variant-table"></table>
+  </div>
+
+  <div class="panel">
     <h3>Demo 劇本</h3>
     <p class="note">
       · 時段 <code>18:30</code> 第一次送出會回「預約已滿」popup，其他時段直接成功<br>
       · <code>12:00 / 12:30 / 18:00 / 19:00</code> 為不可選時段<br>
-      · 查詢預約測試碼：手機 <code>0987654321</code>、代碼 <code>30690</code><br>
-      · 表單空白直接送出可看驗證錯誤樣式
+      · 表單空白直接送出可看驗證錯誤樣式<br>
+      · 待付款／待綁卡頁按「前往付款」「授權信用卡」會走到完成狀態
     </p>
   </div>
 </div>
@@ -81,6 +93,22 @@ document.getElementById("sections-table").innerHTML = SECTIONS.map(([s, name]) =
   `<tr><th>${s} ${name}</th><td>${MODES.map(([m, label]) =>
     `<a href="sections/${m}-${s}.html">${label}</a>`).join("")}</td></tr>`).join("");
 document.querySelector("#row-basic").closest("table").remove();
+
+const STATUSES = [
+  ["30690", "預約成功"], ["30691", "已取消"], ["30692", "已結束"], ["30693", "待審核"],
+  ["30694", "待付款"], ["30695", "付款完成"], ["30696", "待綁卡"], ["30697", "綁卡完成"],
+  ["30698", "待審核＋待付款"], ["30699", "待審核＋待綁卡"],
+];
+document.getElementById("status-table").innerHTML = STATUSES.map(([code, name]) =>
+  `<tr><th>${name}</th><td><code>${code}</code></td></tr>`).join("");
+
+const VARIANTS = [
+  ["?state=closed", "未開放預約"], ["?state=null", "店家什麼都沒設定"],
+  ["?state=no-party", "隱藏人數選項"], ["?state=review", "送出後進入待審核"],
+  ["?deposit=card_auth", "訂金改信用卡授權"], ["?deposit=none", "不收訂金"],
+];
+document.getElementById("variant-table").innerHTML = VARIANTS.map(([q, name]) =>
+  `<tr><th>${name}</th><td><a href="1-基本人數預約.html${q}"><code>${q}</code></a></td></tr>`).join("");
 </script>
 </body>
 </html>

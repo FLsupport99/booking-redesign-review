@@ -12,6 +12,13 @@ const api = (() => {
 
   const SHOP = {
     name: "找活燒烤-北門店",
+    /* 空狀態開關（定稿 1-1 的 未開放預約／Null／隱藏人數選項 三張）
+       reservationOpen:false → 側邊卡變「尚未開放預約」且不顯示選擇區
+       showPartySize:false   → 不顯示人數欄
+       needsReview:true      → 送出後進入「待審核」 */
+    reservationOpen: true,
+    showPartySize: true,
+    needsReview: false,
     branches: ["找活燒烤-北門店", "找活燒烤-南港店", "找活燒烤-西門店"],
     address: "台北市信義區松高路11號2樓",
     mapUrl: "https://maps.google.com/?q=台北市信義區松高路11號2樓",
@@ -103,9 +110,32 @@ const api = (() => {
   let fullDemoDone = false; // 18:30 第一次送出回 FULL，之後成功（demo 用）
 
   return {
+    /* 空狀態與訂金模式可用網址參數切換，方便逐張對定稿：
+         ?state=closed     未開放預約
+         ?state=null       店家什麼都沒設定
+         ?state=no-party   隱藏人數選項
+         ?state=review     送出後進入待審核
+         ?deposit=card_auth|none  換訂金規則（預設 prepay） */
     async getShop() {
       await delay(120);
-      return SHOP;
+      const q = new URLSearchParams(location.search);
+      const shop = { ...SHOP };
+      const dep = q.get("deposit");
+      if (dep === "card_auth") shop.deposit = SHOP.depositCardAuth;
+      if (dep === "none") shop.deposit = { mode: "none", text: "", summary: "", terms: [], notice: [] };
+      switch (q.get("state")) {
+        case "closed": shop.reservationOpen = false; break;
+        case "no-party": shop.showPartySize = false; break;
+        case "review": shop.needsReview = true; break;
+        case "null":
+          Object.assign(shop, {
+            branches: [shop.name], announcement: "", notice: [], otherInfo: [],
+            menus: [], social: {}, description: "",
+            deposit: { mode: "none", text: "", summary: "", terms: [], notice: [] },
+          });
+          break;
+      }
+      return shop;
     },
 
     async getAvailability({ date, adults, children }) {
@@ -119,9 +149,29 @@ const api = (() => {
         fullDemoDone = true;
         return { ok: false, error: "FULL" };
       }
-      const booking = { code: String(Math.floor(10000 + Math.random() * 90000)), ...payload };
+      const dep = SHOP.deposit;
+      const needPay = dep.mode && dep.mode !== "none";
+      const booking = {
+        code: String(Math.floor(10000 + Math.random() * 90000)),
+        ...payload,
+        /* 三個獨立欄位組合出定稿的十種狀態，不要用一個扁平 enum */
+        lifecycle: "active",                                   // active | cancelled | ended
+        review: SHOP.needsReview ? "pending" : null,           // pending | approved | null(免審核)
+        payment: needPay
+          ? { kind: dep.mode, state: "pending", amount: dep.perPerson * (payload.adults + payload.children),
+              deadline: "2026-06-16 22:59", countdown: "29:59" }
+          : null,
+      };
       this._lastBooking = booking;
       return { ok: true, booking };
+    },
+
+    /* 完成付款／完成信用卡授權（前往付款、授權信用卡兩顆按鈕） */
+    async settlePayment(code) {
+      await delay(1200);
+      const b = this._lastBooking;
+      if (b) b.payment = { ...b.payment, state: "done" };
+      return { ok: true, booking: b };
     },
 
     async cancelBooking(code) {
@@ -143,19 +193,38 @@ const api = (() => {
       };
     },
 
-    /* 1-6 查詢預約：mock＝手機+代碼對上「最後一筆成功預約」才回資料；
-       另留一組固定測試碼 0987654321 / 30690 */
+    /* 1-6 查詢預約：先比對剛送出的那筆；查不到就用下表的固定測試碼，
+       每個代碼對應定稿「查詢結果」的一種狀態，方便逐張比對。手機一律 0987654321。 */
     _lastBooking: null,
+    _demoStates: {
+      30690: { label: "預約成功" },
+      30691: { label: "已取消", lifecycle: "cancelled" },
+      30692: { label: "已結束", lifecycle: "ended" },
+      30693: { label: "待審核", review: "pending" },
+      30694: { label: "待付款", payment: { kind: "prepay", state: "pending" } },
+      30695: { label: "付款完成", payment: { kind: "prepay", state: "done" } },
+      30696: { label: "待綁卡", payment: { kind: "card_auth", state: "pending" } },
+      30697: { label: "綁卡完成", payment: { kind: "card_auth", state: "done" } },
+      30698: { label: "待審核+待付款", review: "pending", payment: { kind: "prepay", state: "pending" } },
+      30699: { label: "待審核+待綁卡", review: "pending", payment: { kind: "card_auth", state: "pending" } },
+    },
     async lookupBooking({ phone, code }) {
       await delay(400);
       const b = this._lastBooking;
       if (b && b.phone === phone && b.code === code) return { ok: true, booking: b };
-      if (phone === "0987654321" && code === "30690") {
-        return { ok: true, booking: {
-          code: "30690", dateLabel: "2026/06/16 星期二", time: "18:30",
+
+      const demo = this._demoStates[code];
+      if (phone === "0987654321" && demo) {
+        const base = {
+          code, dateLabel: "2026/06/16 星期二", time: "18:30",
           adults: 2, children: 2, name: "廖文強", phone, email: "test@mail.com",
           q1: "顧客填寫答案", q2: "答案A、答案B", q3: "大人x1", note: "顧客填寫備註內容",
-        }};
+          lifecycle: "active", review: null, payment: null,
+        };
+        const p = demo.payment
+          ? { ...demo.payment, amount: 400, deadline: "2026-06-16 22:59", countdown: "29:59" }
+          : null;
+        return { ok: true, booking: { ...base, ...demo, payment: p, label: undefined } };
       }
       return { ok: false, error: "NOT_FOUND" };
     },
