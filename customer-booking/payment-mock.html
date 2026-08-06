@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模擬金流頁 — 顧客預約頁</title>
+<link rel="stylesheet" href="css/tokens.css">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-tc);color:var(--text-100);background:var(--gray-249);
+       min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{background:#fff;border:1px solid var(--gray-220);border-radius:var(--radius-lg);
+        padding:32px 28px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:20px}
+  .tag{align-self:flex-start;background:var(--gray-245);border:1px solid var(--gray-220);
+       border-radius:var(--radius-pill);padding:4px 12px;font-size:13px;color:var(--text-60)}
+  h1{font-size:20px;font-weight:500;letter-spacing:.6px}
+  dl{display:flex;flex-direction:column;gap:10px}
+  .row{display:flex;justify-content:space-between;font-size:15px;letter-spacing:.45px}
+  .row dt{color:var(--text-60)}
+  .row dd{font-variant-numeric:tabular-nums}
+  .amount{font-size:28px;font-weight:500;color:var(--accent-orange);text-align:center;
+          font-variant-numeric:tabular-nums;padding:8px 0}
+  .btns{display:flex;flex-direction:column;gap:10px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius-md);
+       padding:12px 24px;font-size:16px;font-weight:500;border:none;cursor:pointer;font-family:inherit}
+  .ok{background:var(--primary);color:#fff}
+  .ok:hover{background:var(--primary-dark)}
+  .fail{background:#fff;border:1px solid var(--gray-220);color:var(--text-75)}
+  .fail:hover{background:var(--gray-245)}
+  .note{font-size:13px;line-height:1.5;color:var(--text-60);border-top:1px solid var(--gray-240);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="card">
+  <span class="tag">模擬金流頁（非真實交易）</span>
+  <h1 id="title">訂金付款</h1>
+  <p class="amount" id="amount"></p>
+  <dl>
+    <div class="row"><dt>預約代碼</dt><dd id="code"></dd></div>
+    <div class="row"><dt>項目</dt><dd id="kind"></dd></div>
+  </dl>
+  <div class="btns">
+    <button class="btn ok" id="btn-ok">模擬付款成功</button>
+    <button class="btn fail" id="btn-fail">取消，返回預約</button>
+  </div>
+  <p class="note">
+    正式環境這一頁會換成金流商（如 ezPay）的付款頁：後端先建立交易取得付款網址，
+    顧客付完由金流商導回預約頁並以 webhook 通知後端更新狀態。
+    本頁只是把那段導轉流程模擬出來，讓前端接縫可以完整走一遍。
+  </p>
+</div>
+<script>
+const q = new URLSearchParams(location.search);
+const code = q.get("code") || "";
+const amount = q.get("amount") || "0";
+const kind = q.get("kind") || "prepay";
+const back = q.get("return") || "index.html";
+
+document.getElementById("title").textContent = kind === "card_auth" ? "信用卡授權" : "訂金付款";
+document.getElementById("kind").textContent = kind === "card_auth" ? "信用卡預綁訂金" : "預先付款訂金";
+document.getElementById("amount").textContent = "NT$" + amount;
+document.getElementById("code").textContent = code;
+
+const go = (result) => {
+  const url = new URL(back, location.href);
+  url.searchParams.set("code", code);
+  url.searchParams.set("payment", result);
+  location.href = url.toString();
+};
+document.getElementById("btn-ok").addEventListener("click", () => go("success"));
+document.getElementById("btn-fail").addEventListener("click", () => go("cancel"));
+</script>
+</body>
+</html>

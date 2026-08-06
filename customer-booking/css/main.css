@@ -370,13 +370,8 @@ a { color: inherit; }
 
 .line-block { width: 100%; max-width: 500px; background: #d9f2e5; border-radius: var(--radius-lg); padding: 24px; }
 .line-inner { background: #fff; border-radius: var(--radius-lg); padding: 24px; display: flex; flex-direction: column; gap: 16px; align-items: center; text-align: center; }
-.line-qr {
-  width: 140px; height: 140px; border: 6px solid #06c755; border-radius: 16px;
-  background:
-    repeating-linear-gradient(0deg, #06c755 0 6px, transparent 6px 12px),
-    repeating-linear-gradient(90deg, #06c755 0 6px, #fff 6px 12px);
-  opacity: .85;
-}
+/* 真 QR：內容取自 api.js 的 lineUrl，由 tools/gen-qr.mjs 產生並驗證可解碼 */
+.line-qr { width: 160px; height: 160px; border-radius: 12px; }
 
 /* ---------- Modal ---------- */
 .modal-mask {

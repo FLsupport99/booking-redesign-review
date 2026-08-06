@@ -34,7 +34,8 @@ Figma「2026 May. 顧客預約頁改版」定稿的**真 DOM** 實作：純 HTML
 
 - 時段 **18:30** 第一次送出會回「預約已滿」popup（後端滿位分支），其他時段直接成功
 - `12:00 / 12:30 / 18:00 / 19:00` 為不可選時段
-- 查詢預約測試碼：手機 `0987654321`、代碼 `30690`（或查剛送出的那筆）
+- 查詢預約測試碼：手機 `0987654321`、代碼 `30690`～`30699`（各對應一種狀態，見入口頁）
+- 手機填 `0900000000` 會觸發黑名單（定稿「預約已滿 B」，與滿位共用同一個 popup）
 - 表單空白直接送出可看驗證錯誤樣式
 
 ## 檔案結構
@@ -43,8 +44,10 @@ Figma「2026 May. 顧客預約頁改版」定稿的**真 DOM** 實作：純 HTML
 |---|---|
 | `src/template.html` | **唯一的畫面來源**，三個模式檔與 21 個單段落檔都從這裡產生 |
 | `tools/build.mjs` | 產生器：`node tools/build.mjs` |
-| `tools/smoke.html` | 一次載入 24 個檔案檢查 console error／破圖／預期畫面（瀏覽器打開即跑） |
+| `tools/smoke.html` | 一次載入全部檔案檢查 console error／破圖／預期畫面（瀏覽器打開即跑） |
 | `tools/figma-copy-check.mjs` | 文案稽核：從 Figma 抓定稿文字逐條比對實作 |
+| `tools/gen-qr.mjs` | 產生 LINE 加好友的真 QR（換連結後重跑） |
+| `payment-mock.html` | 模擬金流頁，驗證付款導轉往返 |
 | `css/tokens.css` | Design tokens——色彩/字級/圓角/陰影抽自 Figma variables，畫面不出現字面色值 |
 | `css/main.css` | 版面與元件樣式（hover/focus/disabled/error 狀態、RWD 斷點 760px） |
 | `js/api.js` | **API adapter**——目前是 mock；上線只改這一檔 |
@@ -59,13 +62,16 @@ Figma「2026 May. 顧客預約頁改版」定稿的**真 DOM** 實作：純 HTML
 `js/api.js` 定義下列介面，畫面只認這層：
 
 ```js
-api.getShop()                  // 店家資料（含 items：預約項目／子項目）
-api.getAvailability(query)     // { slots:[{time, available}] }；query 含 date/adults/children/itemId/subItemId
-api.createBooking(payload)     // { ok, booking } 或 { ok:false, error:'FULL' }
-api.updateBooking(payload)     // 1-4
-api.cancelBooking(code)        // 1-5
-api.lookupBooking({phone,code})// 1-6
-api.getBranchAvailability(q)   // 1-2
+api.getShop(lang)                 // 店家資料（含 items、deposit、lineUrl），依語系
+api.getAvailability(query)        // { slots:[{time, available}] }；含 date/adults/children/itemId/subItemId
+api.createBooking(payload)        // { ok, booking } 或 { ok:false, error:'FULL'|'BLOCKED' }
+api.getBooking(code)              // 用預約代碼取回（金流導回後重查）
+api.lookupBooking({phone,code})   // 1-6 查詢預約
+api.updateBooking(payload)        // 1-4 修改
+api.cancelBooking(code)           // 1-5 取消
+api.getBranchAvailability(q)      // 1-2 其他分店
+api.createPaymentSession({code,amount,kind})  // 1-3a/b：取得金流頁網址
+api.markPaid(code)                // 金流導回後更新付款狀態
 ```
 
 把 mock 實作換成 `fetch(BASE + ...)` 即可。**欄位名需由後端定案後對齊**——這是上線前唯一未決的部分。
@@ -122,11 +128,36 @@ booking.payment    // null | { kind:"prepay"|"card_auth", state:"pending"|"done"
 | `?deposit=card_auth` | 訂金改信用卡授權（1-3b） | 訂金規則_信用卡授權說明 |
 | `?deposit=none` | 不收訂金 | — |
 
+## 中英切換（1-7）
+
+UI 字串走 `js/app.js` 的 `I18N` 字典；**店家內容（店名、地址、公告、訂位須知、
+其他注意事項、預約項目、訂金文案）由 API 依語系提供**，前端不翻譯——
+介面是 `api.getShop(lang)`，切語言時整包重取再重繪。
+真 API 應對應 `?lang=zh|en` 之類的參數回同一組欄位。
+
+## 金流接縫
+
+付款不是假按鈕，是照真實金流的導轉流程做的：
+
+1. 按「前往付款／授權信用卡」→ `api.createPaymentSession({code, amount, kind})` 取得 `redirectUrl`
+2. 導去該網址（demo 是 `payment-mock.html`，正式環境換成金流商付款頁）
+3. 付完由對方導回 `…?code=<預約代碼>&payment=success|cancel`
+4. 本頁用 `api.getBooking(code)` **重新取回預約**再決定畫面，不依賴前一次載入的記憶體狀態
+
+正式環境要把 `createPaymentSession` 換成呼叫後端建立交易，並由後端接金流 webhook 更新付款狀態；
+前端這一段流程不用改。
+
+## LINE QR
+
+`assets/line-qr.png` 是**可掃描的真 QR**，內容為 `js/api.js` 的 `lineUrl`。
+換連結後要重跑 `node tools/gen-qr.mjs` 重新產生（腳本會用 opencv 解碼驗證掃得出來）。
+畫面上的「加入 LINE 好友」按鈕與 QR 指向同一個網址。
+
 ## 目前範圍外
 
-- 1-7 只翻譯 UI 字串，店家內容（公告、須知）需由 API 提供雙語
-- LINE QR 為裝飾假碼；付款與信用卡授權是畫面示意，未串金流
-- 預約已滿的 B 版（黑名單）與部分 hover／pressed 細節狀態
+- 金流未串真實商家帳號（接縫已完成，見上）
+- 部分 hover／pressed 的細節狀態圖
+- 英文版的菜單與美食客分享內容仍沿用中文假資料（正式由 API 提供）
 
 ## 驗收流程（改完一定要跑完三關）
 
@@ -136,7 +167,7 @@ booking.payment    // null | { kind:"prepay"|"card_auth", state:"pending"|"done"
 |---|---|---|---|
 | 1 | 重新產生 | `node tools/build.mjs` | 24 個檔案產出無誤 |
 | 2 | **文案對定稿** | `node tools/figma-copy-check.mjs` | `=== 全部相符 ===` |
-| 3 | 流程與破圖 | 瀏覽器開 `tools/smoke.html` | `29/29 passed` |
+| 3 | 流程與破圖 | 瀏覽器開 `tools/smoke.html` | `30/30 passed` |
 
 再加一關人工：**逐頁對照 Figma 原稿截圖**（`../gallery_assets/`、`../modes_assets/`），
 確認版面結構與顯示時機。目前已建立的對照證據在 `docs/`。

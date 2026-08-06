@@ -53,6 +53,11 @@ const I18N = {
   formTitle: { zh: "填寫預約資訊", en: "Booking details" },
   submit: { zh: "確認預約", en: "Confirm booking" },
   successTitle: { zh: "您已預約成功！", en: "Your booking is confirmed!" },
+  tab_all: { zh: "全時段", en: "All day" },
+  tab_morning: { zh: "上午", en: "Morning" },
+  tab_afternoon: { zh: "下午", en: "Afternoon" },
+  tab_evening: { zh: "晚上", en: "Evening" },
+  tab_midnight: { zh: "午夜", en: "Late night" },
 };
 const t = (key) => (I18N[key] ? I18N[key][state.lang] : key);
 
@@ -70,7 +75,24 @@ async function init() {
   renderDate();
   await loadSlots();
   applyModeLayout();
+  if (await handlePaymentReturn()) return;      // 從金流頁導回
   if (window.SECTION) await applySectionPreset(window.SECTION);
+}
+
+/* 金流頁導回：?code=…&payment=success|cancel。用代碼重新取回預約再決定畫面，
+   不依賴前一次載入殘留的記憶體狀態（真實環境同樣要重查一次）。 */
+async function handlePaymentReturn() {
+  const q = new URLSearchParams(location.search);
+  const result = q.get("payment");
+  const code = q.get("code");
+  if (!result || !code) return false;
+
+  const res = result === "success" ? await api.markPaid(code) : await api.getBooking(code);
+  if (!res.ok) return false;
+  state.booking = res.booking;
+  renderSuccess();
+  showView("view-success");
+  return true;
 }
 
 /* 讓每個子流程（1-1 ~ 1-7）能單獨開一個檔案檢視：
@@ -170,6 +192,11 @@ function renderShop() {
   $("#deposit-summary").textContent = s.deposit.summary;
   $(".cta-deposit").hidden = !hasDeposit;
   $("#shop-desc").hidden = !s.description;
+
+  /* LINE 加好友按鈕接上真連結（QR 與按鈕指向同一個網址） */
+  $$(".btn-line").forEach((b) => {
+    b.onclick = () => window.open(s.lineUrl, "_blank", "noopener");
+  });
 
   /* 訂金規則（1-3a 預先付款 / 1-3b 信用卡授權）：三處連動 */
   const dep = s.deposit;
@@ -437,7 +464,8 @@ async function submitBooking() {
   const res = await api.createBooking(collectPayload());
   btnLoading(btn, false, t("submit"));
 
-  if (!res.ok && res.error === "FULL") {
+  /* FULL＝時段滿位、BLOCKED＝黑名單（定稿 預約已滿 B），兩者共用同一個 popup */
+  if (!res.ok && (res.error === "FULL" || res.error === "BLOCKED")) {
     $("#full-date").textContent = `${state.date.getMonth() + 1}月${state.date.getDate()}日`;
     $("#full-time").textContent = state.time;
     $("#modal-full").hidden = false;
@@ -626,18 +654,32 @@ async function openBranches() {
 }
 
 /* ---------- 1-7 中英切換 ---------- */
-function toggleLang() {
+async function toggleLang() {
   state.lang = state.lang === "zh" ? "en" : "zh";
   document.documentElement.lang = state.lang === "en" ? "en" : "zh-TW";
+
+  /* 店家內容（店名、公告、須知、注意事項、項目、訂金文案）由 API 提供對應語系，
+     前端不翻譯；UI 字串才走 I18N 字典。 */
+  state.shop = await api.getShop(state.lang);
+  const keepItem = state.item?.id, keepSub = state.subItem?.id;
+  renderShop();
+  if (HAS_ITEMS) {
+    state.item = state.shop.items.find((x) => x.id === keepItem) || null;
+    state.subItem = state.item?.children.find((c) => c.id === keepSub) || null;
+    renderItems();
+  }
+
   $("#lang-label").textContent = t("langLabel");
   $$("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
   $("#booking-title").textContent = t("pickTitle");
-  $("#item-panel") && ($(".item-panel-title").textContent = t("itemTitle"));
+  $(".item-panel-title").textContent = t("itemTitle");
   $("#btn-to-form").textContent = t("toForm");
   $(".form-title").textContent = t("formTitle");
   $(".btn-label", $("#btn-submit")).textContent = t("submit");
-  $("#success-title").textContent = t("successTitle");
+  $$(".time-tab").forEach((el) => { el.textContent = t("tab_" + el.dataset.tab); });
   renderDate();
+  renderParty();
+  if (state.booking) renderSuccess();
 }
 
 /* ---------- events ---------- */
@@ -804,15 +846,16 @@ function bindEvents() {
     showView("view-success");
   });
 
-  /* 1-3a／1-3b 付款與信用卡授權 */
+  /* 1-3a／1-3b：導去金流頁，付完由對方導回本頁（?code=&payment=success） */
   $("#btn-pay").addEventListener("click", async () => {
     const btn = $("#btn-pay");
     btn.disabled = true;
-    const res = await api.settlePayment(state.booking.code);
-    btn.disabled = false;
-    state.booking = { ...state.booking, payment: res.booking.payment };
-    renderSuccess();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const { redirectUrl } = await api.createPaymentSession({
+      code: state.booking.code,
+      amount: state.booking.payment.amount,
+      kind: state.booking.payment.kind,
+    });
+    location.href = redirectUrl;
   });
   $("#btn-cancel-card").addEventListener("click", () => { $("#modal-cancel").hidden = false; });
 

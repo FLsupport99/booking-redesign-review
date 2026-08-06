@@ -15,6 +15,10 @@ const VARIANTS = [
   { q: "?state=no-party", check: (d) => d.getElementById("party-col").hidden || "party-col 應隱藏" },
   { q: "?deposit=card_auth", check: (d) => !d.getElementById("deposit-notice").hidden || "信用卡授權紅字應顯示" },
   { q: "?deposit=none", check: (d) => d.querySelector(".cta-deposit").hidden || "訂金摘要應隱藏" },
+  { q: "", label: "line-qr", check: (d) => {
+      const q = d.querySelector(".line-block .line-qr");
+      return (q && q.complete && q.naturalWidth > 0) || "LINE QR 圖未載入";
+    } },
 ];
 
 const files = [];

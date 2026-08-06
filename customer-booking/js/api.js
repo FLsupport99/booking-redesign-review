@@ -79,6 +79,9 @@ const api = (() => {
       summaryWarn: "*若未如期出席商家將有權進行扣款收取取消費用",
     },
     showLineFriendReminder: true,
+    /* MENU店+ LINE 官方帳號加好友連結。⚠️改這裡之後要重跑 `node tools/gen-qr.mjs`
+       重新產生 assets/line-qr.png，QR 內容才會跟著換。 */
+    lineUrl: "https://line.me/R/ti/p/@menushop",
     /* ASSET_BASE 讓 sections/ 底下的單段落檔案也能吃到同一批圖 */
     menus: [1, 2, 3, 4].map((i) => `${window.ASSET_BASE || ""}assets/menu${i}.png`),
     /* 預約項目（mode=service 用 items、mode=hier 用 items+children） */
@@ -96,6 +99,52 @@ const api = (() => {
         { id: "bar-set", name: "微醺套餐" },
       ]},
     ],
+  };
+
+  /* 英文版店家內容。真 API 應由後端提供對應語系的同一組欄位（?lang=en），
+     這裡示範前端只認 api.getShop(lang) 的介面，不做前端翻譯。
+     沒有覆寫的欄位（電話、社群連結、圖片）自動沿用中文版。 */
+  const SHOP_EN = {
+    name: "Zhaohuo BBQ – Beimen",
+    branches: ["Zhaohuo BBQ – Beimen", "Zhaohuo BBQ – Nangang", "Zhaohuo BBQ – Ximen"],
+    address: "2F, No. 11, Songgao Rd., Xinyi Dist., Taipei",
+    hours: "Mon–Fri 11:00-22:00",
+    description:
+      "Creative cuisine made with Taiwanese ingredients and a daily changing seasonal menu, in a relaxed dining room that suits both family gatherings and business dinners.",
+    announcement: "Limited-time offer: groups of three, one dines free",
+    notice: [
+      "Cash payment only.",
+      "Minimum spend NT$250 per person (children aged 8 and above included).",
+      "Space is limited. Please note in advance if you need a high chair or extra tableware.",
+      "Maximum party size is 6. Please call us for larger groups.",
+      "Dining time is 90 minutes from your reserved time (no limit if no following booking).",
+      "Tables are held for 15 minutes; after that we may release them to walk-in guests.",
+      "We reserve the right to cancel or change bookings in the event of natural disasters or other circumstances beyond our control.",
+    ],
+    otherInfo: ["Food & service", "Interior", "Payment in store", "Parking", "Getting here", "Other notes"],
+    party: {
+      min: 1, max: 6,
+      hint: "Parties of 1–6 (adults and children included)",
+      over: "*For parties over 6, please book by phone",
+    },
+    items: [
+      { id: "chef", name: "Chef's Tasting Menu", children: [
+        { id: "brunch", name: "Brunch" }, { id: "tea", name: "Afternoon Tea" }, { id: "dinner", name: "Dinner" },
+      ]},
+      { id: "buffet", name: "All-you-can-eat Buffet", children: [
+        { id: "buffet-lunch", name: "Lunch Buffet" }, { id: "buffet-dinner", name: "Dinner Buffet" },
+      ]},
+      { id: "bar", name: "Rooftop Bar", children: [{ id: "bar-set", name: "Cocktail Set" }] },
+    ],
+    deposit: {
+      text: "Parties of 1 or more require a NT$100 per person deposit",
+      summary: "NT$100 / person",
+      termsTitle: "Deposit policy",
+      terms: [
+        "Deposit: NT$100 per person.",
+        "Please complete the deposit payment within 30 minutes or the booking will be cancelled automatically.",
+      ],
+    },
   };
 
   /* mock 時段表：18:30 留給「預約已滿」demo，12:00/12:30/18:00/19:00 為不可選 */
@@ -116,10 +165,12 @@ const api = (() => {
          ?state=no-party   隱藏人數選項
          ?state=review     送出後進入待審核
          ?deposit=card_auth|none  換訂金規則（預設 prepay） */
-    async getShop() {
+    async getShop(lang = "zh") {
       await delay(120);
       const q = new URLSearchParams(location.search);
-      const shop = { ...SHOP };
+      const shop = lang === "en"
+        ? { ...SHOP, ...SHOP_EN, deposit: { ...SHOP.deposit, ...SHOP_EN.deposit } }
+        : { ...SHOP };
       const dep = q.get("deposit");
       if (dep === "card_auth") shop.deposit = SHOP.depositCardAuth;
       if (dep === "none") shop.deposit = { mode: "none", text: "", summary: "", terms: [], notice: [] };
@@ -145,6 +196,9 @@ const api = (() => {
 
     async createBooking(payload) {
       await delay(1400);
+      /* 定稿「預約已滿 B（或被黑名單）」與 A 版畫面相同，差別只在後端原因。
+         demo：手機 0900000000 視為黑名單。 */
+      if (payload.phone === "0900000000") return { ok: false, error: "BLOCKED" };
       if (payload.time === "18:30" && !fullDemoDone) {
         fullDemoDone = true;
         return { ok: false, error: "FULL" };
@@ -163,15 +217,39 @@ const api = (() => {
           : null,
       };
       this._lastBooking = booking;
+      /* 導去金流頁再導回時記憶體會清空，用 sessionStorage 撐過那一次往返
+         （真實環境是導回後用預約代碼跟後端重查） */
+      sessionStorage.setItem("booking:" + booking.code, JSON.stringify(booking));
       return { ok: true, booking };
     },
 
-    /* 完成付款／完成信用卡授權（前往付款、授權信用卡兩顆按鈕） */
-    async settlePayment(code) {
-      await delay(1200);
-      const b = this._lastBooking;
-      if (b) b.payment = { ...b.payment, state: "done" };
-      return { ok: true, booking: b };
+    /* 金流串接的接縫：真實環境要跟金流商建立交易後把顧客導去對方頁面，
+       付完再導回本頁（帶預約代碼），本頁重新查一次預約以取得最新狀態。
+       這裡 redirectUrl 指向 payment-mock.html 模擬那一段導轉。 */
+    async createPaymentSession({ code, amount, kind }) {
+      await delay(400);
+      const back = location.origin + location.pathname + location.search;
+      const q = new URLSearchParams({ code, amount, kind, return: back });
+      return { ok: true, redirectUrl: `${window.ASSET_BASE || ""}payment-mock.html?${q}` };
+    },
+
+    /* 導回本頁後用預約代碼取回預約（真實環境就是打 GET /bookings/:code） */
+    async getBooking(code) {
+      await delay(300);
+      const saved = sessionStorage.getItem("booking:" + code);
+      if (saved) return { ok: true, booking: JSON.parse(saved) };
+      return this.lookupBooking({ phone: "0987654321", code });
+    },
+
+    /* 金流回來後把付款狀態寫回（真實環境由後端接金流 webhook 後更新） */
+    async markPaid(code) {
+      await delay(200);
+      const res = await this.getBooking(code);
+      if (!res.ok) return res;
+      const booking = { ...res.booking, payment: { ...res.booking.payment, state: "done" } };
+      sessionStorage.setItem("booking:" + code, JSON.stringify(booking));
+      this._lastBooking = booking;
+      return { ok: true, booking };
     },
 
     async cancelBooking(code) {
