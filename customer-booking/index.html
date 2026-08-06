@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>顧客預約頁改版 — 可上線型 HTML</title>
+<link rel="stylesheet" href="css/tokens.css">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font-tc);color:var(--text-100);background:var(--gray-249);padding:48px 24px 80px}
+  .wrap{max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:32px}
+  h1{font-size:24px;font-weight:500;line-height:1.5;letter-spacing:.72px}
+  .lead{font-size:14px;line-height:1.4;letter-spacing:.7px;color:var(--text-75)}
+  .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .mode{background:#fff;border:1px solid var(--gray-220);border-radius:var(--radius-lg);padding:24px;display:flex;flex-direction:column;gap:12px;text-decoration:none;color:inherit;transition:border-color .15s,box-shadow .15s}
+  .mode:hover{border-color:var(--primary);box-shadow:var(--shadow-card)}
+  .mode h2{font-size:18px;font-weight:500;line-height:1.35;letter-spacing:.9px}
+  .mode p{font-size:14px;line-height:1.4;letter-spacing:.7px;color:var(--text-75)}
+  .mode .go{margin-top:auto;color:var(--primary-dark);font-size:14px;font-weight:500;letter-spacing:.7px}
+  .panel{background:#fff;border:1px solid var(--gray-220);border-radius:var(--radius-lg);padding:24px;display:flex;flex-direction:column;gap:16px}
+  .panel h3{font-size:16px;font-weight:500;letter-spacing:.48px}
+  table{border-collapse:collapse;width:100%;font-size:14px;letter-spacing:.7px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--gray-240);vertical-align:top}
+  th{color:var(--text-60);font-weight:400;font-size:13px;white-space:nowrap}
+  td a{color:var(--primary-dark);text-decoration:none;margin-right:12px;white-space:nowrap}
+  td a:hover{text-decoration:underline}
+  .note{font-size:13px;line-height:1.5;letter-spacing:.65px;color:var(--text-75)}
+  code{background:var(--gray-245);border-radius:4px;padding:1px 5px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>顧客預約頁改版 — 可上線型 HTML</h1>
+    <p class="lead">照 Figma「2026 May. 顧客預約頁改版」定稿實作的真 DOM 頁面。三種預約模式各一個檔案，接上 API 即可運作。</p>
+  </header>
+
+  <div class="modes">
+    <a class="mode" href="1-基本人數預約.html">
+      <h2>① 基本人數預約</h2>
+      <p>只選人數、日期與時段。餐廳訂位的預設模式。</p>
+      <span class="go">開啟 →</span>
+    </a>
+    <a class="mode" href="2-服務項目預約.html">
+      <h2>② 服務項目預約</h2>
+      <p>先選預約項目，再選人數、日期與時段。</p>
+      <span class="go">開啟 →</span>
+    </a>
+    <a class="mode" href="3-階層項目預約.html">
+      <h2>③ 階層項目預約</h2>
+      <p>選父層項目 → 選子項目，再選人數、日期與時段。</p>
+      <span class="go">開啟 →</span>
+    </a>
+  </div>
+
+  <div class="panel">
+    <h3>逐段檢視（1-1 ~ 1-7）</h3>
+    <p class="note">同一份程式碼，用 <code>window.SECTION</code> 把畫面快轉到該段落起點，方便和工程師手刻的檔案逐段比對。</p>
+    <table>
+      <tr><th>段落</th><td id="row-basic"></td></tr>
+    </table>
+    <table id="sections-table"></table>
+  </div>
+
+  <div class="panel">
+    <h3>預約狀態（用「查詢預約」進入）</h3>
+    <p class="note">手機號碼一律 <code>0987654321</code>，代碼決定看到哪一種狀態。</p>
+    <table id="status-table"></table>
+  </div>
+
+  <div class="panel">
+    <h3>空狀態與訂金規則（網址參數）</h3>
+    <p class="note">加在任一模式檔後面即可，例如 <code>1-基本人數預約.html?state=closed</code>。</p>
+    <table id="variant-table"></table>
+  </div>
+
+  <div class="panel">
+    <h3>Demo 劇本</h3>
+    <p class="note">
+      · 時段 <code>18:30</code> 第一次送出會回「預約已滿」popup，其他時段直接成功<br>
+      · <code>12:00 / 12:30 / 18:00 / 19:00</code> 為不可選時段<br>
+      · 表單空白直接送出可看驗證錯誤樣式<br>
+      · 手機填 <code>0900000000</code> 會觸發黑名單（定稿「預約已滿 B」）<br>
+      · 待付款／待綁卡按「前往付款」會導去模擬金流頁，付完導回本頁更新狀態<br>
+      · 頁首 <code>EN</code> 會連店家內容（公告、須知、項目）一起換成英文
+    </p>
+  </div>
+</div>
+
+<script>
+const MODES = [["basic","① 基本"],["service","② 服務項目"],["hier","③ 階層項目"]];
+const SECTIONS = [["1-1","顧客預約頁"],["1-2","查看其他分店時段"],["1-3","填寫資訊"],
+  ["1-4","修改預約"],["1-5","取消預約"],["1-6","查詢預約"],["1-7","中英切換"]];
+document.getElementById("sections-table").innerHTML = SECTIONS.map(([s, name]) =>
+  `<tr><th>${s} ${name}</th><td>${MODES.map(([m, label]) =>
+    `<a href="sections/${m}-${s}.html">${label}</a>`).join("")}</td></tr>`).join("");
+document.querySelector("#row-basic").closest("table").remove();
+
+const STATUSES = [
+  ["30690", "預約成功"], ["30691", "已取消"], ["30692", "已結束"], ["30693", "待審核"],
+  ["30694", "待付款"], ["30695", "付款完成"], ["30696", "待綁卡"], ["30697", "綁卡完成"],
+  ["30698", "待審核＋待付款"], ["30699", "待審核＋待綁卡"],
+];
+document.getElementById("status-table").innerHTML = STATUSES.map(([code, name]) =>
+  `<tr><th>${name}</th><td><code>${code}</code></td></tr>`).join("");
+
+const VARIANTS = [
+  ["?state=closed", "未開放預約"], ["?state=null", "店家什麼都沒設定"],
+  ["?state=no-party", "隱藏人數選項"], ["?state=review", "送出後進入待審核"],
+  ["?deposit=card_auth", "訂金改信用卡授權"], ["?deposit=none", "不收訂金"],
+];
+document.getElementById("variant-table").innerHTML = VARIANTS.map(([q, name]) =>
+  `<tr><th>${name}</th><td><a href="1-基本人數預約.html${q}"><code>${q}</code></a></td></tr>`).join("");
+</script>
+</body>
+</html>
