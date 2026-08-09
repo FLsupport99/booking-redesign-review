@@ -44,6 +44,36 @@
 .radio[data-on]::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--primary)}
 .check{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
 #modalBox{width:560px}
+/* ── 版本 C：時間軸框選 ── */
+.bkbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.bkbar .date{font-size:16px;font-weight:500}
+.bkviews{display:flex;gap:2px;background:#eee;border-radius:var(--r-btn);padding:2px;margin-left:auto}
+.bkviews a{padding:5px 14px;font-size:13px;border-radius:6px;cursor:pointer;color:var(--text-body)}
+.bkviews a.on{background:#fff;color:var(--text-strong);font-weight:500}
+.chip-cl{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;border:1px solid #f0dede;background:#fdf5f5;color:var(--alert);font-size:13px;cursor:pointer}
+.tlwrap{border:1px solid var(--border-card);border-radius:var(--r-card);background:#fff;overflow:auto}
+.tlgrid{display:grid;min-width:900px;user-select:none}
+.tlh{position:sticky;top:0;z-index:2;background:#fafafa;border-bottom:1px solid var(--border-card);font-size:11px;color:var(--text-muted);padding:6px 0 6px 4px;text-align:left;font-variant-numeric:tabular-nums}
+.tlu{position:sticky;left:0;z-index:1;background:#fff;border-right:1px solid var(--border-card);padding:0 10px;display:flex;align-items:center;gap:6px;font-size:13px;height:38px}
+.tlc{height:38px;border-bottom:1px solid #f5f5f5;border-right:1px solid #f7f7f7;position:relative;cursor:crosshair}
+.tlc.half{border-right-color:#efefef}
+.tlc.sel{background:var(--primary-l2);box-shadow:inset 0 0 0 1px var(--primary)}
+.tlc.closed{background:repeating-linear-gradient(45deg,#f3eaea,#f3eaea 4px,#fbf5f5 4px,#fbf5f5 8px)}
+.tlc:has(.tlbk){z-index:1}
+.tlbk{position:absolute;inset:3px 1px;background:var(--secondary);border-radius:4px;color:#fff;font-size:11px;line-height:32px;padding:0 6px;overflow:hidden;white-space:nowrap;cursor:default}
+.selbar{position:sticky;bottom:0;display:flex;align-items:center;gap:10px;background:var(--text-strong);color:#fff;padding:10px 14px;border-radius:var(--r-btn);margin-top:12px;font-size:13px}
+.selbar .btn-md{height:30px}
+.dr-mask{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:399;display:none}
+.dr-mask.show{display:block}
+.dr{position:fixed;top:0;right:0;bottom:0;width:360px;max-width:92vw;background:#fff;z-index:400;transform:translateX(100%);transition:transform .18s;display:flex;flex-direction:column}
+.dr.show{transform:none}
+.dr-hd{padding:18px 20px;border-bottom:1px solid var(--border-card);display:flex;align-items:center;gap:10px;font-size:16px;font-weight:500}
+.dr-bd{padding:16px 20px;overflow:auto;display:flex;flex-direction:column;gap:16px}
+.dr-day{font-size:13px;color:var(--text-muted);margin-bottom:6px}
+.sp-map{display:flex;flex-wrap:wrap;gap:14px;padding:18px}
+.sp-t{width:88px;height:64px;border-radius:10px;border:1px solid var(--border-field);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;background:#fff}
+.sp-t.closed{background:repeating-linear-gradient(45deg,#f3eaea,#f3eaea 4px,#fbf5f5 4px,#fbf5f5 8px);border-color:#f0dede;color:var(--text-muted)}
+.sp-t small{font-size:11px;color:var(--text-muted)}
 .inline2{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
 .inline2 .input{width:auto}
 .w80{width:80px}
@@ -51,8 +81,9 @@
 </style>
 
 <div class="vsw">
-  <button data-ver="A">版本 A・分散式</button>
-  <button data-ver="B">版本 B・收斂式</button>
+  <button data-ver="A">A・分散式</button>
+  <button data-ver="B">B・收斂式</button>
+  <button data-ver="C">C・檢視內操作</button>
 </div>
 
 <div class="canvas">
@@ -67,6 +98,8 @@
   </div>
 </div>
 
+<div class="dr-mask" id="drMask"></div>
+<aside class="dr" id="drPanel"></aside>
 <div class="modal-mask" id="modalMask"><div class="modal" id="modalBox"></div></div>
 <div class="toast" id="toast"></div>
 <div class="demo-fab">
@@ -106,6 +139,14 @@ const seed = () => ({
   ],
   closures: [
     { id: 'c1', date: '2026-08-14', start: '18:00', end: '20:00', unitIds: ['u1', 'u2'] },
+    { id: 'c2', date: '2026-08-28', start: '17:00', end: '22:00', unitIds: ['u9'] },
+  ],
+  // 版本 C 的時間軸範例預約（只為了讓框選有真實脈絡，不是 Part 4 範圍）
+  bookings: [
+    { id: 'b1', unitId: 'u1', start: '12:00', dur: 120, name: '陳小姐 2 位' },
+    { id: 'b2', unitId: 'u5', start: '13:00', dur: 90, name: '林先生 4 位' },
+    { id: 'b3', unitId: 'u7', start: '18:30', dur: 120, name: '王小姐 3 位' },
+    { id: 'b4', unitId: 'u3', start: '19:00', dur: 90, name: '張先生 2 位' },
   ],
   seq: 3,
 });
@@ -125,7 +166,7 @@ const RAIL = ['預約', '排隊', '月曆', '顧客', '推播', '公告', '優�
 const navItems = () => {
   const base = ['預約規則', '例外預約規則', '自動排位規則', '顧客預約頁', '後台操作偏好', '預約通知', '預約追蹤', '訂金管理', '自訂預約問卷', '透過Google預訂'];
   if (ver === 'A') { const a = base.slice(); a.splice(2, 0, '臨時預約關閉設定'); return a; }
-  return base;
+  return base; // B 收進例外預約規則、C 收進時間軸，側欄都不增項
 };
 const NAV = () => [
   ['帳號設定', ['商家基本資訊', '肚肚POS串接設定', '通知點數管理']],
@@ -133,9 +174,17 @@ const NAV = () => [
   ['排隊設定', ['線上排隊設定', '排隊組別', '排隊通知']],
 ];
 function renderChrome() {
+  const inBook = location.hash === '#/timeline';
   $('#railList').innerHTML = RAIL.map(n =>
-    `<div class="nav-item${n === '設定' ? ' active' : ''}"><span>${n}</span></div>`).join('');
-  const cur = { '#/auto': '自動排位規則', '#/deposit': '訂金管理', '#/closure': '臨時預約關閉設定', '#/exception': '例外預約規則' }[location.hash] || '自動排位規則';
+    `<div class="nav-item${(inBook ? n === '預約' : n === '設定') ? ' active' : ''}" data-rail="${n}"><span>${n}</span></div>`).join('');
+  document.querySelectorAll('[data-rail]').forEach(el => el.addEventListener('click', () => {
+    if (el.dataset.rail === '預約') {
+      if (ver !== 'C') return toast('版本 C 才把臨時關閉做進預約檢視，先切到 C');
+      location.hash = '#/timeline';
+    } else if (el.dataset.rail === '設定') location.hash = '#/auto';
+    else toast('此區不在 Part 4 範圍');
+  }));
+  const cur = { '#/auto': '自動排位規則', '#/deposit': '訂金管理', '#/closure': '臨時預約關閉設定', '#/exception': '例外預約規則' }[location.hash] || (inBook ? '' : '自動排位規則');
   $('#settingsNav').innerHTML = NAV().map(([g, items]) => `
     <div><div class="nav-group-title"><span class="dot"></span>${g}</div>
     <div class="nav-sub">${items.map(i => `<a data-nav="${esc(i)}" class="${i === cur ? 'active' : ''}">${esc(i)}</a>`).join('')}</div></div>`).join('');
@@ -151,8 +200,8 @@ function renderChrome() {
     b.classList.toggle('on', b.dataset.ver === ver);
     b.onclick = () => {
       ver = b.dataset.ver; sessionStorage.setItem('part4_ver', ver);
-      if (ver === 'A' && location.hash === '#/exception') location.hash = '#/closure';
-      if (ver === 'B' && location.hash === '#/closure') location.hash = '#/exception';
+      const onClosure = ['#/closure', '#/exception', '#/timeline'].includes(location.hash);
+      if (onClosure) location.hash = { A: '#/closure', B: '#/exception', C: '#/timeline' }[ver];
       route();
     };
   });
@@ -451,13 +500,159 @@ function viewExceptionB(tab) {
   if (t === 'closure') wireClosure();
 }
 
+/* ── 版本 C：把臨時關閉做進預約檢視 ── */
+const T0 = 11, T1 = 23, SLOT = 30;                       // 11:00–23:00，每格 30 分
+const COLS = (T1 - T0) * 60 / SLOT;
+const colTime = i => { const m = T0 * 60 + i * SLOT; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+const timeCol = t => { const [h, m] = t.split(':').map(Number); return (h * 60 + m - T0 * 60) / SLOT; };
+let cView = 'timeline';
+let sel = null;      // {r0,c0,r1,c1} 進行中或已完成的框選
+let dragging = false; // ⚠️ 必須放在模組層：每次框選都會 route() 重繪並重新 wire，
+                      // 放在 wireTimeline 內的話 mousedown 後就被重置成 false，拖不動
+
+function closedSet(date) {
+  const m = {};
+  db.closures.filter(c => c.date === date).forEach(c => {
+    c.unitIds.forEach(uid => {
+      for (let i = timeCol(c.start); i < timeCol(c.end); i++) (m[uid] = m[uid] || new Set()).add(i);
+    });
+  });
+  return m;
+}
+function viewTimeline() {
+  setTitle('預約', '');
+  const units = orderedUnits();
+  const closed = closedSet(clDate);
+  const nClosure = db.closures.length;
+  const rect = sel ? { r0: Math.min(sel.r0, sel.r1), r1: Math.max(sel.r0, sel.r1), c0: Math.min(sel.c0, sel.c1), c1: Math.max(sel.c0, sel.c1) } : null;
+  const grid = `
+    <div class="tlwrap"><div class="tlgrid" id="tlGrid" style="grid-template-columns:120px repeat(${COLS},44px)">
+      <div class="tlh" style="position:sticky;left:0;z-index:3">組別／桌次</div>
+      ${Array.from({ length: COLS }, (_, i) => `<div class="tlh">${i % 2 === 0 ? colTime(i) : ''}</div>`).join('')}
+      ${units.map((u, r) => `
+        <div class="tlu"><span class="gchip">${esc(u.gname)}</span><b>${esc(u.name)}</b></div>
+        ${Array.from({ length: COLS }, (_, c) => {
+          const isClosed = closed[u.id] && closed[u.id].has(c);
+          const inSel = rect && r >= rect.r0 && r <= rect.r1 && c >= rect.c0 && c <= rect.c1;
+          const bk = db.bookings.find(b => b.unitId === u.id && timeCol(b.start) === c);
+          return `<div class="tlc${c % 2 ? ' half' : ''}${isClosed ? ' closed' : ''}${inSel ? ' sel' : ''}" data-r="${r}" data-c="${c}">${
+            bk ? `<div class="tlbk" style="width:${bk.dur / SLOT * 44 - 2}px">${esc(bk.name)}</div>` : ''}</div>`;
+        }).join('')}`).join('')}
+    </div></div>`;
+  const selInfo = rect ? (() => {
+    const names = units.slice(rect.r0, rect.r1 + 1).map(u => u.name).join('、');
+    const t = colTime(rect.c0) + '–' + colTime(rect.c1 + 1);
+    const allClosed = units.slice(rect.r0, rect.r1 + 1).every(u => {
+      for (let c = rect.c0; c <= rect.c1; c++) if (!(closed[u.id] && closed[u.id].has(c))) return false;
+      return true;
+    });
+    return `<div class="selbar">
+      <span>已選 <b>${names}</b>　<span class="mono">${t}</span></span>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn-md ghost" id="selCancel">取消</button>
+        <button class="btn-md ${allClosed ? 'ghost-green' : 'primary'}" id="selDo">${allClosed ? '恢復開放線上預約' : '關閉線上預約'}</button>
+      </div></div>`;
+  })() : '';
+  $('#content').innerHTML = `
+    <div class="vnote"><b>版本 C・檢視內操作</b>：側欄不增項、不做設定頁。<b>在時間軸上直接框選「桌 × 時段」</b>就能關閉，操作列只在選取時出現、平時不佔版面。右上角的「臨時關閉」chip 是跨日期的總覽與解除入口，補上時間軸一次只看一天、容易忘記恢復的缺口。空間圖與清單只呈現狀態、不做關閉操作——它們沒有「單位 × 時間」兩個軸，硬做就得補問時段，反而比設定頁還笨。</div>
+    <div class="bkbar">
+      <span class="date mono">${clDate}</span>
+      ${nClosure ? `<span class="chip-cl" id="clChip">● 臨時關閉 ${nClosure}</span>` : ''}
+      <div class="bkviews">
+        ${[['timeline', '時間軸'], ['space', '空間圖'], ['list', '清單']].map(([v, n]) =>
+          `<a data-cv="${v}" class="${cView === v ? 'on' : ''}">${n}</a>`).join('')}
+      </div>
+    </div>
+    ${cView === 'timeline' ? grid + selInfo : cView === 'space' ? spaceMap(closed) : listView(closed)}`;
+  document.querySelectorAll('[data-cv]').forEach(a => a.onclick = () => { cView = a.dataset.cv; sel = null; route(); });
+  const chip = $('#clChip'); if (chip) chip.onclick = openClosureDrawer;
+  if (cView === 'timeline') wireTimeline(units, closed, rect);
+}
+function wireTimeline(units, closed, rect) {
+  const g = $('#tlGrid');
+  // 先看 e.target（拖曳中滑鼠底下的元素會冒泡上來），沒有再用座標反查
+  const cellOf = e => {
+    const t = e.target && e.target.closest ? e.target.closest('.tlc') : null;
+    if (t) return t;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    return el && el.closest ? el.closest('.tlc') : null;
+  };
+  g.addEventListener('mousedown', e => {
+    const c = e.target.closest('.tlc'); if (!c) return;
+    e.preventDefault(); dragging = true;
+    sel = { r0: +c.dataset.r, c0: +c.dataset.c, r1: +c.dataset.r, c1: +c.dataset.c };
+    route();
+  });
+  window.onmousemove = e => {
+    if (!dragging) return;
+    const c = cellOf(e); if (!c) return;
+    if (+c.dataset.r === sel.r1 && +c.dataset.c === sel.c1) return;
+    sel.r1 = +c.dataset.r; sel.c1 = +c.dataset.c; route();
+  };
+  window.onmouseup = () => { dragging = false; };
+  const cancel = $('#selCancel'); if (cancel) cancel.onclick = () => { sel = null; route(); };
+  const doBtn = $('#selDo');
+  if (doBtn) doBtn.onclick = () => {
+    const start = colTime(rect.c0), end = colTime(rect.c1 + 1);
+    const ids = units.slice(rect.r0, rect.r1 + 1).map(u => u.id);
+    const allClosed = ids.every(id => { for (let c = rect.c0; c <= rect.c1; c++) if (!(closed[id] && closed[id].has(c))) return false; return true; });
+    if (allClosed) {
+      // 恢復：把落在選取範圍內的關閉切掉（示意版直接移除整筆同範圍設定）
+      db.closures = db.closures.filter(c => !(c.date === clDate && timeCol(c.start) >= rect.c0 && timeCol(c.end) <= rect.c1 + 1 && c.unitIds.some(id => ids.includes(id))));
+      toast('已恢復開放');
+    } else {
+      db.closures.push({ id: 'c' + (++db.seq), date: clDate, start, end, unitIds: ids });
+      toast(`已關閉線上預約：${ids.length} 個單位 ${start}–${end}`);
+    }
+    sel = null; persist(); route();
+  };
+}
+function spaceMap(closed) {
+  return `<div class="tlwrap"><div class="sp-map">
+    ${orderedUnits().map(u => `<div class="sp-t${closed[u.id] ? ' closed' : ''}">
+      <b>${esc(u.name)}</b><small>${closed[u.id] ? '已臨時關閉' : esc(u.cap) + ' 人'}</small></div>`).join('')}
+  </div></div>`;
+}
+function listView(closed) {
+  const withClosed = orderedUnits().filter(u => closed[u.id]);
+  return `<div class="tlwrap" style="padding:18px;display:flex;flex-direction:column;gap:10px">
+    ${db.bookings.map(b => `<div class="cl-item"><span class="mono">${b.start}</span>
+      <span class="sname">${esc(b.name)}</span>
+      <span class="gchip">${esc((unitById(b.unitId) || {}).name || '')}</span></div>`).join('')}
+    ${withClosed.length ? `<div style="font-size:13px;color:var(--text-muted);margin-top:6px">本日已臨時關閉：${withClosed.map(u => esc(u.name)).join('、')}</div>` : ''}
+  </div>`;
+}
+function openClosureDrawer() {
+  const byDate = {};
+  db.closures.forEach(c => (byDate[c.date] = byDate[c.date] || []).push(c));
+  $('#drPanel').innerHTML = `
+    <div class="dr-hd">臨時關閉中<span style="margin-left:auto"><button class="btn-md ghost" id="drClose">關閉</button></span></div>
+    <div class="dr-bd">
+      <div class="vnote">時間軸一次只看一天，這裡列出<b>所有日期</b>的關閉設定——避免關了忘記恢復，線上預約被默默擋住。</div>
+      ${Object.keys(byDate).sort().map(d => `
+        <div><div class="dr-day mono">${d}${d === clDate ? '（今天檢視中）' : ''}</div>
+          <div class="hist">${byDate[d].map(c => `
+            <div class="hist-row">
+              <div><span class="mono">${c.start}–${c.end}</span><br>${c.unitIds.map(id => esc((unitById(id) || {}).name || '')).join('、')}</div>
+              <span class="x" data-drx="${c.id}">解除</span>
+            </div>`).join('')}</div></div>`).join('') || '<div class="empty">目前沒有臨時關閉的單位</div>'}
+    </div>`;
+  $('#drMask').classList.add('show'); $('#drPanel').classList.add('show');
+  $('#drClose').onclick = closeDrawer;
+  document.querySelectorAll('[data-drx]').forEach(x => x.onclick = () => {
+    db.closures = db.closures.filter(c => c.id !== x.dataset.drx); persist(); route(); openClosureDrawer(); toast('已解除關閉');
+  });
+}
+const closeDrawer = () => { $('#drMask').classList.remove('show'); $('#drPanel').classList.remove('show'); };
+$('#drMask').addEventListener('click', closeDrawer);
+
 /* ── Router ── */
 function route() {
   renderChrome();
   const h = location.hash || '#/auto';
+  const closureView = () => ({ A: viewClosureA, B: () => viewExceptionB('closure'), C: viewTimeline }[ver])();
   if (h === '#/deposit') viewDeposit();
-  else if (h === '#/closure') { ver === 'A' ? viewClosureA() : viewExceptionB('closure'); }
-  else if (h === '#/exception') { ver === 'B' ? viewExceptionB('closure') : viewClosureA(); }
+  else if (h === '#/closure' || h === '#/exception' || h === '#/timeline') closureView();
   else viewAuto();
 }
 window.addEventListener('hashchange', route);
