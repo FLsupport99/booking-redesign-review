@@ -47,6 +47,32 @@ test("現在時間線落在時間軸座標上，不是釘在 0", async ({ page }
   expect(left).toBeCloseTo(((h * 60 + m - 570) / 30) * 48, 0);  // 570 = 09:30
 });
 
+test("導航列 10 個圖示都真的畫得出東西（不是載入了但一片空白）", async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
+  await page.waitForLoadState("load");
+
+  /* naturalWidth 檢查抓不到「SVG 有載入但 mask 失效整張透明」這種錯，要真的量像素。
+     踩過一次：把 <mask fill="white"> 一起換成 currentColor，透過 <img> 載入時
+     currentColor 無法繼承，顧客與設定兩個圖示整個消失。 */
+  const blanks = await page.evaluate(async () => {
+    const out = [];
+    for (const img of document.querySelectorAll(".nav-ic img")) {
+      const c = document.createElement("canvas");
+      c.width = 48; c.height = 48;
+      const ctx = c.getContext("2d");
+      ctx.drawImage(img, 0, 0, 48, 48);
+      const data = ctx.getImageData(0, 0, 48, 48).data;
+      let opaque = 0;
+      for (let i = 3; i < data.length; i += 4) if (data[i] > 8) opaque++;
+      if (opaque < 20) out.push(img.getAttribute("src"));
+    }
+    return out;
+  });
+  expect(blanks).toEqual([]);
+  await expect(page.locator(".nav-item")).toHaveCount(9);   // 8 主項 + 開啟
+});
+
 test("顧客卡片整張完整顯示，沒有被 flex 壓掉下半截", async ({ page }) => {
   await page.goto(url(TL.file));
   await ready(page);

@@ -70,6 +70,15 @@ export const figma = {
 
   SOURCE_FILES: ["src/template.html", "js/app.js", "js/api.js"],
 
+  /* 工具列圖示：這三個是本檔案內的 instance，REST 匯得出來（npm run icons）。
+     ⚠️ 導航列圖示的 component master 在**外部 library**，REST 一律回 null——
+        那批是用 get_design_context 取回的資產 URL 下載的，見 assets/README.md。 */
+  ICONS: {
+    "fn-search": "496:44526",
+    "fn-announcement": "496:44529",
+    "fn-export": "496:44532",
+  },
+
   /* 「資料」不是 UI 文案：顧客名、桌號、示意時間戳、假 email。 */
   IGNORE_PATTERNS: [
     /^[\d\s:/年月日()~－–—.-]+$/,                 // 純數字／時間／日期

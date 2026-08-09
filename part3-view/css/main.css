@@ -29,29 +29,45 @@ p, h1 { margin: 0; }
 /* ---------- 骨架 ---------- */
 .app { display: flex; height: 100%; min-height: 768px; }
 
+/* 左側主導航（定稿 Nav / Sidebar 496:45019）
+   底 Gray Scale/51 #333、active White、inactive White 60%、標籤 Button/sm 10px M。
+   圖示 leaf 的 inset 照定稿逐一保留，不套單一尺寸。 */
 .nav {
-  width: var(--nav-w); flex: none; display: flex; flex-direction: column;
-  align-items: center; padding: 8px 0; border-right: 1px solid var(--gray-240);
+  width: var(--nav-w); flex: none; background: var(--gray-51);
+  display: flex; flex-direction: column; justify-content: space-between;
+  align-items: center; padding: 16px 4px;
 }
-.nav-logo {
-  width: 36px; height: 36px; border-radius: 50%; background: var(--primary);
-  color: var(--text-on-color); display: grid; place-items: center;
-  text-decoration: none; font-size: var(--fs-caption); margin-bottom: 12px;
+.nav-tab { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
+.nav-logo { width: 32px; height: 32px; display: block; flex: none; }
+.nav-logo img { width: 100%; height: 100%; object-fit: cover; }
+.nav-list { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; }
+.nav-list li { width: 100%; }
+
+.nav-item, .nav-account {
+  width: 100%; border-radius: 6px; padding: 8px 2px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-decoration: none; text-align: center; white-space: nowrap;
+  font-size: var(--fs-btn-sm); font-weight: 500; line-height: normal; letter-spacing: var(--ls-btn-sm);
+  color: var(--white-60);
 }
-.nav-list { flex: 1; width: 100%; }
-.nav-item {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 8px 0; color: var(--text-75); text-decoration: none;
-  font-size: var(--fs-btn-sm); letter-spacing: var(--ls-btn-sm);
-}
-.nav-item.is-active { color: var(--primary-dark); }
-.nav-ic { width: 20px; height: 20px; border-radius: 4px; background: currentColor; opacity: .55; }
-.nav-item.is-active .nav-ic { opacity: 1; }
-.nav-foot { width: 100%; }
-.nav-avatar {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--gray-220); margin: 8px auto 0; display: block;
-}
+.nav-item.is-active { color: var(--text-on-color); }
+.nav-item:hover, .nav-account:hover { background: rgba(255, 255, 255, .06); }
+
+/* ⚠️ 圖示的 active/inactive 顏色是 Figma 烘進 SVG 的（active fill=white、
+   inactive fill=white + fill-opacity .6）。不要改成 currentColor：
+   SVG 透過 <img> 載入時 currentColor 無法從頁面繼承，帶 <mask fill="white">
+   的圖示（顧客、設定）會整個消失。要做 hover 換色請改成 inline SVG。 */
+
+/* 24×24 的外框固定，內層 leaf 用定稿的 inset 定位——這兩層不能合併 */
+.nav-ic { position: relative; width: 24px; height: 24px; flex: none; overflow: hidden; }
+.nav-ic .leaf { position: absolute; display: block; width: auto; height: auto; }
+/* 優惠券在定稿是旋轉 45° 的 union，尺寸取自 hypot(55.5556cqw,…) / hypot(44.4444cqw,…) */
+.leaf-rot { display: flex; align-items: center; justify-content: center; }
+.leaf-rot img { width: 78.57%; height: 62.85%; transform: rotate(45deg); display: block; }
+
+.nav-bottom { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; width: 56px; height: 102px; }
+.nav-account { flex-direction: row; height: 40px; gap: 0; }
+.nav-caret { width: 6px; height: 4px; transform: scaleY(-1); display: block; }
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
@@ -102,11 +118,10 @@ p, h1 { margin: 0; }
 .sms-num { color: var(--emphasis-d2); }
 .funcbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .ic-btn { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; }
-.ic-btn::before { content: ""; width: 20px; height: 20px; border-radius: 4px;
-  background: var(--text-75); opacity: .5; }
+.ic-btn img { width: 24px; height: 24px; display: block; }
 .ic-btn:hover { background: var(--gray-245); }
 .ic-btn.is-on { background: var(--primary-light-3); }
-.ic-btn.is-on::before { background: var(--emphasis-d2); opacity: 1; }
+
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 4px;

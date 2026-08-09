@@ -11,22 +11,61 @@
 
 <div class="app">
 
-  <!-- 左側主導航（Nav / Sidebar 64×768） -->
+  <!-- 左側主導航（Nav / Sidebar 64×768，component instance 496:45019）
+       圖示是外部 library 的 component，REST 匯不出來，改用 get_design_context 取回的資產。
+       每個 leaf 的 inset 照定稿保留，不要用單一尺寸硬套。 -->
   <nav class="nav" aria-label="主導航">
-    <a class="nav-logo" href="#" aria-label="MENU店+">店</a>
-    <ul class="nav-list">
-      <li><a class="nav-item is-active" href="#"><span class="nav-ic" aria-hidden="true"></span>預約</a></li>
-      <li><a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>排隊</a></li>
-      <li><a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>月曆</a></li>
-      <li><a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>顧客</a></li>
-      <li><a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>推播</a></li>
-      <li><a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>公告</a></li>
-      <li><a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>優惠券</a></li>
-      <li><a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>設定</a></li>
-    </ul>
-    <div class="nav-foot">
-      <a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>開啟</a>
-      <button class="nav-avatar" type="button" aria-label="帳號"></button>
+    <div class="nav-tab">
+      <a class="nav-logo" href="#" aria-label="MENU店+"><img src="../assets/logo.png" alt=""></a>
+      <ul class="nav-list">
+        <li><a class="nav-item is-active" href="#">
+          <span class="nav-ic" aria-hidden="true">
+            <img class="leaf" style="inset:16.67% 33.33% 25% 16.67%" src="../assets/nav-reservation-a.svg" alt="">
+            <img class="leaf" style="inset:54.17% 20.83% 20.83% 54.17%" src="../assets/nav-reservation-b.svg" alt="">
+          </span>預約</a></li>
+        <li><a class="nav-item" href="#">
+          <span class="nav-ic" aria-hidden="true">
+            <img class="leaf" style="inset:25% 12.5% 20.83% 12.5%" src="../assets/nav-queue.svg" alt="">
+          </span>排隊</a></li>
+        <li><a class="nav-item" href="#">
+          <span class="nav-ic" aria-hidden="true">
+            <img class="leaf" style="inset:16.67% 16.67% 12.96% 16.67%" src="../assets/nav-calendar.svg" alt="">
+          </span>月曆</a></li>
+        <li><a class="nav-item" href="#">
+          <span class="nav-ic" aria-hidden="true">
+            <img class="leaf" style="inset:16.67% 10.64% 20.83% 8.33%" src="../assets/nav-customers.svg" alt="">
+          </span>顧客</a></li>
+        <li><a class="nav-item" href="#">
+          <span class="nav-ic" aria-hidden="true">
+            <img class="leaf" style="inset:16.67%" src="../assets/nav-message.svg" alt="">
+          </span>推播</a></li>
+        <li><a class="nav-item" href="#">
+          <span class="nav-ic" aria-hidden="true">
+            <img class="leaf" style="inset:16.67% 16.67% 18.75% 16.67%" src="../assets/nav-bulletin.svg" alt="">
+          </span>公告</a></li>
+        <li><a class="nav-item" href="#">
+          <span class="nav-ic" aria-hidden="true">
+            <span class="leaf leaf-rot" style="inset:8.33% 7.03% 6.81% 8.12%">
+              <img src="../assets/nav-coupon.svg" alt=""></span>
+          </span>優惠券</a></li>
+        <li><a class="nav-item" href="#">
+          <span class="nav-ic" aria-hidden="true">
+            <img class="leaf" style="inset:16.67% 12.5% 17.26% 12.5%" src="../assets/nav-settings.svg" alt="">
+          </span>設定</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-bottom">
+      <a class="nav-item" href="#">
+        <span class="nav-ic" aria-hidden="true">
+          <img class="leaf" style="inset:20.83% 20.7% 20.29% 20.83%" src="../assets/nav-open.svg" alt="">
+        </span>開啟</a>
+      <button class="nav-account" type="button" aria-label="帳號">
+        <span class="nav-ic" aria-hidden="true">
+          <img class="leaf" style="inset:8.33%" src="../assets/nav-account.svg" alt="">
+        </span>
+        <img class="nav-caret" src="../assets/nav-arrow.svg" alt="">
+      </button>
     </div>
   </nav>
 
@@ -59,9 +98,9 @@
       <p class="t-caption sms-points">簡訊點數 <span class="sms-num" id="sms-points">1000</span></p>
       <button class="btn btn-outline btn-sm" type="button" id="btn-buy">購買</button>
       <div class="funcbar-right">
-        <button class="ic-btn" type="button" id="btn-search" aria-label="搜尋"></button>
-        <button class="ic-btn is-on" type="button" id="btn-announce" aria-label="公告"></button>
-        <button class="ic-btn" type="button" id="btn-export" aria-label="匯出"></button>
+        <button class="ic-btn" type="button" id="btn-search" aria-label="搜尋"><img src="../assets/fn-search.svg" alt=""></button>
+        <button class="ic-btn is-on" type="button" id="btn-announce" aria-label="公告"><img src="../assets/fn-announcement.svg" alt=""></button>
+        <button class="ic-btn" type="button" id="btn-export" aria-label="匯出"><img src="../assets/fn-export.svg" alt=""></button>
         <button class="btn btn-outline btn-round" type="button" id="btn-add-wait">＋ 候位</button>
         <button class="btn btn-primary btn-round" type="button" id="btn-add-booking">＋ 預約</button>
       </div>
