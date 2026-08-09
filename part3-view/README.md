@@ -85,7 +85,11 @@ npm run verify        # build → copy-check → smoke
 - 定稿字級 token 帶 letter-spacing 3%～5%（規範是繁中內文不設）
 - Caption／Button-sm／H3 的 line-height 是 100%（規範是內文 ≥1.4）
 
-## 已知差異
+## 圖示資產
 
-定稿 3-3-1 清單那張的左側主導航是**深色**，時間軸與空間圖是**淺色**。
-本階段照時間軸做淺色；等清單批次時要跟設計確認哪個是最新。
+導航列與工具列的圖示來源不同，見 [`assets/README.md`](./assets/README.md)：
+工具列走 REST（`npm run icons`），**導航列的 component master 在外部 library、REST 一律回 null**，
+是用 `get_design_context` 取回的資產 URL 下載的（URL 7 天過期，檔案已落地）。
+
+⚠️ 這些 SVG 的顏色是 Figma 烘進去的，**不要改成 `currentColor`**——
+透過 `<img>` 載入時無法繼承頁面 color，帶 `<mask fill="white">` 的圖示會整張變透明。
