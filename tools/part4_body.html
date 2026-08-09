@@ -98,7 +98,7 @@
 
 <div class="vsw">
   <button data-ver="A">A・分散式</button>
-  <button data-ver="B">B・收斂式</button>
+  <button data-ver="B">B・整合定稿頁</button>
   <button data-ver="C">C・檢視內操作</button>
 </div>
 
@@ -431,49 +431,8 @@ const shiftDate = (d, n) => {
   return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
 };
 
-/* 整日不可預約：Part 1 既有功能（US1-4-1），這裡刻一個精簡月曆共用同一份 db。
-   目的不是重做 Part 1，而是讓「優先權最高的規則會覆蓋臨時關閉」在畫面上被驗證。 */
-function blockedCalendar() {
-  const base = new Date(clDate + 'T00:00:00');
-  const y = base.getFullYear(), m = base.getMonth();
-  const first = new Date(y, m, 1), pad = first.getDay(), days = new Date(y, m + 1, 0).getDate();
-  const iso = d => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-  const clDates = new Set(db.closures.map(c => c.date));
-  return `
-    <div class="card">
-      <div class="card-head"><div class="ch-main">
-        <div class="ch-title">整日不可預約　<span style="font-size:12px;font-weight:400;color:var(--text-muted)">Part 1 既有功能，此處為整合示意</span></div>
-        <div class="ch-desc">點日期即可設定或解除。此設定<b>優先權最高</b>，當日全部時段都無法線上預約，會覆蓋該日的臨時預約關閉。</div>
-      </div></div>
-      <div class="cal">
-        ${['日', '一', '二', '三', '四', '五', '六'].map(w => `<div class="cw">${w}</div>`).join('')}
-        ${Array.from({ length: pad }, () => '<div class="cd pad"></div>').join('')}
-        ${Array.from({ length: days }, (_, i) => {
-          const d = i + 1, date = iso(d);
-          return `<div class="cd${isBlocked(date) ? ' blocked' : ''}${date === clDate ? ' today' : ''}" data-day="${date}">
-            <span class="dnum">${d}</span>
-            ${isBlocked(date) ? '<span class="cal-pill block">整日不可預約</span>' : ''}
-            ${clDates.has(date) ? '<span class="cal-pill cl">臨時關閉</span>' : ''}
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
-}
-function wireCalendar() {
-  document.querySelectorAll('[data-day]').forEach(el => el.onclick = () => {
-    const d = el.dataset.day;
-    if (isBlocked(d)) {
-      db.blockedDays = db.blockedDays.filter(x => x !== d);
-      toast('已解除整日不可預約');
-    } else {
-      db.blockedDays.push(d);
-      toast(db.closures.some(c => c.date === d)
-        ? '已設為整日不可預約——當日的臨時關閉設定會被此規則覆蓋'
-        : '已設為整日不可預約');
-    }
-    clDate = d; persist(); route();
-  });
-}
+/* 整日不可預約＝Part 1 既有功能。B 版直接嵌定稿頁的注入版（part4_exception.html），
+   這裡不再自刻月曆；A／C 版僅用 blockedDays 驗證「被覆蓋」的顯示。 */
 const blockedBanner = () => isBlocked(clDate) ? `
   <div class="banner">⛔ <span><b>${clDate} 已設為「整日不可預約」</b>（優先權最高）。當日全部時段都無法線上預約，<b>臨時預約關閉的設定會被覆蓋、暫時不生效</b>——解除整日不可預約後才會恢復作用。</span></div>` : '';
 const priorityCard = () => `
@@ -557,23 +516,11 @@ function viewClosureA() {
     ${closureBlock()}`;
   wireClosure();
 }
-function viewExceptionB(tab) {
+function viewExceptionB() {
   setTitle('設定 / 預約設定', '例外預約規則');
-  const t = tab || 'closure';
   $('#content').innerHTML = `
-    <div class="vnote"><b>版本 B・收斂式</b>：臨時關閉收進「例外預約規則」成為第三個分頁，側欄不增項。優點是四種例外規則同頁、與優先層級的心智模型一致（整日不可預約 &gt; 臨時關閉 &gt; 例外時段規則）；代價是既有的例外頁要重排成分頁結構，且「臨時」操作藏得比較深。</div>
-    <div class="tabs">
-      <a data-tab="allday" class="${t === 'allday' ? 'on' : ''}">整日不可預約</a>
-      <a data-tab="exc" class="${t === 'exc' ? 'on' : ''}">例外時段規則</a>
-      <a data-tab="closure" class="${t === 'closure' ? 'on' : ''}">臨時預約關閉</a>
-    </div>
-    ${priorityCard()}
-    ${t === 'closure' ? blockedBanner() + closureBlock()
-      : t === 'allday' ? blockedCalendar()
-      : `<div class="card"><div class="empty">「例外時段規則」為 Part 1 既有畫面（見 exception_rules.html），本 Demo 不重複實作；Part 4 只在此新增「訂金規則」選擇器</div></div>`}`;
-  document.querySelectorAll('[data-tab]').forEach(a => a.onclick = () => viewExceptionB(a.dataset.tab));
-  if (t === 'closure') wireClosure();
-  if (t === 'allday') wireCalendar();
+    <div class="vnote"><b>版本 B・整合進定稿頁</b>：<b>Part 1 定稿的例外預約規則頁面原封不動</b>，只注入臨時預約關閉——該日設定多一顆「臨時預約關閉」按鈕、該日內容多一種「臨時關閉」列（排在整日不可預約之後＝優先層級順序）、月曆多一種橘色 pill。整合頁由 tools/build_part4_exception.py 從 exception_rules.html 產生，Part 1 原型更新時重跑即同步。下方為實際頁面（可直接操作，或<a href="part4_exception.html" target="_blank" style="color:var(--primary)">另開全頁</a>）：</div>
+    <iframe src="part4_exception.html" style="width:100%;height:1400px;border:1px solid var(--border-card);border-radius:var(--r-card);background:#fff"></iframe>`;
 }
 
 /* ── 版本 C：把臨時關閉做進預約檢視 ── */
@@ -734,7 +681,7 @@ $('#drMask').addEventListener('click', closeDrawer);
 function route() {
   renderChrome();
   const h = location.hash || '#/auto';
-  const closureView = () => ({ A: viewClosureA, B: () => viewExceptionB('closure'), C: viewTimeline }[ver])();
+  const closureView = () => ({ A: viewClosureA, B: viewExceptionB, C: viewTimeline }[ver])();
   if (h === '#/deposit') viewDeposit();
   else if (h === '#/closure' || h === '#/exception' || h === '#/timeline') closureView();
   else viewAuto();
