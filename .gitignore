@@ -1,1 +1,6 @@
 tools/exports2/
+
+# 驗收管線（customer-booking/）
+node_modules/
+test-results/
+playwright-report/

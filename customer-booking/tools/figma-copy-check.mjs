@@ -6,47 +6,10 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
+import { figma } from "../verify.config.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const FILE_KEY = "AQilb21aXkXybY5c1wDFq8";
-
-/* 稽核範圍：定稿中「畫面文字最完整」的節點，一頁一個。 */
-const TARGETS = [
-  { id: "871:5340", name: "① 1-1 基本人數預約" },
-  { id: "1064:30158", name: "① 1-3 填寫資訊" },
-  { id: "1498:33396", name: "① 1-3 預約成功" },
-  { id: "1023:24314", name: "① 1-2 其他分店" },
-  { id: "1331:25552", name: "① 1-6 查詢預約" },
-  { id: "1272:19670", name: "① 1-4 修改預約" },
-  { id: "1847:18646", name: "② 1-1 服務項目預約" },
-  { id: "1637:65824", name: "③ 1-1 階層項目預約" },
-  { id: "1234:46579", name: "① 1-3 待審核" },
-  { id: "1122:32909", name: "① 1-3a 待付款" },
-  { id: "1225:43754", name: "① 1-3a 付款完成" },
-  { id: "1272:18141", name: "① 1-3a 待審核+待付款" },
-  { id: "1122:33308", name: "① 1-3b 待綁卡" },
-  { id: "1225:43911", name: "① 1-3b 綁卡完成" },
-  { id: "1023:25823", name: "① 1-1 未開放預約" },
-];
-
-/* 這些是「資料」不是 UI 文案：店家自填內容、假資料、時間數字。不列入稽核。 */
-const IGNORE_PATTERNS = [
-  /^[\d\s:/年月日()~－–-]+$/,          // 純數字／時間／日期
-  /^NT\$/, /^\$/,                       // 金額
-  /lorem ipsum/i,
-  /^找活燒烤/, /^台北市/, /^02-/, /^每週/,  // 店家資料
-  /^[A-Za-z@._-]+$/,                    // email／英數 id
-  /^(胖寶|廖文強|答案[A-C]|大人x\d|測項|Sitemap)$/,
-  /^(精緻主廚特餐|自助吧吃到飽|星空酒吧|早午時光|精緻午茶|晚安佳餚)$/, // 項目假資料
-  /^(已回答問題|備註內容文字|顧客填寫答案|顧客填寫備註內容)$/,          // 表單填寫範例
-  /\d+大人|\d+大\d+小/,                                              // 人數摘要（動態組字）
-];
-/* 已知刻意不同或本輪範圍外，附理由；有理由才准放行。 */
-const ACCEPTED = {
-  "English": "語言鈕在中文版顯示 EN（定稿另一張圖為 English，取較短者）",
-  "答案A、答案Ｂ": "定稿全形Ｂ為筆誤，實作用半形 B",
-  "填寫聯絡資訊": "定稿 1-6 內嵌的另一版標題，主線一律用「填寫預約資訊」",
-};
+const { FILE_KEY, TARGETS, SOURCE_FILES, IGNORE_PATTERNS, ACCEPTED } = figma;
 
 const token = readFileSync(resolve(homedir(), "FL-Agent/FL-Salesapp/.env"), "utf8")
   .split("\n").find((l) => l.startsWith("FIGMA_TOKEN="))
@@ -54,7 +17,7 @@ const token = readFileSync(resolve(homedir(), "FL-Agent/FL-Salesapp/.env"), "utf
 
 /* 實作端的文案來源：模板 + 兩支 js（JS 產生的字也算）。
    另備一份「去標籤去空白」版本，這樣被 <a>、<br> 切斷的句子也比得到。 */
-const raw = ["src/template.html", "js/app.js", "js/api.js"]
+const raw = SOURCE_FILES
   .map((f) => readFileSync(resolve(ROOT, f), "utf8")).join("\n");
 const stripped = raw.replace(/<[^>]+>/g, "").replace(/\s+/g, "");
 /* 句中帶動態值（金額、期限、倒數）的比對：兩邊都把數字與 ${...} 拿掉再比骨架。

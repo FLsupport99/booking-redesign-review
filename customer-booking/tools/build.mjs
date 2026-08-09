@@ -6,25 +6,10 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { MODES, SECTIONS } from "../verify.config.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const TPL = readFileSync(resolve(ROOT, "src/template.html"), "utf8");
-
-const MODES = [
-  { key: "basic", file: "1-基本人數預約.html", label: "① 基本人數預約" },
-  { key: "service", file: "2-服務項目預約.html", label: "② 服務項目預約" },
-  { key: "hier", file: "3-階層項目預約.html", label: "③ 階層項目預約" },
-];
-
-const SECTIONS = [
-  ["1-1", "顧客預約頁"],
-  ["1-2", "查看其他分店時段"],
-  ["1-3", "填寫資訊"],
-  ["1-4", "修改預約"],
-  ["1-5", "取消預約"],
-  ["1-6", "查詢預約"],
-  ["1-7", "中英切換"],
-];
 
 function render({ mode, title, label, section, depth }) {
   let html = TPL
@@ -49,7 +34,7 @@ for (const m of MODES) {
   writeFileSync(resolve(ROOT, m.file), out);
   built.push(m.file);
 
-  for (const [sec, secName] of SECTIONS) {
+  for (const { id: sec, name: secName } of SECTIONS) {
     const file = `sections/${m.key}-${sec}.html`;
     writeFileSync(resolve(ROOT, file), render({
       mode: m.key,
