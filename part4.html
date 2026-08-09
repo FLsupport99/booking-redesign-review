@@ -578,6 +578,22 @@ body.area-book .content{padding:0;gap:0}
 .sp-t{width:88px;height:64px;border-radius:10px;border:1px solid var(--border-field);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;background:#fff}
 .sp-t.closed{background:repeating-linear-gradient(45deg,#f3eaea,#f3eaea 4px,#fbf5f5 4px,#fbf5f5 8px);border-color:#f0dede;color:var(--text-muted)}
 .sp-t small{font-size:11px;color:var(--text-muted)}
+/* ── 整日不可預約（Part 1 既有功能，整合進來驗證優先層級） ── */
+/* minmax(0,1fr)：1fr 的下限是 min-content，pill 是 nowrap 的，
+   用 1fr 會被撐成每欄 450px 直接爆版 */
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:62px;align-content:start;gap:4px}
+.cal .cw{font-size:12px;color:var(--text-muted);text-align:center;padding-bottom:4px}
+.cal .cd{border:1px solid var(--border-card);border-radius:var(--r-input);padding:6px;font-size:13px;cursor:pointer;display:flex;flex-direction:column;gap:4px;background:#fff;overflow:hidden}
+.cal .cd.pad{border-color:transparent;background:transparent;cursor:default}
+.cal .cd.today{border-color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary)}
+.cal .cd.blocked{background:#fdf5f5;border-color:#f0dede}
+.cal .cd .dnum{font-variant-numeric:tabular-nums;font-weight:500}
+.cal .cd.blocked .dnum{color:var(--alert)}
+.cal-pill{display:block;flex:none;font-size:10px;line-height:14px;padding:1px 6px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.cal-pill.block{background:#f7dede;color:#a33}
+.cal-pill.cl{background:#fdeee0;color:#a35a1f}
+.banner{display:flex;align-items:center;gap:10px;background:#fdf5f5;border:1px solid #f0dede;color:#a33;border-radius:var(--r-card);padding:12px 16px;font-size:13px;line-height:19px;margin-bottom:12px}
+.tlgrid.blocked-day .tlc{background:repeating-linear-gradient(45deg,#f7eaea,#f7eaea 4px,#fdf6f6 4px,#fdf6f6 8px)}
 .inline2{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
 .inline2 .input{width:auto}
 .w80{width:80px}
@@ -645,6 +661,9 @@ const seed = () => ({
     { id: 'c1', date: '2026-08-14', start: '18:00', end: '20:00', unitIds: ['u1', 'u2'] },
     { id: 'c2', date: '2026-08-28', start: '17:00', end: '22:00', unitIds: ['u9'] },
   ],
+  // 整日不可預約（Part 1 的 US1-4-1，優先權最高。整合進來是為了驗證 US4-3-5：
+  // 臨時關閉被更高優先的規則覆蓋時，畫面上要看得出來）
+  blockedDays: ['2026-08-20'],
   // 版本 C 的時間軸範例預約（只為了讓框選有真實脈絡，不是 Part 4 範圍）
   bookings: [
     { id: 'b1', unitId: 'u1', start: '12:00', dur: 120, name: '陳小姐 2 位' },
@@ -908,6 +927,59 @@ function depDelete(d) {
 
 /* ── 臨時預約關閉（US4-3）── A：獨立頁；B：例外預約規則的分頁 ── */
 let clDate = '2026-08-14', clStart = '18:00', clEnd = '20:00';
+const isBlocked = d => db.blockedDays.includes(d);
+// ⚠️ 不能用 toISOString()——它會轉成 UTC，台北 +8 會讓日期倒退一天
+const shiftDate = (d, n) => {
+  const t = new Date(d + 'T00:00:00');
+  t.setDate(t.getDate() + n);
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+};
+
+/* 整日不可預約：Part 1 既有功能（US1-4-1），這裡刻一個精簡月曆共用同一份 db。
+   目的不是重做 Part 1，而是讓「優先權最高的規則會覆蓋臨時關閉」在畫面上被驗證。 */
+function blockedCalendar() {
+  const base = new Date(clDate + 'T00:00:00');
+  const y = base.getFullYear(), m = base.getMonth();
+  const first = new Date(y, m, 1), pad = first.getDay(), days = new Date(y, m + 1, 0).getDate();
+  const iso = d => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const clDates = new Set(db.closures.map(c => c.date));
+  return `
+    <div class="card">
+      <div class="card-head"><div class="ch-main">
+        <div class="ch-title">整日不可預約　<span style="font-size:12px;font-weight:400;color:var(--text-muted)">Part 1 既有功能，此處為整合示意</span></div>
+        <div class="ch-desc">點日期即可設定或解除。此設定<b>優先權最高</b>，當日全部時段都無法線上預約，會覆蓋該日的臨時預約關閉。</div>
+      </div></div>
+      <div class="cal">
+        ${['日', '一', '二', '三', '四', '五', '六'].map(w => `<div class="cw">${w}</div>`).join('')}
+        ${Array.from({ length: pad }, () => '<div class="cd pad"></div>').join('')}
+        ${Array.from({ length: days }, (_, i) => {
+          const d = i + 1, date = iso(d);
+          return `<div class="cd${isBlocked(date) ? ' blocked' : ''}${date === clDate ? ' today' : ''}" data-day="${date}">
+            <span class="dnum">${d}</span>
+            ${isBlocked(date) ? '<span class="cal-pill block">整日不可預約</span>' : ''}
+            ${clDates.has(date) ? '<span class="cal-pill cl">臨時關閉</span>' : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+function wireCalendar() {
+  document.querySelectorAll('[data-day]').forEach(el => el.onclick = () => {
+    const d = el.dataset.day;
+    if (isBlocked(d)) {
+      db.blockedDays = db.blockedDays.filter(x => x !== d);
+      toast('已解除整日不可預約');
+    } else {
+      db.blockedDays.push(d);
+      toast(db.closures.some(c => c.date === d)
+        ? '已設為整日不可預約——當日的臨時關閉設定會被此規則覆蓋'
+        : '已設為整日不可預約');
+    }
+    clDate = d; persist(); route();
+  });
+}
+const blockedBanner = () => isBlocked(clDate) ? `
+  <div class="banner">⛔ <span><b>${clDate} 已設為「整日不可預約」</b>（優先權最高）。當日全部時段都無法線上預約，<b>臨時預約關閉的設定會被覆蓋、暫時不生效</b>——解除整日不可預約後才會恢復作用。</span></div>` : '';
 const priorityCard = () => `
   <div class="card">
     <div class="card-head"><div class="ch-main">
@@ -985,6 +1057,7 @@ function viewClosureA() {
   $('#content').innerHTML = `
     <div class="vnote"><b>版本 A・分散式</b>：側欄新增「臨時預約關閉設定」獨立頁，與「自動排位規則」「訂金管理」平行。優點是三個功能各自一頁、最貼近現況與既有 Settings 版型，改動最小；代價是側欄再長一項（預約設定已有 11 項）。優先層級卡片直接放進本頁，把版本 B 的優點吸收過來。</div>
     ${priorityCard()}
+    ${blockedBanner()}
     ${closureBlock()}`;
   wireClosure();
 }
@@ -999,9 +1072,12 @@ function viewExceptionB(tab) {
       <a data-tab="closure" class="${t === 'closure' ? 'on' : ''}">臨時預約關閉</a>
     </div>
     ${priorityCard()}
-    ${t === 'closure' ? closureBlock() : `<div class="card"><div class="empty">${t === 'allday' ? '「整日不可預約」為 Part 1 既有畫面，本 Demo 不重複實作' : '「例外時段規則」為 Part 1 既有畫面，本 Demo 不重複實作；Part 4 只在此新增「訂金規則」選擇器'}</div></div>`}`;
+    ${t === 'closure' ? blockedBanner() + closureBlock()
+      : t === 'allday' ? blockedCalendar()
+      : `<div class="card"><div class="empty">「例外時段規則」為 Part 1 既有畫面（見 exception_rules.html），本 Demo 不重複實作；Part 4 只在此新增「訂金規則」選擇器</div></div>`}`;
   document.querySelectorAll('[data-tab]').forEach(a => a.onclick = () => viewExceptionB(a.dataset.tab));
   if (t === 'closure') wireClosure();
+  if (t === 'allday') wireCalendar();
 }
 
 /* ── 版本 C：把臨時關閉做進預約檢視 ── */
@@ -1029,8 +1105,9 @@ function viewTimeline() {
   const closed = closedSet(clDate);
   const nClosure = db.closures.length;
   const rect = sel ? { r0: Math.min(sel.r0, sel.r1), r1: Math.max(sel.r0, sel.r1), c0: Math.min(sel.c0, sel.c1), c1: Math.max(sel.c0, sel.c1) } : null;
+  const dayBlocked = isBlocked(clDate);
   const grid = `
-    <div class="tlwrap"><div class="tlgrid" id="tlGrid" style="grid-template-columns:120px repeat(${COLS},44px)">
+    <div class="tlwrap"><div class="tlgrid${dayBlocked ? ' blocked-day' : ''}" id="tlGrid" style="grid-template-columns:120px repeat(${COLS},44px)">
       <div class="tlh" style="position:sticky;left:0;z-index:3">組別／桌次</div>
       ${Array.from({ length: COLS }, (_, i) => `<div class="tlh">${i % 2 === 0 ? colTime(i) : ''}</div>`).join('')}
       ${units.map((u, r) => `
@@ -1051,24 +1128,31 @@ function viewTimeline() {
       return true;
     });
     return `<div class="selbar">
-      <span>已選 <b>${names}</b>　<span class="mono">${t}</span></span>
+      <span>已選 <b>${names}</b>　<span class="mono">${t}</span>${
+        dayBlocked ? '　<span style="color:#f8ba4c">本日整日不可預約，關閉設定不會生效</span>' : ''}</span>
       <div style="margin-left:auto;display:flex;gap:8px">
         <button class="btn-md ghost" id="selCancel">取消</button>
-        <button class="btn-md ${allClosed ? 'ghost-green' : 'primary'}" id="selDo">${allClosed ? '恢復開放線上預約' : '關閉線上預約'}</button>
+        <button class="btn-md ${dayBlocked ? 'disabled' : allClosed ? 'ghost-green' : 'primary'}"${dayBlocked ? ' disabled' : ''} id="selDo">${allClosed ? '恢復開放線上預約' : '關閉線上預約'}</button>
       </div></div>`;
   })() : '';
   $('#content').innerHTML = `
     <div class="vnote"><b>版本 C・檢視內操作</b>：側欄不增項、不做設定頁。<b>在時間軸上直接框選「桌 × 時段」</b>就能關閉，操作列只在選取時出現、平時不佔版面。右上角的「臨時關閉」chip 是跨日期的總覽與解除入口，補上時間軸一次只看一天、容易忘記恢復的缺口。空間圖與清單只呈現狀態、不做關閉操作——它們沒有「單位 × 時間」兩個軸，硬做就得補問時段，反而比設定頁還笨。</div>
     <div class="bkbar">
+      <button class="btn-md ghost" id="dPrev">‹</button>
       <span class="date mono">${clDate}</span>
+      <button class="btn-md ghost" id="dNext">›</button>
+      ${dayBlocked ? '<span class="cal-pill block" style="height:24px">整日不可預約</span>' : ''}
       ${nClosure ? `<span class="chip-cl" id="clChip">● 臨時關閉 ${nClosure}</span>` : ''}
       <div class="bkviews">
         ${[['timeline', '時間軸'], ['space', '空間圖'], ['list', '清單']].map(([v, n]) =>
           `<a data-cv="${v}" class="${cView === v ? 'on' : ''}">${n}</a>`).join('')}
       </div>
     </div>
+    ${blockedBanner()}
     ${cView === 'timeline' ? grid + selInfo : cView === 'space' ? spaceMap(closed) : listView(closed)}`;
   document.querySelectorAll('[data-cv]').forEach(a => a.onclick = () => { cView = a.dataset.cv; sel = null; route(); });
+  $('#dPrev').onclick = () => { clDate = shiftDate(clDate, -1); sel = null; route(); };
+  $('#dNext').onclick = () => { clDate = shiftDate(clDate, 1); sel = null; route(); };
   const chip = $('#clChip'); if (chip) chip.onclick = openClosureDrawer;
   if (cView === 'timeline') wireTimeline(units, closed, rect);
 }
