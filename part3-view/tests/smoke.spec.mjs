@@ -1,0 +1,166 @@
+/* 第 3 關：行為與顯示時機（Part 3 時間軸）。
+   斷言只碰 DOM，不碰實作技術——同一套 spec 對這份 HTML 與將來轉換後的版本都能跑。 */
+import { test, expect } from "@playwright/test";
+import * as C from "../verify.config.mjs";
+
+const TL = C.MODES[0];
+const url = (p) => "/" + encodeURIComponent(p);
+
+/* 就緒訊號：mock api 把預約區塊畫出來為止 */
+const ready = (page) => expect(page.locator(".block")).not.toHaveCount(0);
+
+async function expectNoBrokenImages(page) {
+  await page.waitForLoadState("load");
+  const broken = await page.evaluate(() =>
+    [...document.querySelectorAll("img")]
+      .filter((i) => i.complete && i.naturalWidth === 0 && i.offsetParent !== null)
+      .map((i) => i.getAttribute("src")));
+  expect([...new Set(broken)]).toEqual([]);
+}
+
+/* ---------- 交付檔與各段落 ---------- */
+
+test(`${TL.label}｜載入後停在時間軸`, async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
+  await expect(page.locator("#view-timeline")).toBeVisible();
+  await expect(page.locator("#edit-drawer")).toBeHidden();
+  await expectNoBrokenImages(page);
+});
+
+test("格線骨架：組別/桌次欄、時間列、現在時間線都在", async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
+  await expect(page.locator(".rowhead-title")).toHaveText("組別/桌次");
+  await expect(page.locator(".th")).toHaveCount(30);          // 09:30 起每 30 分鐘共 30 格
+  await expect(page.locator(".unit-row")).toHaveCount(12);    // F6 + O3 + B3
+  await expect(page.locator(C.NOW_LINE)).toBeVisible();
+});
+
+test("現在時間線落在時間軸座標上，不是釘在 0", async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
+  const line = page.locator(C.NOW_LINE);
+  const left = await line.evaluate((el) => parseFloat(el.style.left));
+  const at = await line.getAttribute("data-at");
+  const [h, m] = at.split(":").map(Number);
+  expect(left).toBeCloseTo(((h * 60 + m - 570) / 30) * 48, 0);  // 570 = 09:30
+});
+
+/* ---------- ⭐ 顯示時機：修改抽屜要點編輯才出現 ----------
+   定稿 3-1-2_Start 在該列 x=100（最左）＝初始狀態，畫面與 3-1-1 一般時間軸相同。 */
+
+test("⭐ 修改抽屜未點編輯前不存在，點編輯後才出現", async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
+
+  await expect(page.locator(C.EDIT_GATE.drawer)).toBeHidden();
+  await expect(page.locator(C.EDIT_GATE.focusedCard)).toHaveCount(0);
+
+  await page.locator(".cust-card .btn-edit").first().click();
+
+  await expect(page.locator(C.EDIT_GATE.drawer)).toBeVisible();
+  /* 定稿：修改中的那張卡外框變黃色加粗 */
+  await expect(page.locator(C.EDIT_GATE.focusedCard)).toHaveCount(1);
+});
+
+test("段落快轉：modify 直接停在抽屜開啟", async ({ page }) => {
+  await page.goto("/sections/timeline-modify.html");
+  await ready(page);
+  await expect(page.locator(C.EDIT_GATE.drawer)).toBeVisible();
+  await expect(page.locator("#f-item-label")).toHaveText("精緻主廚特餐–早午時光");
+});
+
+/* ---------- 未儲存提醒 ---------- */
+
+test("沒有變更就關閉，不跳未儲存提醒", async ({ page }) => {
+  await page.goto("/sections/timeline-modify.html");
+  await ready(page);
+  await page.click(C.EDIT_GATE.closeBtn);
+  await expect(page.locator(C.UNSAVED.modal)).toBeHidden();
+  await expect(page.locator(C.EDIT_GATE.drawer)).toBeHidden();
+});
+
+test("有變更才跳未儲存提醒；繼續修改會留在抽屜", async ({ page }) => {
+  await page.goto("/sections/timeline-modify.html");
+  await ready(page);
+  await page.fill(C.UNSAVED.dirtyField, "改過的名字");
+  await page.click(C.EDIT_GATE.closeBtn);
+
+  await expect(page.locator(C.UNSAVED.modal)).toBeVisible();
+  await expect(page.locator("#unsaved-title")).toHaveText("尚未儲存這筆預約");
+
+  await page.click(C.UNSAVED.keep);
+  await expect(page.locator(C.UNSAVED.modal)).toBeHidden();
+  await expect(page.locator(C.EDIT_GATE.drawer)).toBeVisible();
+});
+
+test("放棄並退出會關掉抽屜", async ({ page }) => {
+  await page.goto("/sections/timeline-unsaved.html");
+  await ready(page);
+  await expect(page.locator(C.UNSAVED.modal)).toBeVisible();
+  await page.click(C.UNSAVED.discard);
+  await expect(page.locator(C.EDIT_GATE.drawer)).toBeHidden();
+  await expect(page.locator(C.UNSAVED.modal)).toBeHidden();
+});
+
+/* ---------- toast ---------- */
+
+test("儲存失敗跳 Error toast", async ({ page }) => {
+  await page.goto("/sections/timeline-error.html");
+  await ready(page);
+  const t = page.locator(C.TOAST);
+  await expect(t).toBeVisible();
+  await expect(t).toHaveClass(/is-error/);
+});
+
+test("儲存成功跳修改完成 toast 並關掉抽屜", async ({ page }) => {
+  await page.goto("/sections/timeline-done.html");
+  await ready(page);
+  await expect(page.locator(C.TOAST)).toHaveText("已修改預約");
+  await expect(page.locator(C.EDIT_GATE.drawer)).toBeHidden();
+});
+
+/* ---------- 右側邊欄收合 ---------- */
+
+test("收合右側邊欄後主格線變寬，再展開復原", async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
+  const grid = page.locator(C.SIDEBAR.grid);
+  const before = (await grid.boundingBox()).width;
+
+  await page.click(C.SIDEBAR.toggle);
+  await expect(page.locator(C.SIDEBAR.root)).toHaveClass(/is-collapsed/);
+  const after = (await grid.boundingBox()).width;
+  expect(after).toBeGreaterThan(before);
+
+  await page.click(C.SIDEBAR.toggle);
+  await expect(page.locator(C.SIDEBAR.root)).not.toHaveClass(/is-collapsed/);
+  expect((await grid.boundingBox()).width).toBeCloseTo(before, 0);
+});
+
+test("段落快轉：collapsed 直接停在收合狀態", async ({ page }) => {
+  await page.goto("/sections/timeline-collapsed.html");
+  await ready(page);
+  await expect(page.locator(C.SIDEBAR.root)).toHaveClass(/is-collapsed/);
+});
+
+/* ---------- popover ---------- */
+
+test("點時間軸區塊開 popover，點空白處關閉", async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
+  await expect(page.locator(C.POPOVER)).toBeHidden();
+
+  await page.locator(".block").first().click();
+  await expect(page.locator(C.POPOVER)).toBeVisible();
+
+  await page.locator(".funcbar").click();
+  await expect(page.locator(C.POPOVER)).toBeHidden();
+});
+
+test("段落快轉：popover 直接停在開啟狀態", async ({ page }) => {
+  await page.goto("/sections/timeline-popover.html");
+  await ready(page);
+  await expect(page.locator(C.POPOVER)).toBeVisible();
+});

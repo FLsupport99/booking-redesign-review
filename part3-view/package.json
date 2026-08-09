@@ -1,0 +1,13 @@
+{
+  "name": "part3-view-verify",
+  "private": true,
+  "type": "module",
+  "description": "Part 3 ② 預約管理視圖（時間軸）的驗收管線",
+  "scripts": {
+    "build": "node ../verify-kit/build.mjs",
+    "copy-check": "node ../verify-kit/figma-copy-check.mjs",
+    "smoke": "playwright test",
+    "verify": "npm run build && npm run copy-check && npm run smoke"
+  },
+  "devDependencies": { "@playwright/test": "^1.62.1" }
+}
