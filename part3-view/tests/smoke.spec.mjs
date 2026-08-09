@@ -3,7 +3,8 @@
 import { test, expect } from "@playwright/test";
 import * as C from "../verify.config.mjs";
 
-const TL = C.MODES[0];
+const TL = C.MODES.find((m) => m.key === "timeline");
+const SP = C.MODES.find((m) => m.key === "space");
 const url = (p) => "/" + encodeURIComponent(p);
 
 /* 就緒訊號：mock api 把預約區塊畫出來為止 */
@@ -198,4 +199,50 @@ test("段落快轉：popover 直接停在開啟狀態", async ({ page }) => {
   await page.goto("/sections/timeline-popover.html");
   await ready(page);
   await expect(page.locator(C.POPOVER)).toBeVisible();
+});
+
+
+/* ---------- 空間圖（3-2） ---------- */
+
+test(`${SP.label}｜載入後停在空間圖，時間軸視圖不在`, async ({ page }) => {
+  await page.goto(url(SP.file));
+  await expect(page.locator(C.SPACE.view)).toBeVisible();
+  await expect(page.locator("#view-timeline")).toBeHidden();
+  await expect(page.locator(C.SPACE.table)).not.toHaveCount(0);
+  await expectNoBrokenImages(page);
+});
+
+test("時間軸列：00:00–24:00 每個整點一格，只有一個標成現在時間", async ({ page }) => {
+  await page.goto(url(SP.file));
+  await expect(page.locator(`${C.SPACE.timebar} .tb-hour`)).toHaveCount(25);
+  await expect(page.locator(`${C.SPACE.timebar} .tb-hour.is-now`)).toHaveCount(1);
+  await expect(page.locator(".tb-now")).toHaveText("現在時間");
+});
+
+test("樓層分頁切換會換掉桌位圖", async ({ page }) => {
+  await page.goto(url(SP.file));
+  await expect(page.locator(C.SPACE.table)).not.toHaveCount(0);
+  const first = await page.locator(C.SPACE.table).count();
+
+  await page.locator(`${C.SPACE.floorTabs} .floor-tab`).nth(1).click();
+  await expect(page.locator(`${C.SPACE.floorTabs} .floor-tab.is-active`)).toHaveText("二樓");
+  expect(await page.locator(C.SPACE.table).count()).not.toBe(first);
+});
+
+test("點桌位開 popover，且比時間軸多出交換／選位", async ({ page }) => {
+  await page.goto(url(SP.file));
+  await expect(page.locator(C.SPACE.table)).not.toHaveCount(0);
+  await expect(page.locator(C.POPOVER)).toBeHidden();
+
+  await page.locator(C.SPACE.table).first().click();
+  await expect(page.locator(C.POPOVER)).toBeVisible();
+  await expect(page.locator("#btn-swap")).toBeVisible();
+  await expect(page.locator("#btn-pick-seat")).toBeVisible();
+});
+
+test("時間軸的 popover 不該出現空間圖專屬動作", async ({ page }) => {
+  await page.goto("/sections/timeline-popover.html");
+  await ready(page);
+  await expect(page.locator(C.POPOVER)).toBeVisible();
+  await expect(page.locator("#btn-swap")).toHaveCount(0);
 });
