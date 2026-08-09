@@ -10,9 +10,9 @@ const api = (() => {
 
   /* 桌次分組（定稿左欄：F 區 1-2 / O 區 10-20 / B 區 2-4） */
   const GROUPS = [
-    { name: "F 區", cap: "1-2", units: ["F1", "F2", "F3", "F4", "F5", "F6"] },
-    { name: "O 區", cap: "10-20", units: ["O1", "O2", "O3"] },
-    { name: "B 區", cap: "2-4", units: ["B1", "B2", "B3"] },
+    { name: "F 區", cap: "(1-2)", units: ["F1", "F2", "F3", "F4", "F5", "F6"] },
+    { name: "O 區", cap: "(10-20)", units: ["O1", "O2", "O3"] },
+    { name: "B 區", cap: "(2-4)", units: ["B1", "B2", "B3"] },
   ];
 
   /* 時間軸範圍：09:30 起，每格 30 分鐘，共 30 格（到隔日 00:30） */
@@ -63,6 +63,28 @@ const api = (() => {
     B("b13", "B2", "12:00", 120, "熊", "0978678567", 2, 0, "seated"),
   ];
 
+  /* 空間圖：樓層與桌位。座標是定稿 Content 內的絕對位置（Group 57），
+     卡片 88×88（方）／88×92（圓，多一截進度條）。 */
+  const FLOORS = [
+    { key: "f1", name: "一樓", tables: [
+      { id: "t1", label: "G8", cap: "(1-4)", shape: "rect", x: 92, y: 129, state: "empty" },
+      { id: "t2", label: "G8", cap: "(1-4)", shape: "rect", x: 216, y: 129, state: "seated", multi: 2, warn: true, progress: .45 },
+      { id: "t3", label: "G8", cap: "(1-4)", shape: "rect", x: 340, y: 129, state: "occupied", timer: "10:00", progress: .7 },
+      { id: "t4", label: "G8", cap: "(1-4)", shape: "rect", x: 464, y: 129, state: "arrived", multi: 2, coming: true, progress: .3 },
+      { id: "t5", label: "G8", cap: "(1-4人)", shape: "rect", x: 588, y: 129, state: "late", progress: 1 },
+      { id: "t6", label: "G8", cap: "(1-4)", shape: "rect", x: 712, y: 129, state: "empty" },
+      { id: "t7", label: "O1", cap: "(5-8)", shape: "circle", x: 92, y: 301, state: "seated", multi: 2, warn: true, coming: true, progress: .5 },
+      { id: "t8", label: "O2", cap: "(5-8)", shape: "circle", x: 216, y: 301, state: "empty" },
+      { id: "t9", label: "O2", cap: "(5-8)", shape: "circle", x: 340, y: 301, state: "occupied", timer: "10:20", progress: .8 },
+      { id: "t10", label: "O2", cap: "(5-8)", shape: "circle", x: 464, y: 301, state: "arrived", progress: .35 },
+      { id: "t11", label: "O2", cap: "(5-8)", shape: "circle", x: 588, y: 301, state: "seated", progress: .6 },
+    ]},
+    { key: "f2", name: "二樓", tables: [
+      { id: "t12", label: "B1", cap: "(2-4)", shape: "rect", x: 92, y: 129, state: "empty" },
+      { id: "t13", label: "B2", cap: "(2-4)", shape: "rect", x: 216, y: 129, state: "occupied", progress: .5 },
+    ]},
+  ];
+
   /* demo 劇本：把電話改成這支再儲存會回 Error toast（定稿 3-1-2 Error toast） */
   const ERROR_PHONE = "0900000000";
 
@@ -70,6 +92,11 @@ const api = (() => {
 
   return {
     OPEN, SLOT_MIN, SLOT_COUNT, STATUS,
+
+    async getFloors() {
+      await delay(80);
+      return JSON.parse(JSON.stringify(FLOORS));
+    },
 
     async getShop() {
       await delay(80);

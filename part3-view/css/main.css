@@ -140,6 +140,8 @@ p, h1 { margin: 0; }
 
 /* ---------- 時間軸 ---------- */
 .content { flex: 1; min-height: 0; display: flex; position: relative; }
+.view-body { flex: 1; min-width: 0; display: flex; }
+#view-space { flex-direction: column; }
 
 .grid-wrap { flex: 1; min-width: 0; overflow: auto; display: flex; position: relative; }
 
@@ -201,14 +203,14 @@ p, h1 { margin: 0; }
 .b-badge.is-alert { background: var(--alert); color: var(--text-on-color); }
 .b-badge.is-warn { background: var(--emphasis); color: var(--text); }
 
-.st-confirmed { background: var(--primary); }
-.st-arrived   { background: var(--primary-se-light); color: var(--text); }
-.st-seated    { background: var(--secondary); }
-.st-done      { background: var(--gray-240); color: var(--text-75); }
-.st-review    { background: var(--emphasis-d2); }
-.st-payment   { background: var(--emphasis-d1); }
-.st-noshow    { background: var(--pink); }
-.st-cancelled { background: var(--gray-220); color: var(--text-75); }
+.block.st-confirmed { background: var(--primary); }
+.block.st-arrived   { background: var(--primary-se-light); color: var(--text); }
+.block.st-seated    { background: var(--secondary); }
+.block.st-done      { background: var(--gray-240); color: var(--text-75); }
+.block.st-review    { background: var(--emphasis-d2); }
+.block.st-payment   { background: var(--emphasis-d1); }
+.block.st-noshow    { background: var(--pink); }
+.block.st-cancelled { background: var(--gray-220); color: var(--text-75); }
 
 .now-line {
   position: absolute; top: 0; bottom: 0; width: 2px; background: var(--alert);
@@ -293,6 +295,9 @@ p, h1 { margin: 0; }
   border: 1px solid var(--gray-220); border-radius: var(--r-card);
   box-shadow: 0 8px 24px rgba(0, 0, 0, .12); padding: 10px;
 }
+
+.pop-actions { display: flex; gap: 8px; margin-top: 8px; }
+.pop-actions .btn { flex: 1; }
 
 /* ---------- 修改預約抽屜 ---------- */
 .drawer {
@@ -392,3 +397,114 @@ p, h1 { margin: 0; }
 .modal-actions { justify-content: flex-end; }
 .modal-actions .btn { flex: none; min-width: 108px; }
 .unit-picker { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------- 空間圖（3-2） ---------- */
+
+/* Bars / 時間軸 / 座位圖：整點 40 寬、點 6px、當前整點 Text/Critical、右端「現在時間」65 寬 */
+.timebar {
+  height: var(--timebar-h); flex: none; position: relative;
+  background: var(--bg-page); display: flex; align-items: center;
+}
+.tb-track {
+  position: absolute; left: 30px; right: 125px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.tb-hour {
+  flex: none; width: var(--hour-w); padding: 7px 0;
+  font-size: var(--fs-small); line-height: 16px; text-align: center; color: var(--gray-103);
+}
+.tb-hour.is-now { color: var(--alert); }
+.tb-dot { flex: none; padding: 12px 7px; }
+.tb-dot::before {
+  content: ""; display: block; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--disabled);
+}
+.tb-arrow {
+  background: var(--bg-page); padding: 10px 12px; display: flex; align-items: center;
+  filter: drop-shadow(-1px 0 2px rgba(0, 0, 0, .25));
+}
+.tb-arrow.is-left { position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  filter: drop-shadow(1px 0 2px rgba(0, 0, 0, .25)); }
+.tb-arrow img { width: 6px; height: 10px; display: block; }
+.tb-right { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; }
+.tb-now {
+  width: 65px; padding: 7px 6px; border-left: 1px solid var(--gray-220);
+  font-size: var(--fs-small); line-height: 16px; text-align: center; color: var(--gray-103);
+}
+
+/* Tabs / 座位圖分區 92×38 */
+.floor-tabs { flex: none; display: flex; gap: 4px; padding: 8px 20px 0; }
+.floor-tab {
+  width: 92px; height: 38px; border-radius: var(--r-card) var(--r-card) 0 0;
+  background: var(--gray-245); color: var(--text-75);
+  font-size: var(--fs-btn-md); font-weight: 500; letter-spacing: var(--ls-btn-md);
+}
+.floor-tab.is-active { background: var(--bg-page); color: var(--text); box-shadow: 0 -1px 0 var(--gray-220) inset; }
+
+/* 桌位圖畫布：定稿 Content 內 920×536，桌位用絕對座標 */
+.floor-canvas {
+  flex: 1; margin: 0 20px 20px; position: relative; overflow: auto;
+  border: 1px solid var(--gray-220); border-radius: var(--r-card); background: var(--bg-page);
+}
+
+.table { position: absolute; width: var(--table-w); height: 88px; padding: 0; }
+.table.is-circle { height: 92px; }
+.t-shape {
+  position: absolute; inset: 8px 8px 8px 8px; border-radius: 6px;
+  background: var(--bg-page); border: 1px solid var(--disabled);
+  display: block; overflow: hidden;
+}
+.table.is-circle .t-shape { inset: 8px 8px 12px 8px; border-radius: 50%; }
+.t-label {
+  position: absolute; left: 12px; top: 12px;
+  font-size: var(--fs-caption); font-weight: 600; line-height: 16px;
+  letter-spacing: .0555em; color: var(--text-75);
+}
+.t-cap {
+  position: absolute; left: 12px; top: 32px;
+  font-size: var(--fs-btn-sm); line-height: normal; letter-spacing: .0555em; color: var(--text-60);
+}
+.table.is-circle .t-label, .table.is-circle .t-cap {
+  left: 0; right: 0; text-align: center; color: var(--text-on-color);
+}
+.table.is-circle .t-label { top: 16px; }
+.table.is-circle .t-cap { top: 34px; }
+
+/* 占用狀態的底色。空位維持白底灰框。 */
+/* 空位（方桌與圓桌）只有灰框、沒有底色——圓桌不給框線會整個消失 */
+.table.st-empty .t-shape { background: var(--bg-page); border: 1px solid var(--disabled); }
+
+.table.st-seated  .t-shape { background: var(--secondary-dark); border-color: transparent; }
+.table.st-occupied .t-shape { background: var(--primary); border-color: transparent; }
+.table.st-arrived .t-shape { background: var(--primary-se-light); border-color: transparent; }
+.table.st-late    .t-shape { background: var(--alert); border-color: transparent; }
+.table.st-seated .t-label, .table.st-seated .t-cap,
+.table.st-occupied .t-label, .table.st-occupied .t-cap,
+.table.st-late .t-label, .table.st-late .t-cap { color: var(--text-on-color); }
+
+/* 底部用餐進度條：外層黑 30%、內層白 */
+.t-bar {
+  position: absolute; left: 11.36%; right: 11.36%; bottom: 8.7%; height: 10px;
+  border-radius: 6px; background: rgba(0, 0, 0, .3);
+}
+.t-bar i { display: block; height: 8px; margin: 1px; border-radius: 4px; background: var(--bg-page); }
+
+.t-multi, .t-coming, .t-warn {
+  position: absolute; display: grid; place-items: center; border-radius: 50%;
+}
+.t-multi {
+  right: 8px; bottom: 22px; width: 20px; height: 20px;
+  background: var(--secondary-dark); border: 1px solid var(--bg-page);
+  color: var(--text-on-color); font-size: var(--fs-btn-md); font-weight: 600; line-height: 18px;
+}
+/* 定稿 Icon / Warning：18 圓底 + 2.28×7.4 的驚嘆號；Icon / Notification：21 圓底 + 12×13 鈴鐺。
+   圓底用 CSS 畫（純色圓形），只有 glyph 走 SVG。 */
+.t-warn { right: 8px; top: 10px; width: 22px; height: 22px; background: var(--alert); }
+.t-warn img { width: 3px; height: 8px; display: block; }
+.t-coming { left: 62px; top: 52px; width: 18px; height: 18px; background: var(--alert-light); }
+.t-coming img { width: 10px; height: 11px; display: block; }
+.t-timer {
+  position: absolute; left: 8px; right: 8px; bottom: 8px;
+  background: var(--gray-51); color: var(--text-on-color);
+  font-size: var(--fs-btn-sm); text-align: center; border-radius: 0 0 6px 6px; padding: 2px 0;
+}

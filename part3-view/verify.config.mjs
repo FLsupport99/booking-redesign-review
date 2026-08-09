@@ -6,6 +6,12 @@ export const TITLE_PREFIX = "預約管理";
 /* 本專案的「MODES」是三個視圖。每個視圖有自己的狀態清單（不是 customer-booking 那種共用矩陣）。 */
 export const MODES = [
   {
+    key: "space",
+    file: "2-空間圖.html",
+    label: "② 空間圖",
+    sections: [{ id: "popover", name: "空間圖 popover" }],
+  },
+  {
     key: "timeline",
     file: "1-時間軸.html",
     label: "① 時間軸",
@@ -22,7 +28,7 @@ export const MODES = [
 
 /* ---------- 第 3 關：行為斷言 ---------- */
 
-export const ALL_VIEWS = ["view-timeline"];
+export const ALL_VIEWS = ["view-timeline", "view-space"];
 
 /* ⭐ 顯示時機：3-1-2 的 base state 就是一般時間軸，修改抽屜要點編輯才出現。
    （定稿 3-1-2_Start 在該列 x=100 最左＝初始狀態，與 3-1-1 時間軸同畫面。） */
@@ -48,6 +54,15 @@ export const TOAST = "#toast";
 export const POPOVER = "#booking-popover";
 export const NOW_LINE = "#now-line";
 
+/* 空間圖（3-2） */
+export const SPACE = {
+  view: "#view-space",
+  timebar: "#timebar",
+  floorTabs: "#floor-tabs",
+  canvas: "#floor-canvas",
+  table: ".table",
+};
+
 export const REQUIRED_IMAGES = [];
 
 /* ---------- 第 2 關：文案對定稿 ---------- */
@@ -65,6 +80,10 @@ export const figma = {
     {
       id: "526:91348", name: "3-1-2 時間軸_修改預約",
       frames: ["526:82399", "523:48065", "523:62594", "526:86701", "526:89600", "526:93202"],
+    },
+    {
+      id: "506:90182", name: "3-2 空間圖",
+      frames: ["500:50579", "500:51442"],
     },
   ],
 
@@ -95,9 +114,9 @@ export const figma = {
   ],
 
   /* 已知刻意不同或本階段範圍外，附理由才准放行。
-     ⚠️ 下面五條都是**設計自己留在定稿上的修改註記**，不是 UI 文案。
-        它們在「右側邊欄顧客清單卡片樣式」那張規格板內，所以 frame 白名單擋不掉。
-        已回報請設計確認是待辦還是忘了刪——若是待辦，這幾處要重做。 */
+     下面五條是**設計留在定稿上的修改註記**，不是 UI 文案。它們在「右側邊欄顧客清單
+     卡片樣式」那張規格板內，所以 frame 白名單擋不掉。
+     ✅ 2026-08-09 Ian 確認：就是註記，不需處理，實作照定稿現況即可。 */
   ACCEPTED: {
     "預約狀態卡片樣式": "規格板的標題，不是畫面上的字",
     "字太多": "設計註記（待設計確認）",

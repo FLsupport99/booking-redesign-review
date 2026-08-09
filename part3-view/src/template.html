@@ -106,8 +106,9 @@
       </div>
     </div>
 
-    <!-- 內容區（Content 960×640） -->
-    <main class="content" id="view-timeline">
+    <!-- 內容區（Content 960×640）。三個視圖共用右側顧客清單。 -->
+    <div class="content" id="content">
+      <div class="view-body" id="view-timeline">
 
       <div class="grid-wrap" id="grid-scroll">
         <div class="rowhead-col" id="rowhead-col">
@@ -119,6 +120,24 @@
           <div class="lanes" id="lanes"></div>
           <div class="now-line" id="now-line" hidden><span class="now-dot"></span></div>
         </div>
+      </div>
+
+      </div>
+
+      <!-- 空間圖（3-2）。頂部 Bars / 時間軸 / 座位圖 960×30，下方樓層分頁＋桌位圖 -->
+      <div class="view-body" id="view-space" hidden>
+        <div class="timebar" id="timebar">
+          <button class="tb-arrow is-left" type="button" id="tb-prev" aria-label="前一段時間">
+            <img src="assets/sp-arrow-left.svg" alt=""></button>
+          <div class="tb-track" id="tb-track"></div>
+          <div class="tb-right">
+            <button class="tb-arrow" type="button" id="tb-next" aria-label="後一段時間">
+              <img src="assets/sp-arrow-right.svg" alt=""></button>
+            <span class="tb-now">現在時間</span>
+          </div>
+        </div>
+        <div class="floor-tabs" id="floor-tabs" role="tablist" aria-label="樓層"></div>
+        <div class="floor-canvas" id="floor-canvas"></div>
       </div>
 
       <!-- 右側顧客清單（預約列表_顧客清單 300×586） -->
@@ -133,7 +152,7 @@
         <div class="cust-list" id="cust-list"></div>
       </aside>
 
-    </main>
+    </div>
   </div>
 </div>
 

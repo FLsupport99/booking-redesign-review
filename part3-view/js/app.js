@@ -4,8 +4,11 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const A = () => window.ASSET_BASE || "";
 
+const MODE = window.MODE || "timeline";
+
 const state = {
   shop: null,
+  floors: [], floor: 0,
   bookings: [],
   date: new Date(2026, 6, 17),   // 定稿畫面的日期：2026-07-17 週五
   focusId: null,                 // 修改中的預約
@@ -65,11 +68,28 @@ function statusActions(b) {
   state.shop = await api.getShop();
   state.bookings = await api.getBookings(fmtDate(state.date));
 
+  /* 三個視圖共用同一份 template，靠 window.MODE 決定顯示哪一個 */
+  $("#view-timeline").hidden = MODE !== "timeline";
+  $("#view-space").hidden = MODE !== "space";
+  $$(".viewtab").forEach((t) => {
+    const on = (MODE === "space" && t.textContent === "空間圖")
+      || (MODE === "timeline" && t.textContent === "時間軸");
+    t.classList.toggle("is-active", on);
+    t.setAttribute("aria-selected", String(on));
+  });
+
   renderHeader();
-  renderRowheads();
-  renderTimehead();
-  renderLanes();
-  renderNowLine();
+  if (MODE === "space") {
+    state.floors = await api.getFloors();
+    renderTimebar();
+    renderFloorTabs();
+    renderFloor();
+  } else {
+    renderRowheads();
+    renderTimehead();
+    renderLanes();
+    renderNowLine();
+  }
   renderStatusTabs();
   renderCustList();
   bindEvents();
@@ -167,6 +187,48 @@ function renderLanes() {
   }
 }
 
+/* ---------- 空間圖（3-2） ----------
+   定稿 Bars / 時間軸 / 座位圖：00:00～24:00 每個整點一格，格與格之間一個圓點，
+   當前整點用 Text/Critical 標紅。 */
+function renderTimebar() {
+  const nowHour = new Date().getHours();
+  const cells = [];
+  for (let h = 0; h <= 24; h++) {
+    if (h) cells.push(`<span class="tb-dot" aria-hidden="true"></span>`);
+    cells.push(`<span class="tb-hour${h === nowHour ? " is-now" : ""}">${pad(h)}:00</span>`);
+  }
+  $("#tb-track").innerHTML = cells.join("");
+}
+
+function renderFloorTabs() {
+  $("#floor-tabs").innerHTML = state.floors.map((f, i) => `
+    <button class="floor-tab${i === state.floor ? " is-active" : ""}" type="button"
+            role="tab" aria-selected="${i === state.floor}" data-floor="${i}">${f.name}</button>`).join("");
+}
+
+/* 桌位卡：方桌 88×88、圓桌 88×92（底部多一截進度條）。
+   座標沿用定稿 Group 57 的 Content 相對位置。 */
+function tableHtml(t) {
+  const circle = t.shape === "circle";
+  return `
+  <button class="table${circle ? " is-circle" : ""} st-${t.state}" type="button"
+          data-id="${t.id}" style="left:${t.x}px;top:${t.y}px">
+    <span class="t-shape">
+      <span class="t-label">${t.label}</span>
+      <span class="t-cap">${t.cap}</span>
+      ${t.progress ? `<span class="t-bar"><i style="width:${Math.round(t.progress * 100)}%"></i></span>` : ""}
+    </span>
+    ${t.multi ? `<span class="t-multi">${t.multi}</span>` : ""}
+    ${t.warn ? `<span class="t-warn"><img src="${A()}assets/sp-warn.svg" alt="有警示"></span>` : ""}
+    ${t.coming ? `<span class="t-coming"><img src="${A()}assets/sp-bell.svg" alt="即將到店"></span>` : ""}
+    ${t.timer ? `<span class="t-timer">${t.timer}</span>` : ""}
+  </button>`;
+}
+
+function renderFloor() {
+  $("#floor-canvas").innerHTML = state.floors[state.floor].tables.map(tableHtml).join("");
+}
+
 /* ---------- 現在時間線 ---------- */
 function renderNowLine() {
   const now = new Date();
@@ -242,7 +304,13 @@ function openPopover(id, anchor) {
   const b = state.bookings.find((x) => x.id === id);
   if (!b) return;
   const p = $("#booking-popover");
-  p.innerHTML = cardHtml(b);
+  /* 空間圖的 popover 比時間軸多兩個桌位動作（定稿 3-2 空間圖_Popover） */
+  const spaceActions = MODE !== "space" ? "" : `
+    <div class="pop-actions">
+      <button class="btn btn-outline btn-md" type="button" id="btn-swap">交換</button>
+      <button class="btn btn-outline btn-md" type="button" id="btn-pick-seat">選位</button>
+    </div>`;
+  p.innerHTML = cardHtml(b) + spaceActions;
   p.hidden = false;
   if (anchor) {
     const r = anchor.getBoundingClientRect();
@@ -379,13 +447,31 @@ function toggleSidebar(collapsed) {
 function bindEvents() {
   $("#cust-toggle").addEventListener("click", () => toggleSidebar());
 
-  $("#lanes").addEventListener("click", (e) => {
+  if (MODE === "space") {
+    $("#floor-tabs").addEventListener("click", (e) => {
+      const tab = e.target.closest(".floor-tab");
+      if (!tab) return;
+      state.floor = Number(tab.dataset.floor);
+      renderFloorTabs();
+      renderFloor();
+    });
+    /* 點桌位開該桌的預約 popover（定稿 3-2 空間圖_Popover） */
+    $("#floor-canvas").addEventListener("click", (e) => {
+      const t = e.target.closest(".table");
+      if (t) openPopover(state.bookings[0].id, t);
+    });
+  }
+
+  $("#lanes")?.addEventListener("click", (e) => {
     const block = e.target.closest(".block");
     if (block) openPopover(block.dataset.id, block);
   });
 
+  /* 點外面關 popover。開啟來源（時間軸區塊、空間圖桌位）要一起排除，
+     否則同一次點擊會先開再被這裡關掉。 */
+  const POPOVER_ANCHORS = "#booking-popover, .block, .table";
   document.addEventListener("click", (e) => {
-    if (!e.target.closest("#booking-popover") && !e.target.closest(".block")) closePopover();
+    if (!e.target.closest(POPOVER_ANCHORS)) closePopover();
   });
 
   $("#cust-list").addEventListener("click", (e) => {

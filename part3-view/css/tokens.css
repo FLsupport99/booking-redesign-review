@@ -19,6 +19,7 @@
   --secondary-dark: #647E96;
 
   --alert: #CE4949;
+  --alert-light: #EF6868;   /* Alert/Light：即將到店通知 badge */
   --emphasis: #F8BA4C;
   --emphasis-d1: #FF991F;
   --emphasis-d2: #EB5514;
@@ -30,6 +31,7 @@
   --gray-240: #F0F0F0;
   --gray-245: #F5F5F5;
   --gray-249: #F9F9F9;
+  --disabled: #C8C8C8;      /* Content/State Disabled：桌位空位框線、時間軸圓點 */
 
   --text: #333333;
   --text-on-color: #FFFFFF;
@@ -65,6 +67,9 @@
   --block-h: 42px;      /* Card / Chart-Timeline */
   --slot-w: 48px;       /* 每 30 分鐘 */
   --cust-w: 300px;      /* 預約列表_顧客清單 */
+  --timebar-h: 30px;    /* Bars / 時間軸 / 座位圖 */
+  --hour-w: 40px;       /* 整點格 */
+  --table-w: 88px;      /* Card / Table 外框 */
   --drawer-w: 350px;    /* 修改預約抽屜 */
 
   --r-btn: 4px;
