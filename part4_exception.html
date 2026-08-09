@@ -462,10 +462,13 @@ body.dev-mobile .list-row .lr-tools{justify-content:flex-end;}
 .figma-timepicker .ft-foot{display:flex;align-items:center;justify-content:flex-end;padding:8px 12px;border-top:1px solid var(--border-card);gap:8px;}
 .figma-timepicker .ft-ok{padding:6px 12px;height:30px;font-size:14px;font-weight:500;color:#fff;background:var(--primary);border:0;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;line-height:1;}
 
-/* ===== Part4 注入：臨時預約關閉 ===== */
-.cal-pill.p4cl{background:#fdeee0;color:#a35a1f}
-.tag.p4cl{background:#fdeee0;color:#a35a1f}
-.p4-banner{margin:0 0 12px;background:#f3faf6;border:1px solid #bfe6d4;border-radius:10px;padding:10px 14px;font-size:13px;line-height:19px;color:#456}
+/* ===== Part4 注入：臨時預約關閉 =====
+   月曆 pill 不能沿用 .exc 的橘色數字——那是「已套用例外規則」的語彙，
+   兩顆並排會分不出來。改用藍色系＋時鐘斜線 icon，與紅（整日不可預約）、
+   橘（例外規則）三者一眼可辨。 */
+.cal-pill.p4cl{background:#e3eef6;color:#2d6a91;display:inline-flex;align-items:center;gap:2px}
+.cal-pill.p4cl svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2}
+.tag.p4cl{background:#e3eef6;color:#2d6a91}
 </style>
 </head>
 <body class="mode-basic view-l1 dev-desktop">
@@ -566,7 +569,7 @@ body.dev-mobile .list-row .lr-tools{justify-content:flex-end;}
               <span><span class="cal-pill block-all"><span class="em"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M4 4l8 8"/></svg></span>全部</span>整日不可預約</span>
               <span class="mode-has-options mode-only"><span class="cal-pill block-partial"><span class="em"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M4 4l8 8"/></svg></span>部分</span>部分服務不可預約</span>
               <span><span class="cal-pill exc">N</span>已套用例外預約規則</span>
-              <span><span class="cal-pill p4cl">N</span>臨時預約關閉（Part 4 注入）</span>
+              <span><span class="cal-pill p4cl"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1"/><path d="M3.5 3.5l9 9"/></svg>N</span>臨時預約關閉（Part 4 新增）</span>
             </div>
           </div>
         </div>
@@ -1198,7 +1201,7 @@ function renderCalendar(){
       if (bk==='all') icons.innerHTML += `<span class="cal-pill block-all" title="全部選項整日不可預約"><span class="em"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M4 4l8 8"/></svg></span>全部</span>`;
       else if (bk==='partial') icons.innerHTML += `<span class="cal-pill block-partial" title="部分選項整日不可預約"><span class="em"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M4 4l8 8"/></svg></span>部分</span>`;
       const p4n = p4ClosuresOf(ymd).length;
-      if (p4n) icons.innerHTML += `<span class="cal-pill p4cl" title="${p4n} 筆臨時預約關閉${bk==='all'?'（被整日不可預約覆蓋）':''}">${p4n}</span>`;
+      if (p4n) icons.innerHTML += `<span class="cal-pill p4cl" title="${p4n} 筆臨時預約關閉${bk==='all'?'（被整日不可預約覆蓋）':''}"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1"/><path d="M3.5 3.5l9 9"/></svg>${p4n}</span>`;
       const rn = rulesOf(ymd).length;
       if (rn && bk!=='all') icons.innerHTML += `<span class="cal-pill exc" title="${rn} 條例外規則">${rn}</span>`;
       else if (rn && bk==='all') icons.innerHTML += `<span class="cal-pill exc" title="${rn} 條例外規則（被全部 Block 覆蓋）">${rn}</span>`;
