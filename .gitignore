@@ -1,6 +1,6 @@
 tools/exports2/
 
-# 驗收管線（customer-booking/）
+# 驗收管線（customer-booking/、part3-view/；無斜線前綴＝任何層級都比對得到）
 node_modules/
 test-results/
 playwright-report/
