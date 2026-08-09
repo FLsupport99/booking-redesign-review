@@ -158,6 +158,31 @@ const api = (() => {
 
   let fullDemoDone = false; // 18:30 第一次送出回 FULL，之後成功（demo 用）
 
+  const noDeposit = () => ({ mode: "none", text: "", summary: "", terms: [], notice: [] });
+
+  /* 網址參數覆寫。getShop 與 createBooking 必須看到同一份設定——
+     兩邊各讀各的會讓 ?deposit=none 只改畫面、送出的預約仍帶訂金，
+     連帶 LINE 加好友 popup（app.js 要求 !payment && !review）永遠跳不出來。 */
+  function applyUrlOverrides(shop) {
+    const q = new URLSearchParams(location.search);
+    const dep = q.get("deposit");
+    if (dep === "card_auth") shop.deposit = SHOP.depositCardAuth;
+    if (dep === "none") shop.deposit = noDeposit();
+    switch (q.get("state")) {
+      case "closed": shop.reservationOpen = false; break;
+      case "no-party": shop.showPartySize = false; break;
+      case "review": shop.needsReview = true; break;
+      case "null":
+        Object.assign(shop, {
+          branches: [shop.name], announcement: "", notice: [], otherInfo: [],
+          menus: [], social: {}, description: "",
+          deposit: noDeposit(),
+        });
+        break;
+    }
+    return shop;
+  }
+
   return {
     /* 空狀態與訂金模式可用網址參數切換，方便逐張對定稿：
          ?state=closed     未開放預約
@@ -167,26 +192,10 @@ const api = (() => {
          ?deposit=card_auth|none  換訂金規則（預設 prepay） */
     async getShop(lang = "zh") {
       await delay(120);
-      const q = new URLSearchParams(location.search);
       const shop = lang === "en"
         ? { ...SHOP, ...SHOP_EN, deposit: { ...SHOP.deposit, ...SHOP_EN.deposit } }
         : { ...SHOP };
-      const dep = q.get("deposit");
-      if (dep === "card_auth") shop.deposit = SHOP.depositCardAuth;
-      if (dep === "none") shop.deposit = { mode: "none", text: "", summary: "", terms: [], notice: [] };
-      switch (q.get("state")) {
-        case "closed": shop.reservationOpen = false; break;
-        case "no-party": shop.showPartySize = false; break;
-        case "review": shop.needsReview = true; break;
-        case "null":
-          Object.assign(shop, {
-            branches: [shop.name], announcement: "", notice: [], otherInfo: [],
-            menus: [], social: {}, description: "",
-            deposit: { mode: "none", text: "", summary: "", terms: [], notice: [] },
-          });
-          break;
-      }
-      return shop;
+      return applyUrlOverrides(shop);
     },
 
     async getAvailability({ date, adults, children }) {
@@ -203,14 +212,15 @@ const api = (() => {
         fullDemoDone = true;
         return { ok: false, error: "FULL" };
       }
-      const dep = SHOP.deposit;
+      const shop = applyUrlOverrides({ ...SHOP });
+      const dep = shop.deposit;
       const needPay = dep.mode && dep.mode !== "none";
       const booking = {
         code: String(Math.floor(10000 + Math.random() * 90000)),
         ...payload,
         /* 三個獨立欄位組合出定稿的十種狀態，不要用一個扁平 enum */
         lifecycle: "active",                                   // active | cancelled | ended
-        review: SHOP.needsReview ? "pending" : null,           // pending | approved | null(免審核)
+        review: shop.needsReview ? "pending" : null,           // pending | approved | null(免審核)
         payment: needPay
           ? { kind: dep.mode, state: "pending", amount: dep.perPerson * (payload.adults + payload.children),
               deadline: "2026-06-16 22:59", countdown: "29:59" }
