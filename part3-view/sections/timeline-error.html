@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>① 時間軸 error Error toast</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- 左側主導航（Nav / Sidebar 64×768） -->
+  <nav class="nav" aria-label="主導航">
+    <a class="nav-logo" href="#" aria-label="MENU店+">店</a>
+    <ul class="nav-list">
+      <li><a class="nav-item is-active" href="#"><span class="nav-ic" aria-hidden="true"></span>預約</a></li>
+      <li><a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>排隊</a></li>
+      <li><a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>月曆</a></li>
+      <li><a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>顧客</a></li>
+      <li><a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>推播</a></li>
+      <li><a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>公告</a></li>
+      <li><a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>優惠券</a></li>
+      <li><a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>設定</a></li>
+    </ul>
+    <div class="nav-foot">
+      <a class="nav-item" href="#"><span class="nav-ic" aria-hidden="true"></span>開啟</a>
+      <button class="nav-avatar" type="button" aria-label="帳號"></button>
+    </div>
+  </nav>
+
+  <div class="main">
+
+    <!-- 頂部：標題 + 日期切換 + 三視圖切換（Frame 867 960×92） -->
+    <header class="topbar">
+      <div class="topnav">
+        <h1 class="t-h2 page-title">預約</h1>
+        <div class="datenav">
+          <button class="date-arrow" type="button" id="date-prev" aria-label="前一天">◀</button>
+          <p class="t-h3 date-label" id="date-label"></p>
+          <button class="date-arrow" type="button" id="date-next" aria-label="後一天">▶</button>
+          <button class="btn-pill" type="button" id="btn-today">今天</button>
+        </div>
+        <div class="viewtabs" role="tablist" aria-label="檢視方式">
+          <button class="viewtab is-active" type="button" role="tab" aria-selected="true">時間軸</button>
+          <button class="viewtab" type="button" role="tab" aria-selected="false">空間圖</button>
+          <button class="viewtab" type="button" role="tab" aria-selected="false">清單</button>
+        </div>
+      </div>
+      <div class="warnings">
+        <span class="chip chip-sync" id="pos-sync">肚肚POS同步中</span>
+        <span class="chip chip-alert" id="dup-warn">有重複的預約</span>
+      </div>
+    </header>
+
+    <!-- 工具列（Function bar 960×60） -->
+    <div class="funcbar">
+      <p class="t-caption sms-points">簡訊點數 <span class="sms-num" id="sms-points">1000</span></p>
+      <button class="btn btn-outline btn-sm" type="button" id="btn-buy">購買</button>
+      <div class="funcbar-right">
+        <button class="ic-btn" type="button" id="btn-search" aria-label="搜尋"></button>
+        <button class="ic-btn is-on" type="button" id="btn-announce" aria-label="公告"></button>
+        <button class="ic-btn" type="button" id="btn-export" aria-label="匯出"></button>
+        <button class="btn btn-outline btn-round" type="button" id="btn-add-wait">＋ 候位</button>
+        <button class="btn btn-primary btn-round" type="button" id="btn-add-booking">＋ 預約</button>
+      </div>
+    </div>
+
+    <!-- 內容區（Content 960×640） -->
+    <main class="content" id="view-timeline">
+
+      <div class="grid-wrap" id="grid-scroll">
+        <div class="rowhead-col" id="rowhead-col">
+          <div class="rowhead-title t-small">組別/桌次</div>
+          <div id="rowhead-body"></div>
+        </div>
+        <div class="grid" id="grid">
+          <div class="timehead" id="timehead"></div>
+          <div class="lanes" id="lanes"></div>
+          <div class="now-line" id="now-line" hidden><span class="now-dot"></span></div>
+        </div>
+      </div>
+
+      <!-- 右側顧客清單（預約列表_顧客清單 300×586） -->
+      <aside class="cust" id="cust-panel" aria-label="顧客清單">
+        <div class="cust-toptab">
+          <button class="ttab is-active" type="button" id="tab-cust">顧客清單</button>
+          <button class="ttab" type="button" id="tab-wait">候位中</button>
+          <button class="cust-collapse" type="button" id="cust-toggle"
+                  aria-label="收合顧客清單" aria-expanded="true"></button>
+        </div>
+        <div class="cust-statustabs" id="cust-statustabs"></div>
+        <div class="cust-list" id="cust-list"></div>
+      </aside>
+
+    </main>
+  </div>
+</div>
+
+<!-- 預約 popover（3-1-1 時間軸_popover） -->
+<div class="popover" id="booking-popover" role="dialog" aria-label="預約摘要" hidden></div>
+
+<!-- 修改預約抽屜（3-1-2 修改預約） -->
+<aside class="drawer" id="edit-drawer" aria-label="修改預約" hidden>
+  <div class="drawer-head">
+    <p class="t-subtitle drawer-title">修改預約</p>
+    <button class="drawer-close" type="button" id="edit-close" aria-label="關閉">✕</button>
+  </div>
+
+  <div class="drawer-body">
+    <div class="field-item">
+      <p class="t-small item-label">預約項目</p>
+      <button class="item-select" type="button" id="f-item">
+        <span id="f-item-label"></span><span class="caret" aria-hidden="true">⌄</span>
+      </button>
+    </div>
+
+    <button class="date-row" type="button" id="f-date">
+      <span class="t-subtitle" id="f-date-label"></span><span class="caret" aria-hidden="true">⌄</span>
+    </button>
+
+    <button class="time-big" type="button" id="f-time">12：00</button>
+    <p class="t-small time-empty" id="f-time-empty" hidden>請選擇時間</p>
+
+    <button class="btn-pill duration" type="button" id="f-duration">
+      <span id="f-duration-label">2小時0分</span><span class="caret" aria-hidden="true">⌄</span>
+    </button>
+
+    <div class="party">
+      <div class="party-col">
+        <p class="t-subtitle">大人</p>
+        <div class="stepper">
+          <button class="step" type="button" data-step="adults" data-delta="-1" aria-label="減少大人">−</button>
+          <p class="t-h3 step-num" id="num-adults">2</p>
+          <button class="step" type="button" data-step="adults" data-delta="1" aria-label="增加大人">＋</button>
+        </div>
+      </div>
+      <div class="party-col">
+        <p class="t-subtitle">小孩</p>
+        <div class="stepper">
+          <button class="step" type="button" data-step="children" data-delta="-1" aria-label="減少小孩">−</button>
+          <p class="t-h3 step-num" id="num-children">2</p>
+          <button class="step" type="button" data-step="children" data-delta="1" aria-label="增加小孩">＋</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field" data-field="phone">
+      <p class="t-small item-label">手機號碼*</p>
+      <label class="line-field">
+        <span class="lf-ic" aria-hidden="true"></span>
+        <input class="lf-input" type="tel" id="f-phone" placeholder="請輸入手機號碼">
+      </label>
+      <p class="field-error t-small" hidden>請輸入手機號碼</p>
+    </div>
+
+    <div class="field" data-field="name">
+      <p class="t-small item-label">姓名*</p>
+      <label class="line-field">
+        <span class="lf-ic" aria-hidden="true"></span>
+        <input class="lf-input" type="text" id="f-name" placeholder="請輸入姓名">
+      </label>
+      <p class="field-error t-small" hidden>請輸入姓名</p>
+    </div>
+
+    <div class="title-radio" role="radiogroup" aria-label="稱謂">
+      <label class="radio"><input type="radio" name="title" value="其他"><span class="dot"></span>其他</label>
+      <label class="radio"><input type="radio" name="title" value="先生" checked><span class="dot"></span>先生</label>
+      <label class="radio"><input type="radio" name="title" value="小姐"><span class="dot"></span>小姐</label>
+    </div>
+
+    <label class="line-field">
+      <span class="lf-ic" aria-hidden="true"></span>
+      <input class="lf-input" type="email" id="f-email">
+    </label>
+
+    <div class="field-block">
+      <p class="t-small item-label">商家備註</p>
+      <label class="line-field">
+        <span class="lf-ic" aria-hidden="true"></span>
+        <input class="lf-input" type="text" id="f-shop-note">
+      </label>
+    </div>
+
+    <!-- 預約問卷 -->
+    <section class="drawer-sect" id="survey-sect">
+      <p class="sect-title">預約問卷</p>
+      <div class="field-block">
+        <p class="t-small item-label">問卷問答題</p>
+        <input class="input" type="text" id="f-q1" placeholder="問卷答案">
+      </div>
+      <div class="field-block">
+        <p class="t-small item-label">問卷選擇題</p>
+        <div class="chip-choices" id="f-q2">
+          <button class="choice" type="button" data-choice="答案A">答案A</button>
+          <button class="choice" type="button" data-choice="答案B">答案B</button>
+          <button class="choice" type="button" data-choice="答案C">答案C</button>
+        </div>
+      </div>
+      <div class="field-block">
+        <p class="t-small item-label">問卷數量統計</p>
+        <div class="count-rows" id="f-q3"></div>
+      </div>
+    </section>
+
+    <!-- 訂金 -->
+    <section class="drawer-sect" id="deposit-sect">
+      <p class="sect-title">要求訂金</p>
+      <div class="field" data-field="deposit" id="deposit-field">
+        <p class="t-small item-label">訂金金額*</p>
+        <input class="input" type="number" id="f-deposit" min="1">
+        <p class="field-error t-small" hidden>請輸入大於或等於 1 的金額</p>
+      </div>
+      <div class="field-block">
+        <p class="t-small item-label">收款方式</p>
+        <div class="title-radio" role="radiogroup" aria-label="收款方式">
+          <label class="radio"><input type="radio" name="pay" value="prepay" checked><span class="dot"></span>預先收款</label>
+          <label class="radio"><input type="radio" name="pay" value="card_auth"><span class="dot"></span>信用卡授權綁定</label>
+        </div>
+        <p class="t-small text-75" id="deposit-hint"></p>
+      </div>
+      <div class="field-block">
+        <p class="t-small item-label">訂金通知方式</p>
+        <div class="title-radio" role="radiogroup" aria-label="訂金通知方式">
+          <label class="radio"><input type="radio" name="notify" value="email" checked><span class="dot"></span>以email通知</label>
+          <label class="radio"><input type="radio" name="notify" value="line"><span class="dot"></span>以LINE/簡訊通知</label>
+        </div>
+        <p class="t-small notify-warn" id="notify-warn" hidden>通知點數餘額不足</p>
+      </div>
+    </section>
+
+    <div class="unit-card">
+      <div class="unit-head">
+        <p class="t-small item-label">預約單位</p>
+        <button class="unit-change" type="button" id="f-unit-change">變更 ›</button>
+      </div>
+      <p class="chip chip-group" id="f-unit-group"></p>
+      <p class="t-subtitle" id="f-unit-list"></p>
+      <p class="t-small text-75" id="f-unit-empty" hidden>請選擇預約單位</p>
+    </div>
+  </div>
+
+  <div class="drawer-foot">
+    <button class="btn btn-primary btn-lg w-full" type="button" id="btn-save">儲存變更</button>
+  </div>
+</aside>
+
+<!-- 選擇預約單位（修改抽屜的「變更」） -->
+<div class="modal-mask" id="modal-units" hidden>
+  <div class="modal" role="dialog" aria-labelledby="units-title">
+    <p class="modal-title" id="units-title">選擇預約單位</p>
+    <div class="unit-picker" id="unit-picker"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-md" type="button" data-close="#modal-units">繼續修改</button>
+      <button class="btn btn-primary btn-md" type="button" id="btn-units-ok">儲存變更</button>
+    </div>
+  </div>
+</div>
+
+<!-- 未儲存提醒（3-1-2 未儲存提醒） -->
+<div class="modal-mask" id="modal-unsaved" hidden>
+  <div class="modal" role="alertdialog" aria-labelledby="unsaved-title">
+    <p class="modal-title" id="unsaved-title">尚未儲存這筆預約</p>
+    <p class="t-subtitle modal-body">退出後將不會保留已變更的資料，確定退出嗎？</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-md" type="button" id="btn-keep-edit">繼續修改</button>
+      <button class="btn btn-danger btn-md" type="button" id="btn-discard">放棄並退出</button>
+    </div>
+  </div>
+</div>
+
+<!-- Error toast（3-1-2 Error toast）／修改完成（3-1-2 修改完成） -->
+<div class="toast" id="toast" role="status" hidden><span id="toast-text"></span></div>
+
+<script>window.ASSET_BASE = "../";
+window.MODE = "timeline"; window.PAGE_LABEL = "① 時間軸 error Error toast"; window.SECTION = "error";</script>
+<script src="../js/api.js"></script>
+<script src="../js/app.js"></script>
+</body>
+</html>

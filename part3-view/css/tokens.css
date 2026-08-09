@@ -1,0 +1,73 @@
+/* Design tokens — 抽自 Figma variables（file XphLPcM7qUdcVO6EwjYJy9，get_variable_defs）。
+   畫面 CSS 一律用這裡的變數，不出現字面色值。
+
+   ⚠️ 兩處與 FL-Agent 前端規範（ai-ui-rules.md）不同，這裡照定稿：
+      1. 定稿的字級 token 帶 letter-spacing 3%～5%（規範是繁中內文不設 letter-spacing）
+      2. Caption / Button-sm / H3 的 line-height 是 100%（規範是內文 ≥1.4）
+   兩者都是設計明確設定的值，本專案以 Figma 為 ground truth；要改請先跟設計確認。 */
+
+:root {
+  /* ---- 色 ---- */
+  --primary: #3FBA88;
+  --primary-dark: #29A379;
+  --primary-se: #61B087;
+  --primary-se-light: #C1E4CB;
+  --primary-sage: #DEE6E3;
+  --primary-light-3: #ECF8F3;
+
+  --secondary: #4B9AC3;
+  --secondary-dark: #647E96;
+
+  --alert: #CE4949;
+  --emphasis: #F8BA4C;
+  --emphasis-d1: #FF991F;
+  --emphasis-d2: #EB5514;
+  --pink: #FF8888;
+
+  --gray-51: #333333;
+  --gray-103: #676767;
+  --gray-220: #DCDCDC;
+  --gray-240: #F0F0F0;
+  --gray-245: #F5F5F5;
+  --gray-249: #F9F9F9;
+
+  --text: #333333;
+  --text-on-color: #FFFFFF;
+  --bg-page: #FFFFFF;
+  --bg-grey: #676767;
+  --overlay: rgba(0, 0, 0, .5);
+
+  /* Black Text/60・75 在定稿是同一個 #333333 疊不同不透明度 */
+  --text-60: rgba(51, 51, 51, .6);
+  --text-75: rgba(51, 51, 51, .75);
+  --white-60: rgba(255, 255, 255, .6);
+  --white-75: rgba(255, 255, 255, .75);
+
+  /* ---- 字 ---- */
+  --font: "PingFang TC", "Noto Sans TC", -apple-system, "Helvetica Neue", sans-serif;
+
+  --fs-h2: 24px;      --lh-h2: 1.5;     --ls-h2: .03em;
+  --fs-h3: 20px;      --lh-h3: 1;       --ls-h3: .03em;
+  --fs-subtitle: 16px; --lh-subtitle: 1.5; --ls-subtitle: .03em;
+  --fs-btn-lg: 16px;  --lh-btn-lg: 1.25; --ls-btn-lg: 0;
+  --fs-btn-md: 14px;  --lh-btn-md: 1.25; --ls-btn-md: .05em;
+  --fs-caption: 13px; --lh-caption: 1;   --ls-caption: .05em;
+  --fs-small: 12px;   --lh-small: 1.3;   --ls-small: .05em;
+  --fs-btn-sm: 10px;  --lh-btn-sm: 1;    --ls-btn-sm: 0;
+
+  /* ---- 版面（量自定稿 1024×768 的 get_metadata） ---- */
+  --nav-w: 64px;        /* Nav / Sidebar */
+  --header-h: 92px;     /* Frame 867：Top Nav 36 + Warning 20 + padding */
+  --funcbar-h: 60px;    /* Function bar */
+  --rowhead-w: 90px;    /* 組別 & 桌次 第一欄 */
+  --timehead-h: 30px;   /* 時間 列 */
+  --row-h: 50px;        /* 桌次列距 */
+  --block-h: 42px;      /* Card / Chart-Timeline */
+  --slot-w: 48px;       /* 每 30 分鐘 */
+  --cust-w: 300px;      /* 預約列表_顧客清單 */
+  --drawer-w: 350px;    /* 修改預約抽屜 */
+
+  --r-btn: 4px;
+  --r-card: 8px;
+  --r-pill: 999px;
+}
