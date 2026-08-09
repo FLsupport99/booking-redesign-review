@@ -238,7 +238,9 @@ p, h1 { margin: 0; }
 .stab-num { display: block; font-size: var(--fs-subtitle); font-weight: 500; }
 
 .cust-list { flex: 1; overflow-y: auto; padding: 0 8px 8px; display: flex; flex-direction: column; gap: 8px; }
-.cust-card { border: 1px solid var(--gray-220); border-radius: var(--r-card); overflow: hidden; }
+/* flex: none 不能省：.cust-list 是 flex column，預設會壓縮卡片，
+   再被 overflow:hidden 切掉下半截（電話／項目／到店入座鈕全不見）。 */
+.cust-card { flex: none; border: 1px solid var(--gray-220); border-radius: var(--r-card); overflow: hidden; }
 /* 定稿：修改中的那張卡外框變黃色加粗（表示 focus） */
 .cust-card.is-focus { border: 2px solid var(--emphasis-d1); }
 .card-head {

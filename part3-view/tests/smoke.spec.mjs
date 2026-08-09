@@ -47,6 +47,15 @@ test("現在時間線落在時間軸座標上，不是釘在 0", async ({ page }
   expect(left).toBeCloseTo(((h * 60 + m - 570) / 30) * 48, 0);  // 570 = 09:30
 });
 
+test("顧客卡片整張完整顯示，沒有被 flex 壓掉下半截", async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
+  const card = page.locator(".cust-card").first();
+  /* 卡片最底部的動作鈕看得到＝整張沒被裁切 */
+  await expect(card.locator(".card-actions .btn").first()).toBeVisible();
+  await expect(card.locator(".card-chips").first()).toBeVisible();
+});
+
 /* ---------- ⭐ 顯示時機：修改抽屜要點編輯才出現 ----------
    定稿 3-1-2_Start 在該列 x=100（最左）＝初始狀態，畫面與 3-1-1 一般時間軸相同。 */
 
