@@ -19,10 +19,13 @@ def inject(hay, anchor, addition, before=True, label=""):
 
 # 1) CSS：臨時關閉 pill 與列 tag（沿用定稿的視覺語言，只是換橘色系）
 src = inject(src, "</style>", """
-/* ===== Part4 注入：臨時預約關閉 ===== */
-.cal-pill.p4cl{background:#fdeee0;color:#a35a1f}
-.tag.p4cl{background:#fdeee0;color:#a35a1f}
-.p4-banner{margin:0 0 12px;background:#f3faf6;border:1px solid #bfe6d4;border-radius:10px;padding:10px 14px;font-size:13px;line-height:19px;color:#456}
+/* ===== Part4 注入：臨時預約關閉 =====
+   月曆 pill 不能沿用 .exc 的橘色數字——那是「已套用例外規則」的語彙，
+   兩顆並排會分不出來。改用藍色系＋時鐘斜線 icon，與紅（整日不可預約）、
+   橘（例外規則）三者一眼可辨。 */
+.cal-pill.p4cl{background:#e3eef6;color:#2d6a91;display:inline-flex;align-items:center;gap:2px}
+.cal-pill.p4cl svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2}
+.tag.p4cl{background:#e3eef6;color:#2d6a91}
 """, label="css")
 
 # 2) 頁首說明（讓 review 的人知道這頁是什麼）
@@ -34,9 +37,10 @@ src = inject(
     label="todaybtn-check",
 )
 
+P4_ICON = '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1"/><path d="M3.5 3.5l9 9"/></svg>'
 banner_anchor = '<span class="cal-pill exc">N</span>已套用例外預約規則</span>'
 src = inject(src, banner_anchor,
-    '''\n              <span><span class="cal-pill p4cl">N</span>臨時預約關閉（Part 4 注入）</span>''',
+    f'''\n              <span><span class="cal-pill p4cl">{P4_ICON}N</span>臨時預約關閉（Part 4 新增）</span>''',
     before=False, label="legend")
 
 # 3) 標題列：blockBtn 與 addBtn 之間加「臨時預約關閉」按鈕
@@ -50,7 +54,7 @@ src = inject(src, '<button class="btn-md primary anno" id="addBtn">',
 # 4) 月曆 pill
 src = inject(src, "      const rn = rulesOf(ymd).length;",
     '''      const p4n = p4ClosuresOf(ymd).length;
-      if (p4n) icons.innerHTML += `<span class="cal-pill p4cl" title="${p4n} 筆臨時預約關閉${bk==='all'?'（被整日不可預約覆蓋）':''}">${p4n}</span>`;
+      if (p4n) icons.innerHTML += `<span class="cal-pill p4cl" title="${p4n} 筆臨時預約關閉${bk==='all'?'（被整日不可預約覆蓋）':''}">''' + P4_ICON + '''${p4n}</span>`;
 ''', label="cal-pill")
 
 # 5) 該日詳情：空狀態條件納入 closures、block 卡後插入臨時關閉列

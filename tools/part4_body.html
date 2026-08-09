@@ -97,7 +97,6 @@
 </style>
 
 <div class="vsw">
-  <button data-ver="A">A・分散式</button>
   <button data-ver="B">B・整合定稿頁</button>
   <button data-ver="C">C・檢視內操作</button>
 </div>
@@ -172,7 +171,8 @@ const seed = () => ({
 let db;
 try { db = JSON.parse(sessionStorage.getItem(DB_KEY)) || seed(); } catch (e) { db = seed(); }
 const persist = () => sessionStorage.setItem(DB_KEY, JSON.stringify(db));
-let ver = sessionStorage.getItem('part4_ver') || 'A';
+let ver = sessionStorage.getItem('part4_ver') || 'B';
+if (ver === 'A') ver = 'B';   // A 版（獨立設定頁）已於 2026-08-09 移除
 
 const allUnits = () => db.groups.flatMap(g => g.units.map(u => ({ ...u, gname: g.name })));
 const unitById = id => allUnits().find(u => u.id === id);
@@ -184,7 +184,6 @@ const condLabel = d => d.cond === 'people' ? `${d.minPeople} 人以上，每人 
 const RAIL = ['預約', '排隊', '月曆', '顧客', '推播', '公告', '優惠券', '設定'];
 const navItems = () => {
   const base = ['預約規則', '例外預約規則', '自動排位規則', '顧客預約頁', '後台操作偏好', '預約通知', '預約追蹤', '訂金管理', '自訂預約問卷', '透過Google預訂'];
-  if (ver === 'A') { const a = base.slice(); a.splice(2, 0, '臨時預約關閉設定'); return a; }
   return base; // B 收進例外預約規則、C 收進時間軸，側欄都不增項
 };
 const NAV = () => [
@@ -220,7 +219,7 @@ function renderChrome() {
     b.onclick = () => {
       ver = b.dataset.ver; sessionStorage.setItem('part4_ver', ver);
       const onClosure = ['#/closure', '#/exception', '#/timeline'].includes(location.hash);
-      if (onClosure) location.hash = { A: '#/closure', B: '#/exception', C: '#/timeline' }[ver];
+      if (onClosure) location.hash = { B: '#/exception', C: '#/timeline' }[ver];
       route();
     };
   });
@@ -445,77 +444,6 @@ const priorityCard = () => `
       1. 整日不可預約　2. <b>臨時預約關閉</b>　3. 例外時段規則　4. 常態時段規則　5. 單位容納能力限制
     </div>
   </div>`;
-function closureBlock() {
-  const cur = db.closures.find(c => c.date === clDate && c.start === clStart && c.end === clEnd);
-  const closed = new Set(cur ? cur.unitIds : []);
-  return `
-    <div class="card">
-      <div class="card-head"><div class="ch-main">
-        <div class="ch-title">選擇要關閉的時段</div>
-        <div class="ch-desc">關閉後，該時段內的指定預約單位<b>不再開放線上預約</b>；已存在的預約不受影響，後台自建預約也不受限制。</div>
-      </div></div>
-      <div class="inline2">
-        <input type="date" class="input" id="clDate" value="${clDate}" style="width:170px">
-        <input type="time" class="input mono" id="clStart" value="${clStart}" style="width:120px">〜
-        <input type="time" class="input mono" id="clEnd" value="${clEnd}" style="width:120px">
-      </div>
-    </div>
-    <div class="cl-grid">
-      <div class="card">
-        <div class="card-head"><div class="ch-main">
-          <div class="ch-title">預約單位</div>
-          <div class="ch-desc">順序沿用「後台操作偏好 &gt; 預約單位排序」，與時間軸上看到的一致。</div>
-        </div></div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          ${orderedUnits().map(u => `
-            <div class="cl-item${closed.has(u.id) ? ' off' : ''}">
-              <span class="gchip">${esc(u.gname)}</span>
-              <span class="sname">${esc(u.name)}</span>
-              <span class="scap mono">${esc(u.cap)} 人</span>
-              <span class="sw${closed.has(u.id) ? '' : ' on'}" data-cu="${u.id}"></span>
-            </div>`).join('')}
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-head"><div class="ch-main"><div class="ch-title">目前的關閉設定</div></div></div>
-        <div class="hist">
-          ${db.closures.length ? db.closures.map(c => `
-            <div class="hist-row">
-              <div><b class="mono">${c.date}</b> <span class="mono">${c.start}–${c.end}</span><br>
-                ${c.unitIds.map(id => esc((unitById(id) || {}).name || '')).join('、')}</div>
-              <span class="x" data-clx="${c.id}">解除</span>
-            </div>`).join('') : '<div class="empty">目前沒有臨時關閉的單位</div>'}
-        </div>
-      </div>
-    </div>`;
-}
-function wireClosure() {
-  ['clDate', 'clStart', 'clEnd'].forEach(id => {
-    const el = $('#' + id); if (!el) return;
-    el.onchange = () => { clDate = $('#clDate').value; clStart = $('#clStart').value; clEnd = $('#clEnd').value; route(); };
-  });
-  document.querySelectorAll('[data-cu]').forEach(sw => sw.onclick = () => {
-    const uid = sw.dataset.cu;
-    let c = db.closures.find(x => x.date === clDate && x.start === clStart && x.end === clEnd);
-    if (!c) { c = { id: 'c' + (++db.seq), date: clDate, start: clStart, end: clEnd, unitIds: [] }; db.closures.push(c); }
-    c.unitIds = c.unitIds.includes(uid) ? c.unitIds.filter(x => x !== uid) : c.unitIds.concat(uid);
-    db.closures = db.closures.filter(x => x.unitIds.length);
-    persist(); route();
-    toast(c.unitIds.includes(uid) ? '已關閉線上預約' : '已恢復開放');
-  });
-  document.querySelectorAll('[data-clx]').forEach(x => x.onclick = () => {
-    db.closures = db.closures.filter(c => c.id !== x.dataset.clx); persist(); route(); toast('已解除關閉');
-  });
-}
-function viewClosureA() {
-  setTitle('設定 / 預約設定', '臨時預約關閉設定');
-  $('#content').innerHTML = `
-    <div class="vnote"><b>版本 A・分散式</b>：側欄新增「臨時預約關閉設定」獨立頁，與「自動排位規則」「訂金管理」平行。優點是三個功能各自一頁、最貼近現況與既有 Settings 版型，改動最小；代價是側欄再長一項（預約設定已有 11 項）。優先層級卡片直接放進本頁，把版本 B 的優點吸收過來。</div>
-    ${priorityCard()}
-    ${blockedBanner()}
-    ${closureBlock()}`;
-  wireClosure();
-}
 function viewExceptionB() {
   setTitle('設定 / 預約設定', '例外預約規則');
   $('#content').innerHTML = `
@@ -681,7 +609,7 @@ $('#drMask').addEventListener('click', closeDrawer);
 function route() {
   renderChrome();
   const h = location.hash || '#/auto';
-  const closureView = () => ({ A: viewClosureA, B: viewExceptionB, C: viewTimeline }[ver])();
+  const closureView = () => (ver === 'C' ? viewTimeline : viewExceptionB)();
   if (h === '#/deposit') viewDeposit();
   else if (h === '#/closure' || h === '#/exception' || h === '#/timeline') closureView();
   else viewAuto();
