@@ -43,8 +43,9 @@ Figma「2026 May. 顧客預約頁改版」定稿的**真 DOM** 實作：純 HTML
 | 路徑 | 內容 |
 |---|---|
 | `src/template.html` | **唯一的畫面來源**，三個模式檔與 21 個單段落檔都從這裡產生 |
-| `tools/build.mjs` | 產生器：`node tools/build.mjs` |
-| `tools/smoke.html` | 一次載入全部檔案檢查 console error／破圖／預期畫面（瀏覽器打開即跑） |
+| `verify.config.mjs` | **驗收管線的單一設定檔**，三關共用（模式／段落／Figma 節點／豁免／斷言選擇器） |
+| `tools/build.mjs` | 產生器：`npm run build` |
+| `tests/smoke.spec.mjs` | 行為與顯示時機斷言（Playwright）：`npm run smoke` |
 | `tools/figma-copy-check.mjs` | 文案稽核：從 Figma 抓定稿文字逐條比對實作 |
 | `tools/gen-qr.mjs` | 產生 LINE 加好友的真 QR（換連結後重跑） |
 | `payment-mock.html` | 模擬金流頁，驗證付款導轉往返 |
@@ -161,16 +162,24 @@ UI 字串走 `js/app.js` 的 `I18N` 字典；**店家內容（店名、地址、
 
 ## 驗收流程（改完一定要跑完三關）
 
-改任何畫面或文案後，依序跑：
+第一次先 `npm install && npx playwright install chromium`，之後改任何畫面或文案就跑：
 
-| # | 關卡 | 指令／做法 | 過關標準 |
+```sh
+npm run verify        # = build → copy-check → smoke，一次跑完三關
+```
+
+| # | 關卡 | 指令 | 過關標準 |
 |---|---|---|---|
-| 1 | 重新產生 | `node tools/build.mjs` | 24 個檔案產出無誤 |
-| 2 | **文案對定稿** | `node tools/figma-copy-check.mjs` | `=== 全部相符 ===` |
-| 3 | 流程與破圖 | 瀏覽器開 `tools/smoke.html` | `30/30 passed` |
+| 1 | 重新產生 | `npm run build` | `built 24 files` |
+| 2 | **文案對定稿** | `npm run copy-check` | `=== 全部相符 ===` |
+| 3 | **行為與顯示時機** | `npm run smoke` | `38 passed` |
 
-再加一關人工：**逐頁對照 Figma 原稿截圖**（`../gallery_assets/`、`../modes_assets/`），
-確認版面結構與顯示時機。目前已建立的對照證據在 `docs/`。
+再加第 4 關人工：**三視角走查**（結構／視覺／盤點），做法與 prompt 範本見
+[REVIEW-CHECKLIST.md](./REVIEW-CHECKLIST.md)。目前已建立的對照證據在 `docs/`。
+
+三關的常數（模式、段落、Figma 節點、豁免清單、斷言選擇器）全部集中在
+**`verify.config.mjs`**，`tools/` 與 `tests/` 本身不含常數。
+Part 3／Part 4 要沿用這套流程時複製一份 config 改內容即可，腳本不必動。
 
 ### 為什麼要有第 2 關
 
@@ -179,8 +188,23 @@ UI 字串走 `js/app.js` 的 `I18N` 字典；**店家內容（店名、地址、
 所有文字（含各付款／審核狀態頁），逐條檢查實作是否使用同一個字，抓的就是這類錯誤。
 句中帶動態值的（金額、期限、倒數）會把數字與 `${...}` 去掉後比句子骨架。
 
-刻意不同的字要寫進腳本的 `ACCEPTED`（附理由）；店家自填內容、假資料寫進 `IGNORE_PATTERNS`。
-**不要為了讓它變綠而亂加豁免**——每一條豁免都要有理由。
+刻意不同的字要寫進 config 的 `figma.ACCEPTED`（附理由）；店家自填內容、假資料寫進
+`figma.IGNORE_PATTERNS`。**不要為了讓它變綠而亂加豁免**——每一條豁免都要有理由。
+
+### 為什麼要有第 3 關，以及新增畫面時的義務
+
+第 3 關是 Playwright，跑在真的跑起來的頁面上，斷言只碰 DOM、不碰實作技術——
+所以同一套 spec 對這份 HTML 與（將來）前端轉出來的版本都能跑，可以用來驗證「轉換有沒有跑掉」。
+
+其中 8 條是 Part 2 跟工程師手刻版比對後補的，擋的是文案檢查抓不到、只能靠人眼發現的那類錯：
+
+- **顯示時機**：項目模式未選項目（階層模式未選子項目）前，人數／日期／時段整塊不得出現
+- **互動層**：送出預約後的 LINE 加好友 popup
+- **路由**：hash 會跟著 view 換；無狀態直接貼網址會退回預約頁而不是空白頁
+
+> **新增畫面或狀態時，必須同步補上對應的顯示時機斷言。**
+> 只加畫面不加斷言，等於把這關退回成「只驗有沒有破圖」。
+> 第 4 關走查抓到的錯，只要能機器化就回填成斷言——這關會越跑越厚，走查會越跑越薄。
 
 ### spec 從哪裡來
 
