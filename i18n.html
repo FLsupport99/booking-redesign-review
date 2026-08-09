@@ -1,0 +1,197 @@
+<!doctype html>
+<!-- 改版 UI 文案交付／前端說明 · 由 tools/build_i18n_handoff.py 產生，不要直接改 i18n.html -->
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI 文案交付 — 前端說明</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"PingFang TC","Noto Sans TC",sans-serif;background:#f4f5f6;color:#222;
+     line-height:1.75;padding:40px 20px 64px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:860px;margin:0 auto}
+.hd{text-align:center;margin-bottom:36px}
+.hd h1{font-size:24px;font-weight:700;line-height:1.4}
+.hd p{font-size:14px;color:#888;margin-top:8px}
+section{background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:26px 28px;margin-bottom:20px}
+section > h2{font-size:17px;font-weight:600;margin-bottom:14px}
+section > h2 .n{color:#29A379;margin-right:8px}
+h3{font-size:14px;font-weight:600;margin:20px 0 8px}
+p,li{font-size:14px;color:#444}
+ul,ol{margin:8px 0 8px 20px}
+li{margin-bottom:4px}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #eee;vertical-align:top}
+th{font-weight:600;color:#666;background:#fafafa;white-space:nowrap}
+td:first-child{white-space:nowrap}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+     background:#f4f5f6;border-radius:4px;padding:1px 5px;color:#29A379;word-break:break-all}
+pre{background:#f9f9f9;border:1px solid #eee;border-radius:8px;padding:14px 16px;overflow-x:auto;margin:10px 0}
+pre code{background:none;padding:0;color:#333;font-size:12.5px;line-height:1.7}
+.note{background:#ECF8F3;border-left:3px solid #3FBA88;border-radius:0 8px 8px 0;padding:12px 16px;margin:12px 0;font-size:13.5px}
+.warn{background:#fdf4e8;border-left:3px solid #F8BA4C;border-radius:0 8px 8px 0;padding:12px 16px;margin:12px 0;font-size:13.5px}
+a{color:#29A379}
+details{margin-top:12px;border-top:1px solid #eee;padding-top:12px}
+summary{cursor:pointer;font-size:13.5px;color:#29A379;font-weight:500;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸ ";}
+details[open] summary::before{content:"▾ ";}
+.tblwrap{overflow-x:auto}
+.back{display:block;text-align:center;margin-top:32px;font-size:13px;color:#888;text-decoration:none}
+.back:hover{color:#29A379}
+footer{margin-top:28px;font-size:12px;color:#aaa;text-align:center;line-height:1.8}
+@media(max-width:640px){body{padding:24px 14px 48px}section{padding:20px 18px}}
+</style></head><body>
+<div class="wrap">
+<div class="hd">
+  <h1>改版 UI 文案交付 — 前端說明</h1>
+  <p>Part 1–3 中英對照表怎麼看、i18n key 怎麼處理</p>
+</div>
+
+<section>
+  <h2><span class="n">1</span>這次交付三個分頁</h2>
+  <p>全部在 Google Sheet「MENU店+ 後台功能與翻譯清單_2026」：
+     <a href="https://docs.google.com/spreadsheets/d/1qSVE3zADY7fw4FpSF95oA_WLEPRoF9WstBlvu89M0ZI/" target="_blank" rel="noopener">開啟試算表 →</a></p>
+  <div class="tblwrap"><table>
+    <tr><th>分頁</th><th>改版範圍</th><th>列數</th><th>i18n key 欄</th></tr>
+    <tr><td><code>V3 設定_預約</code></td><td>Part 1：預約模式／單位／時段／例外規則</td><td>267</td><td>已填 21 列</td></tr>
+    <tr><td><code>V3 預約前台</code></td><td>Part 2：顧客預約頁</td><td>321</td><td>全空（見第 5 節）</td></tr>
+    <tr><td><code>V3 後台操作優化</code></td><td>Part 3：自建預約／候位／Settings</td><td>230</td><td>已填 101 列</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="n">2</span>「i18n key」欄是什麼</h2>
+  <p>這個字串在 <code>menushop_frontend/src/locales/</code> 裡的位置，格式是
+     <code>namespace:巢狀路徑</code>。例：<code>bookingSystem:buttonStatus.cancel</code></p>
+  <pre><code>locales/zh/bookingSystem.json  →  buttonStatus.cancel = "取消"
+locales/en/bookingSystem.json  →  buttonStatus.cancel = "Cancel"</code></pre>
+  <p>namespace 就是 <code>src/i18n.js</code> 註冊的那 11 個：common / bookingSystem / settings /
+     queueSystem / couponSystem / bulletinSystem / customer / messages / report / dashboard / time。</p>
+
+  <h3>這一欄有值 vs 空白</h3>
+  <div class="tblwrap"><table>
+    <tr><th>狀態</th><th>意思</th><th>你要做的事</th></tr>
+    <tr><td><b>有 key</b></td><td>前端已經有一模一樣的中文，而且英文核對過與表上一致</td>
+        <td><b>直接沿用</b>，不用新增。元件改成 <code>t("該 key")</code> 即可</td></tr>
+    <tr><td><b>空白</b></td><td>前端沒有這個字串</td>
+        <td><b>新命名一個 key</b>，同時寫進 <code>zh/</code> 和 <code>en/</code>，再把 key 回填到這一欄</td></tr>
+  </table></div>
+  <div class="note">已填的 key 是拿表上中文去比對 <code>locales/zh/*.json</code> 撈出來的，並逐筆確認英文也相同才填。
+    撈得到但英文對不上的一律留空。</div>
+
+  <h3>「討論」欄寫「開新 key，勿沿用前端」的列</h3>
+  <p>這些字串<b>中文跟現有 key 一樣，但語境不同，不可以沿用</b>：</p>
+  <ul>
+    <li><code>已儲存變更</code> — 前端現有的是 <code>customer:editCustomerPopup.editSuccess</code>，英文其實是 "Customer edited"（顧客編輯成功）</li>
+    <li><code>要求訂金</code> — 前端現有的是 "Deposit Amount"，跟這裡的 "Deposit Required" 不是同一件事</li>
+  </ul>
+  <div class="warn">這幾列請另外開新 key，不要圖方便接舊的。</div>
+</section>
+
+<section>
+  <h2><span class="n">3</span>欄位怎麼看</h2>
+  <div class="tblwrap"><table>
+    <tr><th>欄</th><th>意思</th></tr>
+    <tr><td>B 中文名稱 / C 英語名稱</td><td><b>已上線</b>的文案。這次改版沒動到的維持原樣</td></tr>
+    <tr><td>F 預計變更-中文 / G 預計變更-英文</td><td><b>這次要實作的新文案</b> ← 你要落檔的是這兩欄</td></tr>
+    <tr><td>E 類型</td><td>UI 元件類型（按鈕／欄位／Toast／Pop-up 說明…），幫助判斷放哪個 namespace</td></tr>
+    <tr><td>H 討論</td><td>註記與需注意事項</td></tr>
+    <tr><td>I i18n key</td><td>見第 2 節</td></tr>
+  </table></div>
+  <p><b>你只需要處理 F/G 兩欄有值的列。</b>落檔完成後回填 I 欄，PM 會再把值搬到 B/C 正式欄。</p>
+</section>
+
+<section>
+  <h2><span class="n">4</span>兩個格式約定</h2>
+  <h3>變數</h3>
+  <p>表上用單大括號中文變數名，落檔時轉成 i18next 格式並取英文變數名，中英取一致：</p>
+  <pre><code>表上：  可接受 {最少}-{最多} 位訂位      Accepts {min}-{max} guests
+落檔：  可接受 {{min}}-{{max}} 位訂位    Accepts {{min}}-{{max}} guests</code></pre>
+  <h3>換行</h3>
+  <p>表上的 <code>⏎</code> 代表原設計稿的換行，落檔時轉成 <code>\n</code> 或依元件需要處理。</p>
+</section>
+
+<section>
+  <h2><span class="n">5</span><code>V3 預約前台</code> 為什麼 key 全空</h2>
+  <p>顧客預約頁不在 <code>menushop_frontend</code> 這個 repo（它是後台，路由都是 <code>/dashboard/*</code>）。
+     我們沒有那份程式碼，比對不出 key。這個分頁請依實際 repo 結構自行命名並回填。</p>
+</section>
+
+<section>
+  <h2><span class="n">6</span>已定案的用語規則</h2>
+  <div class="tblwrap"><table>
+    <tr><th>項目</th><th>規則</th></tr>
+    <tr><td>星期</td><td>三字母 <code>Mon</code> / <code>Tue</code> / <code>Wed</code> / <code>Thu</code> / <code>Fri</code> / <code>Sat</code> / <code>Sun</code></td></tr>
+    <tr><td>時間單位</td><td><code>hour</code> / <code>minute</code>（完整字，不用 h / min）</td></tr>
+    <tr><td>確定</td><td><code>Confirm</code>（<b>不是 OK</b>）</td></tr>
+    <tr><td>確認類 Pop-up</td><td>短句 <code>Confirm save?</code> / <code>Confirm delete?</code>，不用 "Are you sure you want to…"</td></tr>
+    <tr><td>儲存／取消／編輯／刪除／變更</td><td><code>Save</code> / <code>Cancel</code> / <code>Edit</code> / <code>Delete</code> / <code>Change</code></td></tr>
+    <tr><td>預約模式名稱</td><td>基本人數預約=<code>Basic</code>、服務項目預約=<code>Service</code>、階層項目預約=<code>Category</code>、總量控管=<code>Capacity</code></td></tr>
+    <tr><td>肚肚 POS</td><td><code>dudoo</code>（小寫 d，沿用既有 19 處拼法）</td></tr>
+    <tr><td>排隊組別</td><td><code>Queue Type</code>（不是 Queue Group）</td></tr>
+    <tr><td>欄位</td><td>用「欄位」不用「標籤」（避免與系統標籤功能混淆）</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="n">7</span>⚠️ 這次還要改「既有」字串</h2>
+  <p>除了落新文案，有兩件事需要動到現有的 <code>locales/*.json</code>，共 28 筆。</p>
+
+  <h3>7-1　桌位圖改名為空間圖／Table Map → Floor Plan（25 筆）</h3>
+  <p>改版把這個功能從「桌位圖設定」改名為「空間圖」，因為它現在管的不只桌位。<b>中英文都要改</b>：</p>
+  <ul>
+    <li>中文：<code>桌位圖</code> / <code>座位圖</code> → <code>空間圖</code></li>
+    <li>英文：<code>Table Map</code> → <code>Floor Plan</code></li>
+  </ul>
+  <div class="warn"><code>Table Configuration</code>（桌位設定）<b>維持不變</b> —— 那是設定個別桌位，跟空間圖是兩件事，別一起改掉。</div>
+  <details><summary>展開 25 筆完整清單</summary>
+    <div class="tblwrap"><table>
+      <tr><th>i18n key</th><th>現行中文</th><th>現行英文</th></tr>
+      <tr><td><code>bookingSystem:tableMap.canvasMapNotEnabled</code></td><td>尚未開啟桌位圖</td><td>Table Map feature need to be enable first.</td></tr>
+<tr><td><code>bookingSystem:dudoo.inconsistent</code></td><td>座位設定與肚肚POS不一致</td><td>Table mapping is inconsistent with dudoo POS.</td></tr>
+<tr><td><code>settings:dudooPosSettings.tableMappingCheck</code></td><td>桌位對應檢查</td><td>Table mapping check</td></tr>
+<tr><td><code>settings:dudooPosSettings.recentlyUpdatedTable</code></td><td>最近變更過座位或桌位圖嗎？</td><td>Have you recently updated your table or table map settings?</td></tr>
+<tr><td><code>settings:dudooPosSettings.note_4_1</code></td><td>需啟用MENU店+的「桌位圖」功能。</td><td>The Table Map feature in MENU Shop must be enabled.</td></tr>
+<tr><td><code>settings:dudooPosSettings.note_4_2</code></td><td>MENU店+的「桌位圖設定」對應肚肚POS系統中的「區域圖設定」，其數量與名稱需一致。</td><td>MENU Shop &quot;Table Map Settings&quot; correspond to dudoo POS &quot;Zone Settings.</td></tr>
+<tr><td><code>settings:dudooPosSettings.pls_mappingConsistent</code></td><td>桌位對應檢查一致</td><td>Table mapping consistent.</td></tr>
+<tr><td><code>settings:dudooPosSettings.pls_mappingInconsistent</code></td><td>桌位對應檢查不一致</td><td>Table mapping inconsistent.</td></tr>
+<tr><td><code>settings:dudooPosSettings.notice_disableTableMap</code></td><td>您已啟用肚肚POS串接，若未啟用桌位圖可能導致部分預約資料無法同步</td><td>Disabling table map feature may cause certain data fail to sync with d</td></tr>
+<tr><td><code>settings:dudooPosSettings.popup.featureUnavailable_content</code></td><td>請確認MENU店+與肚肚POS系統上的桌位對應設定一致，並且啟用桌位圖，方可開啟串接功能。</td><td>Please ensure that the table mapping between MENU Shop and dudoo POS i</td></tr>
+<tr><td><code>settings:dudooPosSettings.popup.tableMappingInconsistent_title</code></td><td>座位設定與肚肚POS對應不一致</td><td>Table mapping is inconsistent with dudoo POS.</td></tr>
+<tr><td><code>settings:dudooPosSettings.popup.disabledMap_content</code></td><td>關閉桌位圖將影響與肚肚POS串接的預約資料同步功能。如欲繼續使用肚肚POS請將桌位圖啟用以利後續作業。</td><td>Disabling the table map will affect the synchronization of booking dat</td></tr>
+<tr><td><code>settings:tableSettings.deleteConfirmation_content</code></td><td>刪除後，此桌次上的所有預約將失去對應桌位，需手動重新配位，否則將無法顯示於時間軸與桌位圖上。確定刪除嗎？</td><td>Deleting this table will unassign all related bookings. They will not </td></tr>
+<tr><td><code>settings:tableSettings.deleteTableTypeConfirmation_content</code></td><td>刪除後，此類型桌次上的所有預約將失去對應桌位，需手動重新配位，否則將無法顯示於時間軸與桌位圖上。確定刪除嗎？</td><td>Deleting this table type will unassign all related bookings. They will</td></tr>
+<tr><td><code>settings:tableSettings.updated_content</code></td><td>桌位修改已經成功儲存，請立即前往修改您的桌位圖設定！</td><td>Table configuration updated. Go to &quot;Table Map&quot; settings to adjust.</td></tr>
+<tr><td><code>settings:tableMap.title</code></td><td>桌位圖設定</td><td>Table Map</td></tr>
+<tr><td><code>settings:tableMap.description</code></td><td>您可以依照店內狀況設定桌位圖，以更方便檢視不同桌位的使用狀況，或進行現場帶位管理。</td><td>You can set up Table Map based on the situation in the store.</td></tr>
+<tr><td><code>settings:tableMap.addTableMap</code></td><td>新增桌位圖</td><td>Add Table Map</td></tr>
+<tr><td><code>settings:tableMap.editTableMap</code></td><td>進入桌位圖</td><td>Edit Table Map</td></tr>
+<tr><td><code>settings:tableMap.pls_enterNameOfTableMap</code></td><td>請輸入桌位圖名稱</td><td>Please enter the name of Table Map.</td></tr>
+<tr><td><code>settings:tableMap.pls_nameOfTableMapCannotEmpty</code></td><td>桌位圖名稱不可為空白</td><td>The name of Table Map can&#x27;t be empty.</td></tr>
+<tr><td><code>settings:tableMap.pls_nameOfTableMapMustBeUnique</code></td><td>桌位圖名稱不可重複</td><td>The name of Table Map must be unique.</td></tr>
+<tr><td><code>settings:tableMap.pls_onlyCreate10TableMap</code></td><td>最多十張桌位圖</td><td>You can only create 10 or less Table Map.</td></tr>
+<tr><td><code>settings:tableMap.pls_tableGroupOnlyInOneTableMap</code></td><td>同類型的桌次僅能放置於同一張桌位圖中</td><td>A Table Type can only be arranged in one Table Map.</td></tr>
+<tr><td><code>settings:tableMap.pls_tablePlacedOnTableMap</code></td><td>桌次尚未完全設置於桌位圖中，故無法啟用</td><td>Please make sure every table have been placed on Table Map.</td></tr>
+    </table></div>
+  </details>
+
+  <h3>7-2　<code>Queueing</code> 拼法統一為 <code>Queuing</code>（3 筆）</h3>
+  <p>現行兩種拼法混用（Queuing 17 筆、Queueing 3 筆），統一成 <code>Queuing</code>。</p>
+  <details><summary>展開 3 筆完整清單</summary>
+    <div class="tblwrap"><table>
+      <tr><th>i18n key</th><th>現行中文</th><th>現行英文</th></tr>
+      <tr><td><code>queueSystem:panel.pls_startNewPeriod</code></td><td>尚未開始排隊，請先開始新時段</td><td>Please start a new queueing period.</td></tr>
+<tr><td><code>settings:accountSettings.description</code></td><td>您可以設定您的商家名稱與聯絡資訊。這些資訊將顯示於線上預約頁面與線上排隊頁面。</td><td>You can set your merchant name and contact information. These details </td></tr>
+<tr><td><code>settings:queueNotification.description</code></td><td>您可以在不同排隊情境中，選擇是否透過不同管道發送通知給顧客。</td><td>You can choose whether to send notifications to customers in different</td></tr>
+    </table></div>
+  </details>
+</section>
+
+<section>
+  <h2><span class="n">8</span>回報</h2>
+  <p>落檔完成後請告知，我們會用腳本重新比對 <code>locales/*.json</code> 驗收，確認每一列都真的落地。</p>
+</section>
+
+<a class="back" href="index.html">← 回 Design Review 首頁</a>
+<footer>內部交付文件 · 由 tools/build_i18n_handoff.py 產生<br>© 2026 FindLife Inc.</footer>
+</div>
+</body></html>
