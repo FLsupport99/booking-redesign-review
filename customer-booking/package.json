@@ -4,8 +4,8 @@
   "type": "module",
   "description": "顧客預約頁（Part 2）的驗收管線：build / 文案對定稿 / 行為煙霧測試",
   "scripts": {
-    "build": "node tools/build.mjs",
-    "copy-check": "node tools/figma-copy-check.mjs",
+    "build": "node ../verify-kit/build.mjs",
+    "copy-check": "node ../verify-kit/figma-copy-check.mjs",
     "smoke": "playwright test",
     "verify": "npm run build && npm run copy-check && npm run smoke"
   },

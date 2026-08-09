@@ -44,9 +44,9 @@ Figma「2026 May. 顧客預約頁改版」定稿的**真 DOM** 實作：純 HTML
 |---|---|
 | `src/template.html` | **唯一的畫面來源**，三個模式檔與 21 個單段落檔都從這裡產生 |
 | `verify.config.mjs` | **驗收管線的單一設定檔**，三關共用（模式／段落／Figma 節點／豁免／斷言選擇器） |
-| `tools/build.mjs` | 產生器：`npm run build` |
+| `../verify-kit/build.mjs` | 產生器（與 part3-view 共用）：`npm run build` |
 | `tests/smoke.spec.mjs` | 行為與顯示時機斷言（Playwright）：`npm run smoke` |
-| `tools/figma-copy-check.mjs` | 文案稽核：從 Figma 抓定稿文字逐條比對實作 |
+| `../verify-kit/figma-copy-check.mjs` | 文案稽核（共用）：從 Figma 抓定稿文字逐條比對實作 |
 | `tools/gen-qr.mjs` | 產生 LINE 加好友的真 QR（換連結後重跑） |
 | `payment-mock.html` | 模擬金流頁，驗證付款導轉往返 |
 | `css/tokens.css` | Design tokens——色彩/字級/圓角/陰影抽自 Figma variables，畫面不出現字面色值 |
@@ -56,7 +56,7 @@ Figma「2026 May. 顧客預約頁改版」定稿的**真 DOM** 實作：純 HTML
 | `assets/` | 從 Figma 匯出的 icon 與圖（菜單／分享照為示意圖，正式從 API 來） |
 | `docs/` | 與 Figma 原稿比對用的實測截圖 |
 
-> 改畫面請改 `src/template.html` 後跑 `node tools/build.mjs`，不要直接改根目錄那三個產出檔。
+> 改畫面請改 `src/template.html` 後跑 `npm run build`，不要直接改根目錄那三個產出檔。
 
 ## 接真 API
 

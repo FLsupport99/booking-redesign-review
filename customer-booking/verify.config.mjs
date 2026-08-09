@@ -3,6 +3,8 @@
 
 /* ---------- 產出物結構（build 用） ---------- */
 
+export const TITLE_PREFIX = "顧客預約頁";
+
 export const MODES = [
   { key: "basic", file: "1-基本人數預約.html", label: "① 基本人數預約", hasItems: false, hasSub: false },
   { key: "service", file: "2-服務項目預約.html", label: "② 服務項目預約", hasItems: true, hasSub: false },
