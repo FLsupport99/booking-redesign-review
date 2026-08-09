@@ -1,0 +1,974 @@
+<!doctype html>
+<!-- MENU店+ Part 4 原型（自動排位規則／訂金管理／臨時預約關閉）· 假資料互動 Demo -->
+<!-- 由 tools/build_part4.py 產生：head 取自 sim.html、body 取自 tools/part4_body.html。不要直接改 part4.html -->
+<!-- 設定區依 Figma「2025 Oct. 系統架構演算法優化」；預約區依「2026 Jul. 預約系統操作優化」Part3 自建預約 -->
+<!-- 資料層為 sessionStorage mock API，設定區與預約區共用同一份 db（改設定會直接影響預約區） -->
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MENU店+ Part 4 原型・A/B 兩版</title>
+<style>
+:root{
+  --bg-page:#f9f9f9; --bg-surface:#fff; --bg-selected:#ecf8f3; --bg-tag-on:#d6f0e5;
+  --border-card:#f0f0f0; --border-field:#dcdcdc; --border-on:#3fba88; --border-tag-on:#8cd6b8;
+  --primary:#3fba88; --primary-dark:#29a379; --primary-l2:#d6f0e5; --primary-l3:#ecf8f3;
+  --secondary:#4b9ac3; --emphasis:#f8ba4c; --emphasis-d:#ff991f; --alert:#ce4949; --alert-light:#ef6868;
+  --text-strong:#333; --text-body:rgba(51,51,51,.75); --text-muted:rgba(51,51,51,.6); --text-disabled:rgba(51,51,51,.27);
+  --icon-muted:#676767; --sidebar-bg:#333; --btn-disabled:#dcdcdc;
+  --r-tag:4px; --r-nav:6px; --r-input:7px; --r-btn:8px; --r-card:12px;
+  --font:"PingFang TC","PingFang SC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font);background:#e9eaec;color:var(--text-strong);-webkit-font-smoothing:antialiased}
+button,input,select{font-family:inherit;color:inherit}
+
+.canvas{max-width:1024px;margin:24px auto;background:var(--bg-page);display:flex;box-shadow:0 1px 4px rgba(0,0,0,.12);min-height:768px}
+
+/* ==== 左側 icon rail ==== */
+.sidebar{width:64px;flex:0 0 64px;background:var(--sidebar-bg);display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:16px 4px}
+.sidebar .logo{width:32px;height:32px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:600}
+.nav-list{display:flex;flex-direction:column;gap:2px;margin-top:8px;align-items:center}
+.nav-item{width:56px;height:54px;border-radius:var(--r-nav);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:rgba(255,255,255,.6)}
+.nav-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.6}
+.nav-item span{font-size:10px;line-height:14px;font-weight:500}
+.nav-item:hover{background:#3d3d3d}
+.nav-item.active{color:var(--primary)}
+.sidebar-bottom{display:flex;flex-direction:column;gap:8px;align-items:center;color:rgba(255,255,255,.6);font-size:10px}
+.sidebar-bottom .avatar{width:28px;height:28px;border-radius:50%;background:#555;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px}
+
+/* ==== 設定分類選單 ==== */
+.settings-nav{width:188px;flex:0 0 188px;background:var(--bg-page);padding:24px 8px;display:flex;flex-direction:column;gap:28px;border-right:1px solid var(--border-card);overflow:auto}
+.nav-group-title{display:flex;align-items:center;gap:4px;padding:0 8px;margin-bottom:8px;color:var(--primary);font-size:16px;line-height:20px;font-weight:500}
+.nav-group-title .dot{width:14px;height:14px;border:1px solid var(--primary);border-radius:3px}
+.nav-sub{display:flex;flex-direction:column;gap:2px}
+.nav-sub a{display:block;padding:8px 16px;border-radius:var(--r-nav);font-size:14px;line-height:18px;font-weight:500;color:var(--text-muted);text-decoration:none;cursor:pointer}
+.nav-sub a:hover{background:rgba(0,0,0,.03)}
+.nav-sub a.active{color:var(--text-strong);background:linear-gradient(rgba(236,248,243,.25),rgba(236,248,243,.25)),rgba(0,0,0,.05)}
+
+/* ==== 手機頂欄 ==== */
+.mtopbar{display:none;background:#fff;border-bottom:1px solid var(--border-card);padding:10px 16px;align-items:center;gap:12px;position:sticky;top:0;z-index:60}
+.mtopbar .burger,.mtopbar .acct{width:32px;height:32px;border:0;background:transparent;display:flex;align-items:center;justify-content:center;color:var(--text-strong);cursor:pointer}
+.mtopbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+.mtopbar .mlogo{width:30px;height:30px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.mtopbar .sp{flex:1}
+.drawer-mask{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:70;display:none}
+.drawer-mask.show{display:block}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--bg-page);z-index:71;padding:20px 8px;overflow:auto;transform:translateX(-105%);transition:transform .2s;display:flex;flex-direction:column;gap:28px}
+.drawer.show{transform:none}
+
+/* ==== 主內容 ==== */
+.main{flex:1;display:flex;flex-direction:column;background:var(--bg-page);min-width:0}
+.page-title{padding:30px 20px 0;display:flex;flex-direction:column;gap:4px}
+.crumb{font-size:14px;color:var(--text-body);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.crumb a{color:var(--text-body);text-decoration:none;cursor:pointer}
+.crumb a:hover{color:var(--primary-dark)}
+.crumb .sep svg{width:12px;height:12px;stroke:var(--icon-muted);stroke-width:2;fill:none}
+.crumb .here{color:var(--text-strong);font-weight:500}
+.h1{font-size:24px;line-height:32px;font-weight:500;margin-top:8px}
+.content{padding:24px 20px 60px;display:flex;flex-direction:column;gap:20px}
+
+/* ==== 卡片 ==== */
+.card{background:#fff;border:1px solid var(--border-card);border-radius:var(--r-card);padding:20px;display:flex;flex-direction:column;gap:16px}
+.card .card-head{display:flex;align-items:flex-start;gap:16px}
+.card .ch-main{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.card .ch-title{font-size:18px;line-height:24px;font-weight:500}
+.card .ch-desc{font-size:14px;line-height:20px;color:var(--text-body)}
+.rows{display:flex;flex-direction:column;gap:10px}
+.g-row{display:flex;align-items:center;gap:16px;padding:14px 16px;border:1px solid var(--border-field);border-radius:var(--r-card);background:#fff;cursor:pointer}
+.g-row:hover{border-color:var(--border-on)}
+.g-row.dim{background:#f7f7f7}
+.g-row .gr-main{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.g-row .gr-name{font-size:16px;line-height:22px;font-weight:500;word-break:break-all}
+.g-row .gr-sub{font-size:14px;line-height:20px;color:var(--text-body)}
+.g-row .arrow svg{width:8px;height:14px;stroke:var(--icon-muted);stroke-width:1.6;fill:none}
+
+/* 群組內頁 header 卡 */
+.grp-head-card{background:#fff;border:1px solid var(--border-card);border-radius:var(--r-card);padding:20px;display:flex;align-items:flex-start;gap:16px}
+.grp-head-card .ghc-main{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.grp-head-card .ghc-name{font-size:20px;line-height:28px;font-weight:500;word-break:break-all}
+.grp-head-card .ghc-sub{font-size:14px;line-height:20px;color:var(--text-body)}
+.sec-head{display:flex;align-items:center;gap:16px}
+.sec-head .t{font-size:18px;line-height:24px;font-weight:500;flex:1}
+.unit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.u-card{display:flex;align-items:center;gap:8px;padding:12px 16px;border:1px solid var(--border-field);border-radius:var(--r-card);background:#fff}
+.u-card .uc-main{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.u-card .uc-name{font-size:15px;line-height:21px;font-weight:500;word-break:break-all}
+.u-card .uc-cap{font-size:13px;line-height:18px;color:var(--text-body);display:inline-flex;align-items:center;gap:4px}
+.u-card .uc-cap svg{width:14px;height:14px;stroke:var(--icon-muted);stroke-width:1.6;fill:none}
+
+/* ==== 按鈕 ==== */
+.btn-md{display:inline-flex;align-items:center;gap:6px;height:34px;padding:8px 16px;border-radius:var(--r-btn);font-size:14px;line-height:18px;font-weight:500;cursor:pointer;border:1px solid transparent;background:transparent;white-space:nowrap}
+.btn-md.primary{background:var(--primary);color:#fff}
+.btn-md.primary:hover{background:var(--primary-dark)}
+.btn-md.ghost{background:#fff;border-color:var(--border-field);color:var(--text-body)}
+.btn-md.ghost-green{background:#fff;border-color:var(--primary);color:var(--primary)}
+.btn-md.ghost-red{background:#fff;border-color:var(--alert);color:var(--alert)}
+.btn-md.disabled,.btn-lg.disabled{background:var(--btn-disabled);color:#fff;cursor:not-allowed;border-color:transparent}
+.btn-md svg{width:14px;height:14px;stroke:currentColor;stroke-width:1.8;fill:none}
+.btn-lg{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;padding:10px 24px;border-radius:var(--r-btn);font-size:16px;line-height:20px;font-weight:500;cursor:pointer;border:1px solid transparent;background:transparent}
+.btn-lg.primary{background:var(--primary);color:#fff}
+.btn-lg.ghost{background:#fff;border-color:var(--border-field);color:var(--text-body)}
+.btn-row{display:flex;gap:10px;justify-content:flex-end;align-items:center}
+.icon-btn{width:32px;height:32px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;color:var(--icon-muted);cursor:pointer;background:transparent;border:0}
+.icon-btn:hover{background:rgba(0,0,0,.05)}
+.icon-btn.danger{color:var(--alert)}
+.icon-btn svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.7;fill:none}
+
+/* ==== 表單 ==== */
+.inline-form{border:1px solid var(--border-field);border-radius:var(--r-card);padding:20px;display:flex;flex-direction:column;gap:16px;background:#fff}
+.inline-form .if-title{font-size:16px;line-height:22px;font-weight:500;color:var(--text-muted)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field-label{font-size:14px;line-height:20px;font-weight:500;display:flex;align-items:center;gap:8px}
+.input{height:36px;padding:8px 10px;border:1px solid var(--border-field);border-radius:var(--r-input);background:#fff;font-size:14px;line-height:20px;display:flex;align-items:center;gap:5px}
+.input:focus-within{border-color:var(--border-on)}
+.input input{flex:1;border:0;outline:0;background:transparent;font-size:14px;color:var(--text-strong);min-width:0}
+.input input::placeholder{color:var(--text-disabled)}
+.input.disabled{background:#f5f5f5}
+.input.disabled input{color:var(--text-disabled)}
+.field .hint{font-size:12px;line-height:16px;color:var(--text-muted)}
+.err-msg{display:none;color:var(--alert);font-size:12px;line-height:1.3;letter-spacing:.4px}
+.err-msg.show{display:inline-block}
+.field.has-error .input{border-color:var(--alert)}
+.check{display:flex;align-items:flex-start;gap:8px;cursor:pointer}
+.box{width:20px;height:20px;border-radius:var(--r-tag);border:1px solid var(--border-field);background:#fff;flex:0 0 20px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:1px}
+.box.on{background:var(--primary);border-color:var(--border-field)}
+.box.on::after{content:"";width:10px;height:6px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.ck-label{font-size:14px;line-height:20px;font-weight:500}
+.ck-desc{font-size:12px;line-height:17px;color:var(--text-body);margin-top:2px}
+.sub-field{margin-left:28px;display:none;align-items:center;gap:12px}
+.sub-field.show{display:flex}
+.sub-field .sf-label{font-size:14px;font-weight:500}
+.num-input{width:88px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+select.sel{height:36px;padding:0 10px;border:1px solid var(--border-field);border-radius:var(--r-input);background:#fff;font-size:14px;outline:0;width:100%}
+select.sel:focus{border-color:var(--border-on)}
+
+/* ==== Modal / Toast ==== */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.3);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+.modal-mask.show{display:flex}
+.modal{background:#fff;border-radius:8px;padding:24px;width:480px;max-width:94vw;display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 32px rgba(0,0,0,.2);max-height:90vh;overflow:auto}
+.modal h3{font-size:18px;line-height:24px;font-weight:500}
+.modal .m-body{font-size:14px;line-height:21px;color:var(--text-body);display:flex;flex-direction:column;gap:14px}
+.modal .btn-row .left{margin-right:auto}
+.toast{position:fixed;left:50%;bottom:56px;transform:translateX(-50%);background:rgba(40,40,40,.92);color:#fff;padding:9px 18px;border-radius:100px;font-size:14px;line-height:1.4;letter-spacing:.5px;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:9999;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+.empty{text-align:center;color:var(--text-body);padding:28px 0;font-size:14px}
+
+/* ==== 變更預約模式 ==== */
+.cur-mode{display:flex;flex-direction:column;gap:6px}
+.cur-mode .lb{font-size:12px;color:var(--text-muted)}
+.cur-mode .val{align-self:flex-start;background:var(--primary-l2);color:var(--primary-dark);font-size:16px;font-weight:500;padding:6px 12px;border-radius:6px}
+.opt-row{padding:14px 16px;border-radius:var(--r-card);background:#fff;border:1px solid var(--border-field);cursor:pointer;display:flex;align-items:flex-start;gap:14px}
+.opt-row.on{background:var(--bg-selected);border-color:var(--primary)}
+.radio{width:20px;height:20px;border-radius:50%;border:1px solid var(--border-field);background:#fff;flex:0 0 20px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.opt-row.on .radio{border-color:var(--primary)}
+.opt-row.on .radio::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--primary)}
+.opt-row .om{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.opt-row .ot{font-size:16px;line-height:22px;font-weight:500}
+.opt-row .osuit{align-self:flex-start;display:inline-flex;padding:2px 8px;border-radius:var(--r-tag);background:#f5f5f5;border:1px solid var(--border-field);font-size:13px;line-height:18px;color:var(--text-body)}
+.opt-row .odetail{display:none;flex-direction:column;gap:8px;font-size:14px;line-height:20px;color:var(--text-body);margin-top:4px}
+.opt-row.on .odetail{display:flex}
+.opt-row .odetail b{color:var(--text-strong);font-weight:500}
+.mode-flex{display:flex;gap:20px;align-items:flex-start}
+.mode-flex .opts{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0}
+.mode-preview{width:340px;flex:0 0 340px;background:#f5f5f5;border-radius:var(--r-card);padding:14px;display:flex;flex-direction:column;gap:10px}
+.mode-preview .pv-t{font-size:14px;font-weight:500;color:var(--text-body)}
+.mode-preview img{width:100%;height:auto;border-radius:8px;border:1px solid var(--border-card);background:#fff}
+.mode-preview .none{font-size:13px;color:var(--text-muted);padding:24px 0;text-align:center}
+@media (max-width:760px){
+  .mode-flex{flex-direction:column}
+  .mode-preview{width:100%;flex:auto}
+}
+
+/* ==== 時段設定 ==== */
+.slot-card{border:1px solid var(--border-field);border-radius:var(--r-card);background:#fff;display:flex;flex-direction:column}
+.slot-head{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;flex-wrap:wrap}
+.slot-head .exp{width:22px;height:22px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;color:var(--icon-muted);flex:0 0 22px;transition:transform .15s}
+.slot-head .exp svg{width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none}
+.slot-card.open .slot-head .exp{transform:rotate(90deg)}
+.slot-head .sname{font-size:16px;font-weight:500}
+.slot-head .warn-ic{color:var(--emphasis-d);display:inline-flex}
+.slot-head .warn-ic svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none}
+.day-mini{display:inline-flex;gap:2px}
+.day-mini span{width:22px;height:22px;border-radius:4px;background:#f5f5f5;color:var(--text-disabled);font-size:12px;display:inline-flex;align-items:center;justify-content:center}
+.day-mini span.on{background:var(--primary-l2);color:var(--primary-dark);font-weight:500}
+.slot-tag{display:inline-flex;align-items:center;padding:3px 10px;border-radius:6px;background:#f5f5f5;font-size:13px;color:var(--text-strong)}
+.slot-head .tools{margin-left:auto;display:flex;gap:4px}
+.slot-body{display:none;border-top:1px solid var(--border-card);padding:16px;gap:24px}
+.slot-card.open .slot-body{display:flex}
+.slot-col{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0;font-size:14px;line-height:20px}
+.slot-col .ct{font-size:13px;color:var(--text-muted);font-weight:500}
+.slot-col li{margin-left:18px}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pills .p{min-width:54px;height:24px;padding:0 8px;background:#fff;border:1px solid var(--border-field);border-radius:4px;font-size:13px;display:inline-flex;align-items:center;justify-content:center}
+.pills-box{background:#f5f5f5;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.pills-box .lb{font-size:14px;color:var(--text-body)}
+.pills-box .none-hint{font-size:13px;color:var(--text-muted)}
+.link-green{color:var(--primary-dark);font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.dep-line{display:flex;flex-direction:column;gap:2px}
+.dep-line .dn{display:inline-flex;align-items:center;gap:6px;color:var(--emphasis-d);font-weight:500}
+.dep-line .dd{font-size:13px;color:var(--text-body)}
+.appr-line{color:var(--primary-dark);font-weight:500;display:inline-flex;align-items:center;gap:6px}
+/* 表單 */
+.fsec{background:#fff;border:1px solid var(--border-card);border-radius:var(--r-card);padding:20px;display:flex;flex-direction:column;gap:18px}
+.fsec .fst{font-size:16px;line-height:22px;font-weight:500}
+.day-chips{display:flex;gap:8px;flex-wrap:wrap}
+.day-chip{padding:7px 14px;border:1px solid var(--border-field);border-radius:var(--r-btn);background:#fff;font-size:14px;cursor:pointer}
+.day-chip.on{background:var(--primary-l3);border-color:var(--primary);color:var(--primary-dark);font-weight:500}
+.radio-card{border:1px solid var(--border-field);border-radius:var(--r-card);padding:14px 16px;cursor:pointer;display:flex;flex-direction:column;gap:12px;background:#fff}
+.radio-card.on{border-color:var(--primary)}
+.radio-card .rc-head{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500}
+.radio-card .rc-body{padding-left:28px;display:none;flex-direction:column;gap:12px}
+.radio-card.on .rc-body{display:flex}
+.inline-ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px}
+.inline-ctl .input{width:auto}
+.time-input input{border:0;outline:0;background:transparent;font-size:14px;font-family:inherit}
+.custom-times{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ct-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border-field);border-radius:6px;padding:4px 8px;font-size:13px;background:#fff}
+.ct-chip button{border:0;background:none;cursor:pointer;color:var(--icon-muted);font-size:14px;line-height:1}
+.overlap-err{display:flex;flex-direction:column;gap:4px;color:var(--alert);font-size:13px}
+.unit-tree{display:flex;flex-direction:column;gap:12px}
+.unit-tree .ut-g{display:flex;flex-direction:column;gap:8px}
+.unit-tree .ut-gh{font-size:14px;font-weight:500}
+.unit-tree .ut-radio{display:flex;gap:20px;padding-left:4px;font-size:14px}
+.unit-tree .ut-radio label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.unit-tree .ut-units{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 12px;padding-left:24px}
+.unit-tree .ut-units label{display:inline-flex;align-items:center;gap:6px;font-size:14px;cursor:pointer}
+.adv-item{display:flex;flex-direction:column;gap:10px;padding:14px 0;border-bottom:1px solid var(--border-card)}
+.adv-item:last-child{border-bottom:0}
+.adv-sub{margin-left:28px;display:none;align-items:center;gap:10px;flex-wrap:wrap}
+.adv-sub.show{display:flex}
+.dep-opts{margin-left:28px;display:none;flex-direction:column;gap:8px}
+.dep-opts.show{display:flex}
+.dep-opt{border:1px solid var(--border-field);border-radius:10px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px}
+.dep-opt.on{border-color:var(--primary);background:var(--primary-l3)}
+.dep-opt .dm{display:flex;flex-direction:column;gap:2px}
+.dep-opt .dm .t{font-size:14px;font-weight:500}
+.dep-opt .dm .d{font-size:13px;color:var(--text-body)}
+@media (max-width:760px){
+  .slot-body{flex-direction:column}
+  .unit-tree .ut-units{grid-template-columns:1fr}
+  .slot-head .tools{margin-left:0}
+}
+
+/* ==== Demo 工具 ==== */
+.demo-fab{position:fixed;right:18px;bottom:18px;z-index:90;display:flex;gap:8px}
+.demo-fab .btn-md{box-shadow:0 2px 10px rgba(0,0,0,.15)}
+
+/* ==== RWD ==== */
+@media (max-width:760px){
+  body{background:var(--bg-page)}
+  .canvas{margin:0;min-height:100vh;box-shadow:none;display:block}
+  .sidebar,.settings-nav{display:none}
+  .mtopbar{display:flex}
+  .page-title{padding:16px 16px 0}
+  .h1{font-size:20px;line-height:28px}
+  .content{padding:16px 16px 80px}
+  .card{padding:16px}
+  .btn-full-m{width:100%;justify-content:center;height:44px;font-size:16px;border-radius:var(--r-btn)}
+  .card .card-head{flex-direction:column}
+  .grid2{grid-template-columns:1fr}
+  .unit-grid{grid-template-columns:1fr}
+  .sec-head{flex-wrap:wrap}
+  .grp-head-card{flex-direction:column}
+  .grp-head-card .btn-md{align-self:flex-start}
+  .modal{width:100%;max-width:100%}
+  .modal-mask{align-items:flex-end;padding:0}
+  .modal{border-radius:12px 12px 0 0}
+}
+/* =====================================================
+   預約區（Part3 自建預約）— 依 Figma「2026 Jul. 預約系統操作優化」刻製
+   ===================================================== */
+body.area-book .settings-nav,
+body.area-book .page-title{display:none}
+body.area-book .content{padding:0;gap:0}
+
+.bk-head{padding:16px 20px 10px;display:flex;flex-direction:column;gap:10px;background:var(--bg-surface);border-bottom:1px solid var(--border-card)}
+.bk-head .r1{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.bk-head h1{font-size:24px;line-height:32px;font-weight:500}
+.bk-date{display:flex;align-items:center;gap:10px;margin:0 auto;font-size:15px;font-weight:500}
+.bk-date button{width:24px;height:24px;border-radius:50%;border:none;background:var(--primary-l3);color:var(--primary-dark);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.bk-date button svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.4}
+.bk-date .today{border:1px solid var(--border-field);background:var(--bg-surface);border-radius:100px;padding:2px 10px;font-size:13px;width:auto;height:auto;color:var(--text-body)}
+.bk-views{display:flex;background:var(--bg-page);border-radius:var(--r-btn);padding:3px;gap:2px}
+.bk-views button{border:none;background:none;padding:6px 16px;border-radius:6px;font-size:14px;color:var(--text-body);cursor:pointer}
+.bk-views button.on{background:var(--primary-l3);color:var(--primary-dark);font-weight:500}
+.bk-chips{display:flex;gap:10px;flex-wrap:wrap}
+.bk-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;line-height:18px;padding:3px 10px;border-radius:100px;background:var(--bg-page);color:var(--text-body)}
+.bk-chip.warn{background:#fdecec;color:var(--alert)}
+.bk-chip svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.bk-head .r3{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bk-sms{font-size:13px;color:var(--emphasis-d)}
+.bk-tools{margin-left:auto;display:flex;align-items:center;gap:6px}
+.bk-tools .ico{width:32px;height:32px;border-radius:50%;border:none;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--icon-muted)}
+.bk-tools .ico.on{background:var(--primary-l3);color:var(--emphasis-d)}
+.bk-tools .ico svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.7}
+
+.bk-body{display:flex;align-items:stretch;min-height:520px}
+.bk-main{flex:1;min-width:0;overflow:hidden}
+
+/* ---- 時間軸 ---- */
+.tl{display:flex;align-items:flex-start;font-size:12px}
+.tl-side{flex:0 0 auto;display:flex;flex-direction:column;background:var(--bg-surface);border-right:1px solid var(--border-card);position:sticky;left:0;z-index:3}
+.tl-side .sh{height:30px;display:flex;align-items:center;padding:0 10px;color:var(--text-body);border-bottom:1px solid var(--border-card);font-size:12px}
+.tl-g{display:flex;border-bottom:1px solid var(--border-card)}
+.tl-gl{flex:0 0 38px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--text-body);border-right:1px solid var(--border-card);text-align:center;line-height:1.3;padding:0 2px}
+.tl-us{flex:0 0 52px}
+.tl-us div{height:50px;display:flex;align-items:center;justify-content:center;color:var(--text-body);border-bottom:1px solid var(--border-card)}
+.tl-us div:last-child{border-bottom:none}
+.tl-scroll{flex:1;min-width:0;overflow-x:auto}
+.tl-inner{position:relative}
+.tl-th{height:30px;display:flex;border-bottom:1px solid var(--border-card);background:var(--bg-surface)}
+.tl-th span{flex:0 0 74px;padding-left:6px;line-height:30px;color:var(--text-body)}
+.tl-row{height:50px;position:relative;border-bottom:1px solid var(--border-card);background-image:linear-gradient(to right,var(--border-card) 1px,transparent 1px);background-size:74px 100%}
+.tl-row.alt{background-color:#fcfcfc}
+.tl-now{position:absolute;top:30px;bottom:0;width:2px;background:#ff5b5b;z-index:4;pointer-events:none}
+.tl-chip{position:absolute;top:4px;height:42px;border-radius:5px;padding:4px 6px;overflow:hidden;cursor:pointer;line-height:15px;z-index:2;border:1px solid transparent}
+.tl-chip .n{display:flex;align-items:center;gap:3px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-chip .p{opacity:.85;white-space:nowrap}
+.tl-chip .cnt{position:absolute;right:5px;bottom:3px;display:flex;align-items:center;gap:2px;font-size:11px}
+.tl-chip .bang{position:absolute;right:4px;top:3px;width:14px;height:14px;border-radius:3px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff}
+.tl-chip svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* ---- 空間圖 ---- */
+.sp-tabs{display:flex;gap:2px;padding:14px 16px 0}
+.sp-tabs button{border:none;background:var(--bg-page);color:var(--text-body);padding:9px 22px;border-radius:8px 8px 0 0;font-size:14px;cursor:pointer}
+.sp-tabs button.on{background:var(--bg-surface);color:var(--text-strong);font-weight:500}
+.sp-canvas{background:var(--bg-surface);padding:34px 26px;display:flex;flex-wrap:wrap;gap:30px;align-content:flex-start;min-height:420px}
+.sp-u{width:78px;position:relative;cursor:pointer;text-align:center}
+.sp-shape{height:78px;border:1px solid var(--border-field);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;line-height:17px;position:relative;overflow:hidden;background:var(--bg-surface)}
+.sp-u.rect .sp-shape{border-radius:6px}
+.sp-u.circ .sp-shape{border-radius:50%}
+.sp-shape .cap{font-size:11px;opacity:.7}
+.sp-shape .bar{position:absolute;left:0;right:0;bottom:0;height:15px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;line-height:15px}
+.sp-u .bang{position:absolute;right:-2px;top:-4px;width:16px;height:16px;border-radius:50%;background:var(--alert);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:2}
+.sp-u .bell{position:absolute;right:6px;bottom:20px;width:16px;height:16px;border-radius:50%;background:var(--alert);color:#fff;display:flex;align-items:center;justify-content:center;z-index:2}
+.sp-u .bell svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* ---- 清單 ---- */
+.ls-tabs{display:flex;gap:4px;padding:12px 16px 0;overflow-x:auto;background:var(--bg-surface);border-bottom:1px solid var(--border-card)}
+.ls-tabs button{border:none;background:none;padding:8px 10px 12px;font-size:14px;color:var(--text-body);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent}
+.ls-tabs button.on{color:var(--primary-dark);font-weight:500;border-bottom-color:var(--primary)}
+.ls-body{padding:0 0 30px}
+.ls-daybar{padding:14px 18px 6px;font-size:15px;font-weight:500}
+.ls-timebar{background:var(--bg-page);padding:7px 18px;font-size:13px;color:var(--text-body);display:flex;align-items:center;gap:12px}
+.ls-timebar svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8}
+.ls-card{display:flex;gap:14px;padding:16px 18px;border-bottom:1px solid var(--border-card);background:var(--bg-surface)}
+.ls-l{flex:0 0 92px;font-size:15px;font-weight:500}
+.ls-l .dur{font-size:12px;color:var(--text-muted);font-weight:400;margin-top:3px}
+.ls-c{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;font-size:13px;color:var(--text-body)}
+.ls-c .nm{font-size:17px;font-weight:500;color:var(--text-strong);display:flex;align-items:baseline;gap:6px}
+.ls-c .nm em{font-style:normal;font-size:12px;color:var(--text-muted)}
+.ls-c .pax{margin-left:auto;color:var(--primary-dark);font-size:13px}
+.ls-c .pax b{font-size:19px}
+.ls-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ls-tag{border:1px solid var(--border-field);border-radius:var(--r-tag);padding:1px 7px;font-size:12px;color:var(--text-body)}
+.ls-tag.unit{background:var(--bg-page);border-color:transparent}
+.ls-note{background:var(--bg-page);border-radius:6px;padding:7px 10px;font-size:12px}
+.ls-foot{font-size:11px;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap}
+.ls-r{flex:0 0 118px;display:flex;flex-direction:column;align-items:stretch;gap:8px;font-size:12px}
+.ls-r .st{justify-content:flex-end}
+.ls-r button{width:100%;justify-content:center}
+.ls-r .st{display:flex;align-items:center;gap:5px}
+.ls-r .st i{width:7px;height:7px;border-radius:50%;background:currentColor;display:block}
+.ls-empty{padding:56px 20px;text-align:center;color:var(--text-muted);font-size:14px}
+
+/* ---- 右側顧客清單 ---- */
+.cl{flex:0 0 292px;border-left:1px solid var(--border-card);background:var(--bg-surface);display:flex;flex-direction:column;min-width:0}
+.cl.mini{flex-basis:44px}
+.cl-tabs{display:flex;align-items:center;border-bottom:1px solid var(--border-card)}
+.cl-tabs button{flex:1;border:none;background:none;padding:12px 8px;font-size:14px;color:var(--text-body);cursor:pointer}
+.cl-tabs button.on{color:var(--text-strong);font-weight:500;background:var(--bg-page)}
+.cl-tabs .fold{flex:0 0 34px;padding:0;height:34px;border-radius:50%;color:var(--icon-muted)}
+.cl-tabs .fold svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+.cl-pills{display:flex;gap:8px;padding:10px;overflow-x:auto}
+.cl-pills button{flex:0 0 auto;border:none;border-radius:var(--r-btn);background:var(--bg-page);color:var(--text-body);padding:8px 12px;cursor:pointer;font-size:12px;line-height:17px;text-align:center}
+.cl-pills button.on{background:var(--primary-l2);color:var(--primary-dark);font-weight:500}
+.cl-pills button b{display:block;font-size:15px}
+.cl-list{flex:1;overflow:auto;padding:0 10px 14px;display:flex;flex-direction:column;gap:10px}
+.cl-card{border:1px solid var(--border-card);border-radius:var(--r-card);overflow:hidden;font-size:12px;color:var(--text-body)}
+.cl-card .hd{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border-card);font-size:13px;color:var(--text-strong)}
+.cl-card .hd .st{margin-left:auto;font-size:12px;display:flex;align-items:center;gap:4px}
+.cl-card .hd .st i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.cl-card .bd{padding:9px 10px;display:flex;flex-direction:column;gap:6px}
+.cl-card .nm{font-size:16px;font-weight:500;color:var(--text-strong);display:flex;align-items:baseline;gap:5px}
+.cl-card .nm em{font-style:normal;font-size:11px;color:var(--text-muted)}
+.cl-card .nm .pax{margin-left:auto;color:var(--primary-dark);font-size:12px}
+.cl-card .nm .pax b{font-size:17px}
+.cl-acts{display:flex;border-top:1px solid var(--border-card)}
+.cl-acts button{flex:1;border:none;background:var(--bg-page);color:var(--text-body);padding:9px;font-size:13px;cursor:pointer;border-left:1px solid var(--border-card)}
+.cl-acts button:first-child{border-left:none}
+.cl-acts button.pri{background:var(--primary);color:#fff}
+.cl-mini{writing-mode:vertical-rl;padding:14px 0;color:var(--text-body);font-size:13px;cursor:pointer;letter-spacing:2px}
+
+/* ---- popover ---- */
+.pop-mask{position:fixed;inset:0;z-index:150;display:none}
+.pop-mask.show{display:block}
+.pop{position:absolute;width:324px;background:var(--bg-surface);border-radius:var(--r-card);box-shadow:0 6px 28px rgba(0,0,0,.22);overflow:hidden;font-size:13px;color:var(--text-body)}
+.pop .hd{display:flex;align-items:center;background:var(--bg-page)}
+.pop .hd .t{flex:1;padding:9px 12px;font-size:14px;color:var(--text-strong)}
+.pop .hd .s{padding:9px 12px;font-size:13px}
+.pop .bd{padding:11px 13px;display:flex;flex-direction:column;gap:7px}
+.pop .ft{display:flex;justify-content:flex-end;padding:0 13px 13px}
+
+/* ---- 新增／修改預約 側邊表單 ---- */
+.bkf-mask{position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:210;display:none}
+.bkf-mask.show{display:block}
+.bkf{position:fixed;top:0;right:0;bottom:0;width:350px;max-width:100vw;background:var(--bg-surface);z-index:211;display:none;flex-direction:column;box-shadow:-4px 0 20px rgba(0,0,0,.14)}
+.bkf.show{display:flex}
+.bkf-hd{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border-card)}
+.bkf-hd h3{flex:1;text-align:center;font-size:16px;font-weight:500;color:var(--primary-dark)}
+.bkf-hd button{border:none;background:none;cursor:pointer;color:var(--icon-muted);width:24px;height:24px}
+.bkf-hd button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
+.bkf-bd{flex:1;overflow:auto;padding:14px 16px 20px;display:flex;flex-direction:column;gap:14px}
+.bkf-ft{padding:12px 16px;border-top:1px solid var(--border-card)}
+.bkf-ft button{width:100%;border:none;border-radius:var(--r-btn);background:var(--primary);color:#fff;padding:12px;font-size:15px;cursor:pointer}
+.bkf-ft button:disabled{background:var(--btn-disabled);cursor:not-allowed}
+.bkf .walkin{border:1px solid var(--border-field);border-radius:var(--r-input);padding:11px 13px;display:flex;gap:9px;align-items:flex-start;cursor:pointer}
+.bkf .walkin span{font-size:14px;color:var(--text-strong)}
+.bkf .walkin small{display:block;font-size:11px;color:var(--text-muted);margin-top:2px}
+.bkf .itembox{background:var(--primary-l3);border-radius:var(--r-input);padding:9px 13px;text-align:center}
+.bkf .itembox label{font-size:11px;color:var(--primary-dark)}
+.bkf .itembox select{width:100%;border:none;background:none;font-size:15px;text-align:center;color:var(--text-strong);cursor:pointer;margin-top:3px}
+.bkf .dateline{text-align:center;font-size:15px}
+.bkf .dateline input{border:none;background:none;font-size:15px;text-align:center;cursor:pointer;color:var(--text-strong)}
+.bkf .timeline-v{text-align:center}
+.bkf .timeline-v .big{font-size:20px;letter-spacing:2px;color:var(--text-strong)}
+.bkf .timeline-v .big.empty{color:var(--text-disabled)}
+.bkf .timeline-v .hint{font-size:12px;color:var(--emphasis-d);margin-top:2px}
+.bkf .timeline-v select{margin-top:8px;border:1px solid var(--border-field);border-radius:100px;padding:5px 12px;font-size:13px;background:var(--bg-surface)}
+.bkf .pax{display:flex;gap:10px}
+.bkf .pax > div{flex:1;text-align:center}
+.bkf .pax .lb{font-size:14px;color:var(--text-strong);margin-bottom:6px}
+.bkf .stepper{display:flex;align-items:center;justify-content:center;gap:14px}
+.bkf .stepper button{width:26px;height:26px;border-radius:50%;border:1px solid var(--primary);background:none;color:var(--primary);font-size:15px;line-height:1;cursor:pointer}
+.bkf .stepper button:disabled{border-color:var(--btn-disabled);color:var(--btn-disabled);cursor:not-allowed}
+.bkf .stepper .v{min-width:24px;font-size:16px}
+.bkf .fld{display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border-field);padding-bottom:7px}
+.bkf .fld svg{width:15px;height:15px;stroke:var(--icon-muted);fill:none;stroke-width:1.8;flex:0 0 15px}
+.bkf .fld input{flex:1;border:none;background:none;font-size:14px;outline:none}
+.bkf .fld.err{border-bottom-color:var(--alert)}
+.bkf .errmsg{font-size:11px;color:var(--alert);margin-top:-8px}
+.bkf .radios{display:flex;gap:16px;font-size:14px}
+.bkf .radios label{display:flex;align-items:center;gap:5px;cursor:pointer}
+.bkf .unitbox{background:var(--bg-page);border-radius:var(--r-input);padding:10px 12px;font-size:12px}
+.bkf .unitbox .top{display:flex;align-items:center}
+.bkf .unitbox .top a{margin-left:auto;color:var(--primary-dark);cursor:pointer}
+.bkf .unitbox .gname{display:inline-block;border:1px solid var(--border-field);border-radius:var(--r-tag);padding:0 6px;margin:7px 0 4px;font-size:11px}
+.bkf .unitbox .names{font-size:14px;color:var(--text-strong)}
+.bkf .acc{background:var(--bg-page);border-radius:var(--r-input);padding:11px 12px}
+.bkf .acc .top{display:flex;align-items:center;font-size:12px;cursor:pointer}
+.bkf .acc .top svg{margin-left:auto;width:15px;height:15px;stroke:var(--icon-muted);fill:none;stroke-width:2}
+.bkf .acc .in{display:flex;flex-direction:column;gap:10px;margin-top:11px}
+.bkf .acc .in label{font-size:12px;color:var(--text-body)}
+.bkf .acc input[type=text],.bkf .acc select{width:100%;border:1px solid var(--border-field);border-radius:6px;padding:7px 9px;font-size:13px;background:var(--bg-surface);margin-top:4px}
+.bkf .qopts{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px}
+.bkf .qopts button{border:1px solid var(--border-field);background:var(--bg-surface);border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer}
+.bkf .qopts button.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.bkf .toggline{display:flex;align-items:center;font-size:15px}
+.bkf .togg{margin-left:auto;width:44px;height:24px;border-radius:100px;background:var(--btn-disabled);position:relative;cursor:pointer;border:none;flex:0 0 44px}
+.bkf .togg.on{background:var(--primary)}
+.bkf .togg i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}
+.bkf .togg.on i{left:23px}
+.bkf .togg.lock{opacity:.55;cursor:not-allowed}
+.bkf .subbox{background:var(--bg-page);border-radius:var(--r-input);padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:12px}
+.bkf .subbox label{display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer}
+
+/* 選擇預約單位子面板 */
+.bku-sum{background:var(--primary-l3);border-radius:var(--r-input);padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.bku-sum b{color:var(--primary-dark);font-size:17px;margin:0 4px}
+.bku-sum .lack b{color:var(--alert)}
+.bku-bar{display:flex;align-items:center;gap:12px}
+.bku-bar button.all{flex:1;border:1px solid var(--primary);border-radius:var(--r-btn);background:none;color:var(--primary-dark);padding:8px;font-size:14px;cursor:pointer}
+.bku-bar select{border:none;background:none;font-size:13px;color:var(--text-body)}
+.bku-g{display:flex;flex-direction:column;gap:8px}
+.bku-g > label{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.bku-chips{background:var(--bg-page);border-radius:var(--r-input);padding:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bku-chips button{border:1px solid var(--border-field);border-radius:6px;background:var(--bg-surface);padding:7px 4px;font-size:12px;line-height:16px;cursor:pointer}
+.bku-chips button.on{border-color:var(--primary);background:var(--primary-l3);color:var(--primary-dark)}
+.bku-chips button small{display:block;font-size:10px;opacity:.7}
+.bku-ft{display:flex;gap:10px;padding:12px 16px;border-top:1px solid var(--border-card)}
+.bku-ft button{flex:1;border-radius:var(--r-btn);padding:11px;font-size:15px;cursor:pointer;border:1px solid var(--border-field);background:var(--bg-surface)}
+.bku-ft button.pri{border-color:var(--primary);background:var(--primary);color:#fff}
+
+@media (max-width:860px){
+  .cl{display:none}
+  .bk-date{margin:0}
+  .ls-card{flex-wrap:wrap}
+  .ls-r{flex-basis:100%;flex-direction:row;align-items:center;gap:10px}
+  .ls-r .st{justify-content:flex-start;margin-right:auto}
+  .ls-r button{width:auto}
+}
+</style>
+<style>
+/* ── Part4 專用（其餘 token 與元件沿用 sim.html） ── */
+.vsw{position:fixed;top:12px;right:16px;z-index:300;display:flex;gap:0;background:#fff;border:1px solid var(--border-field);border-radius:999px;padding:3px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.vsw button{border:0;background:transparent;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;font-family:var(--font)}
+.vsw button.on{background:var(--primary);color:#fff}
+.vnote{background:var(--primary-l3);border:1px solid var(--border-tag-on);border-radius:var(--r-card);padding:12px 16px;font-size:13px;line-height:19px;color:var(--text-body)}
+.vnote b{color:var(--text-strong)}
+.srow{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--border-card);border-radius:var(--r-input);padding:10px 14px}
+.srow.drag{cursor:grab;user-select:none}
+.srow.dragging{opacity:.4}
+.srow.over{border-color:var(--border-on);background:var(--bg-selected)}
+.grip{width:14px;color:var(--text-disabled);letter-spacing:-2px;line-height:1;font-size:15px}
+.gchip{font-size:12px;line-height:16px;padding:2px 8px;border-radius:var(--r-tag);background:var(--bg-tag-on);color:var(--text-body);white-space:nowrap}
+.sname{flex:1;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scap{font-size:13px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+.gblock{display:flex;flex-direction:column;gap:6px;border:1px dashed var(--border-field);border-radius:var(--r-card);padding:10px}
+.gblock.dragging{opacity:.4}
+.gblock.over{border-color:var(--border-on)}
+.gbhead{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;cursor:grab;user-select:none}
+.gborder{font-size:12px;color:var(--text-muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.dep-card{border:1px solid var(--border-card);border-radius:var(--r-card);padding:14px 16px;display:flex;align-items:flex-start;gap:12px}
+.dep-card .dc-main{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.dc-name{font-size:15px;font-weight:500}
+.dc-meta{font-size:13px;line-height:19px;color:var(--text-body)}
+.dc-used{font-size:12px;color:var(--text-muted)}
+.sw{width:40px;height:22px;border-radius:999px;background:var(--btn-disabled);position:relative;cursor:pointer;flex:none;transition:background .15s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}
+.sw.on{background:var(--primary)}
+.sw.on::after{left:20px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border-card);margin-bottom:4px}
+.tabs a{padding:10px 14px;font-size:14px;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a.on{color:var(--primary);border-bottom-color:var(--primary);font-weight:500}
+.cl-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:900px){.cl-grid{grid-template-columns:1fr}}
+.cl-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--r-input);border:1px solid var(--border-card)}
+.cl-item.off{background:#faf7f7;border-color:#f0dede}
+.cl-item.off .sname{color:var(--text-muted);text-decoration:line-through}
+.hist{display:flex;flex-direction:column;gap:6px}
+.hist-row{border:1px solid var(--border-card);border-radius:var(--r-input);padding:10px 12px;font-size:13px;line-height:19px;display:flex;gap:8px;align-items:flex-start}
+.hist-row .x{margin-left:auto;color:var(--alert);cursor:pointer;font-size:12px;white-space:nowrap}
+.mono{font-variant-numeric:tabular-nums}
+/* sim.html 的選取態綁在 .opt-row.on 上，這裡的單選直接掛在 .radio 自己 */
+.radio[data-on]{border-color:var(--primary)}
+.radio[data-on]::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--primary)}
+.check{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+#modalBox{width:560px}
+.inline2{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
+.inline2 .input{width:auto}
+.w80{width:80px}
+.w110{width:110px}
+</style>
+
+<div class="vsw">
+  <button data-ver="A">版本 A・分散式</button>
+  <button data-ver="B">版本 B・收斂式</button>
+</div>
+
+<div class="canvas">
+  <div class="sidebar">
+    <div><div class="logo">店+</div><div class="nav-list" id="railList"></div></div>
+    <div class="sidebar-bottom"><div class="avatar">找</div><span>開啟</span></div>
+  </div>
+  <nav class="settings-nav" id="settingsNav"></nav>
+  <div class="main">
+    <div class="page-title"><div class="crumb" id="crumb"></div><div class="h1" id="pageH1"></div></div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="modalMask"><div class="modal" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+<div class="demo-fab">
+  <button class="btn-md ghost" onclick="location.href='index.html'">← Review 入口</button>
+  <button class="btn-md ghost" id="resetBtn">↺ 重置範例</button>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200); }
+function openModal(html) { $('#modalBox').innerHTML = html; $('#modalMask').classList.add('show'); }
+function closeModal() { $('#modalMask').classList.remove('show'); }
+$('#modalMask').addEventListener('click', e => { if (e.target === $('#modalMask')) closeModal(); });
+
+/* ── 假資料 ── */
+const DB_KEY = 'part4_v1';
+const seed = () => ({
+  groups: [
+    { id: 'g1', name: 'B區', units: [
+      { id: 'u1', name: 'B1', cap: '1~2' }, { id: 'u2', name: 'B2', cap: '1~2' },
+      { id: 'u3', name: 'B3', cap: '1~2' }, { id: 'u4', name: 'B4', cap: '1~2' }] },
+    { id: 'g2', name: '戶外', units: [
+      { id: 'u5', name: 'D1', cap: '1~4' }, { id: 'u6', name: 'D2', cap: '1~4' }] },
+    { id: 'g3', name: '室內', units: [
+      { id: 'u7', name: 'C1', cap: '1~4' }, { id: 'u8', name: 'C2', cap: '1~4' },
+      { id: 'u9', name: 'C3', cap: '3~4' }] },
+  ],
+  // 時間軸顯示排序（來自「後台操作偏好 > 預約單位排序」，扁平、可跨群組）— 臨時關閉清單依此排
+  displayOrder: ['u1', 'u2', 'u5', 'u6', 'u3', 'u4', 'u7', 'u8', 'u9'],
+  depositOn: true,
+  merchantNo: 'MNU00',   // 示意值，非真實商店代號
+  deposits: [
+    { id: 'd1', name: '假日訂位訂金', way: 'prepay', cond: 'people', minPeople: 1, perPerson: 100, fixed: 200, usedBy: ['假日時段規則', '例外：中秋連假'] },
+    { id: 'd2', name: '包廂綁卡', way: 'auth', cond: 'fixed', minPeople: 4, perPerson: 100, fixed: 1000, usedBy: ['服務選項：包廂'] },
+  ],
+  closures: [
+    { id: 'c1', date: '2026-08-14', start: '18:00', end: '20:00', unitIds: ['u1', 'u2'] },
+  ],
+  seq: 3,
+});
+let db;
+try { db = JSON.parse(sessionStorage.getItem(DB_KEY)) || seed(); } catch (e) { db = seed(); }
+const persist = () => sessionStorage.setItem(DB_KEY, JSON.stringify(db));
+let ver = sessionStorage.getItem('part4_ver') || 'A';
+
+const allUnits = () => db.groups.flatMap(g => g.units.map(u => ({ ...u, gname: g.name })));
+const unitById = id => allUnits().find(u => u.id === id);
+const orderedUnits = () => db.displayOrder.map(unitById).filter(Boolean);
+const depLabel = d => d.way === 'prepay' ? '預先收款' : '信用卡授權綁定';
+const condLabel = d => d.cond === 'people' ? `${d.minPeople} 人以上，每人 ${d.perPerson} 元` : `固定金額 ${d.fixed} 元/組`;
+
+/* ── 側欄 ── */
+const RAIL = ['預約', '排隊', '月曆', '顧客', '推播', '公告', '優惠券', '設定'];
+const navItems = () => {
+  const base = ['預約規則', '例外預約規則', '自動排位規則', '顧客預約頁', '後台操作偏好', '預約通知', '預約追蹤', '訂金管理', '自訂預約問卷', '透過Google預訂'];
+  if (ver === 'A') { const a = base.slice(); a.splice(2, 0, '臨時預約關閉設定'); return a; }
+  return base;
+};
+const NAV = () => [
+  ['帳號設定', ['商家基本資訊', '肚肚POS串接設定', '通知點數管理']],
+  ['預約設定', navItems()],
+  ['排隊設定', ['線上排隊設定', '排隊組別', '排隊通知']],
+];
+function renderChrome() {
+  $('#railList').innerHTML = RAIL.map(n =>
+    `<div class="nav-item${n === '設定' ? ' active' : ''}"><span>${n}</span></div>`).join('');
+  const cur = { '#/auto': '自動排位規則', '#/deposit': '訂金管理', '#/closure': '臨時預約關閉設定', '#/exception': '例外預約規則' }[location.hash] || '自動排位規則';
+  $('#settingsNav').innerHTML = NAV().map(([g, items]) => `
+    <div><div class="nav-group-title"><span class="dot"></span>${g}</div>
+    <div class="nav-sub">${items.map(i => `<a data-nav="${esc(i)}" class="${i === cur ? 'active' : ''}">${esc(i)}</a>`).join('')}</div></div>`).join('');
+  document.querySelectorAll('[data-nav]').forEach(a => a.addEventListener('click', () => {
+    const n = a.dataset.nav;
+    if (n === '自動排位規則') location.hash = '#/auto';
+    else if (n === '訂金管理') location.hash = '#/deposit';
+    else if (n === '臨時預約關閉設定') location.hash = '#/closure';
+    else if (n === '例外預約規則') location.hash = '#/exception';
+    else toast('此頁不在 Part 4 範圍，未做成 Demo');
+  }));
+  document.querySelectorAll('[data-ver]').forEach(b => {
+    b.classList.toggle('on', b.dataset.ver === ver);
+    b.onclick = () => {
+      ver = b.dataset.ver; sessionStorage.setItem('part4_ver', ver);
+      if (ver === 'A' && location.hash === '#/exception') location.hash = '#/closure';
+      if (ver === 'B' && location.hash === '#/closure') location.hash = '#/exception';
+      route();
+    };
+  });
+}
+function setTitle(crumb, h1) { $('#crumb').textContent = crumb; $('#pageH1').textContent = h1; }
+
+/* ── 頁：自動排位規則（US4-1） ── */
+function viewAuto() {
+  setTitle('設定 / 預約設定', '自動排位規則');
+  $('#content').innerHTML = `
+    <div class="vnote">兩版相同。此頁的順序<b>只決定「同分時選誰」</b>——系統先求「用最少的預約單位滿足人數」，再看群組順序、再看群組內單位順序。與「後台操作偏好 &gt; 預約單位排序」（扁平、可跨群組）是兩套獨立排序。</div>
+    <div class="card">
+      <div class="card-head"><div class="ch-main">
+        <div class="ch-title">優先排位順序</div>
+        <div class="ch-desc">拖曳以調整順序。群組可整組移動；單位只能在所屬群組內排序，不可跨組。</div>
+      </div></div>
+      <div id="autoList" style="display:flex;flex-direction:column;gap:10px"></div>
+      <div class="btn-row" style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn-md ghost" id="autoReset">還原預設順序</button>
+        <button class="btn-md primary" id="autoSave">儲存</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="ch-main">
+        <div class="ch-title">演算法判斷順序</div>
+        <div class="ch-desc">建立／修改線上預約，以及「自動分配預約單位」開啟時的自建預約，皆適用。</div>
+      </div></div>
+      <div style="font-size:14px;line-height:22px;color:var(--text-body)">
+        1. 優先考慮：如何使用<b>最少</b>的預約單位滿足預約人數需求<br>
+        2. 再考慮：群組的排列順序<br>
+        3. 再考慮：群組內單位的排列順序
+      </div>
+    </div>`;
+  renderAutoList();
+  $('#autoSave').onclick = () => { persist(); toast('已儲存排位順序'); };
+  $('#autoReset').onclick = () => { db.groups = seed().groups; persist(); renderAutoList(); toast('已還原預設順序'); };
+}
+function renderAutoList() {
+  $('#autoList').innerHTML = db.groups.map((g, gi) => `
+    <div class="gblock" draggable="true" data-gi="${gi}">
+      <div class="gbhead"><span class="grip">⣿</span><span class="gchip">${esc(g.name)}</span>
+        <span class="gborder">第 ${gi + 1} 順位・${g.units.length} 個單位</span></div>
+      ${g.units.map((u, ui) => `
+        <div class="srow drag" draggable="true" data-gi="${gi}" data-ui="${ui}">
+          <span class="grip">⣿</span><span class="sname">${esc(u.name)}</span>
+          <span class="scap mono">${esc(u.cap)} 人</span>
+        </div>`).join('')}
+    </div>`).join('');
+  wireAutoDnd();
+}
+function wireAutoDnd() {
+  let src = null;
+  document.querySelectorAll('#autoList .srow').forEach(el => {
+    el.addEventListener('dragstart', e => { e.stopPropagation(); src = el; el.classList.add('dragging'); });
+    el.addEventListener('dragend', () => { src = null; document.querySelectorAll('.over').forEach(x => x.classList.remove('over')); renderAutoList(); });
+    el.addEventListener('dragover', e => {
+      if (!src || !src.classList.contains('srow')) return;
+      e.preventDefault(); e.stopPropagation();
+      if (src.dataset.gi !== el.dataset.gi) { el.classList.remove('over'); return; }
+      el.classList.add('over');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault(); e.stopPropagation();
+      if (!src || src.dataset.gi !== el.dataset.gi) { toast('不可跨群組排序'); return; }
+      const g = db.groups[+el.dataset.gi];
+      const [m] = g.units.splice(+src.dataset.ui, 1);
+      g.units.splice(+el.dataset.ui, 0, m);
+      persist();
+    });
+  });
+  document.querySelectorAll('#autoList .gblock').forEach(el => {
+    el.addEventListener('dragstart', e => { if (src) return; src = el; el.classList.add('dragging'); });
+    el.addEventListener('dragend', () => { src = null; renderAutoList(); });
+    el.addEventListener('dragover', e => { if (src && src.classList.contains('gblock') && src !== el) { e.preventDefault(); el.classList.add('over'); } });
+    el.addEventListener('dragleave', () => el.classList.remove('over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!src || !src.classList.contains('gblock')) return;
+      const [m] = db.groups.splice(+src.dataset.gi, 1);
+      db.groups.splice(+el.dataset.gi, 0, m);
+      persist();
+    });
+  });
+}
+
+/* ── 頁：訂金管理（US4-2） ── */
+function viewDeposit() {
+  setTitle('設定 / 預約設定', '訂金管理');
+  $('#content').innerHTML = `
+    <div class="vnote">兩版相同。相對現況的改動：原本這頁只有<b>一組</b>「收款方式＋收款條件」，改成可建立<b>多組具名的訂金規則</b>，供時段規則、例外時段規則與服務選項套用。套用優先序：<b>服務選項 &gt; 時段規則</b>；服務選項未設定訂金即為不收，不回落店家層級。</div>
+    <div class="card">
+      <div class="card-head"><div class="ch-main">
+        <div class="ch-title">訂金預約模式</div>
+        <div class="ch-desc">開啟後，所有符合條件且透過線上預約的顧客都必須在期限內完成付款或授權信用卡。</div>
+      </div><div class="sw${db.depositOn ? ' on' : ''}" id="depSw"></div></div>
+      <div style="font-size:14px;color:var(--text-body)">藍新商店代號　<b class="mono">${esc(db.merchantNo)}</b></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="ch-main">
+        <div class="ch-title">訂金規則</div>
+        <div class="ch-desc">建立後可在「預約時段設定」「例外預約日期設定」「服務選項設定」中選用。依建立時間排序。</div>
+      </div><button class="btn-md ghost-green" id="depAdd">＋ 新增訂金規則</button></div>
+      <div id="depList" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="ch-main"><div class="ch-title">期限與請款規則（沿用現況、不可調整）</div></div></div>
+      <div style="font-size:14px;line-height:22px;color:var(--text-body)">
+        ・預先收款的付款期限：送出預約申請後至<b>隔日 22:59</b>；若預約時間為送出當日或隔日，期限改為<b>預約時間前 30 分鐘</b><br>
+        ・信用卡授權的操作期限：送出預約申請後 <b>30 分鐘</b>內，逾時未授權自動取消預約<br>
+        ・授權完成後僅保留額度、不自動扣款；<b>「請款」按鈕僅在預約狀態為「未到店」時出現</b><br>
+        ・請款期限：<b>預約日後七日內</b>，逾期授權失效且無法再扣款<br>
+        ・逾時未付款／未授權：預約自動轉入「取消預約」
+      </div>
+    </div>`;
+  renderDepList();
+  $('#depSw').onclick = () => { db.depositOn = !db.depositOn; persist(); viewDeposit(); };
+  $('#depAdd').onclick = () => depForm(null);
+}
+function renderDepList() {
+  $('#depList').innerHTML = db.deposits.length ? db.deposits.map(d => `
+    <div class="dep-card">
+      <div class="dc-main">
+        <div class="dc-name">${esc(d.name)}</div>
+        <div class="dc-meta">收款方式：${depLabel(d)}　｜　收款條件：${condLabel(d)}</div>
+        <div class="dc-used">${d.usedBy.length ? '套用中：' + d.usedBy.map(esc).join('、') : '尚未被套用'}</div>
+      </div>
+      <button class="btn-md ghost" data-dedit="${d.id}">編輯</button>
+      <button class="btn-md ghost-red" data-ddel="${d.id}">刪除</button>
+    </div>`).join('') : `<div class="empty">目前沒有任何訂金規則</div>`;
+  document.querySelectorAll('[data-dedit]').forEach(b => b.onclick = () => depForm(db.deposits.find(d => d.id === b.dataset.dedit)));
+  document.querySelectorAll('[data-ddel]').forEach(b => b.onclick = () => depDelete(db.deposits.find(d => d.id === b.dataset.ddel)));
+}
+function depForm(d) {
+  const f = d ? { ...d } : { id: 'd' + (++db.seq), name: '訂金規則 ' + (db.deposits.length + 1), way: 'prepay', cond: 'people', minPeople: 1, perPerson: 100, fixed: 200, usedBy: [] };
+  const draw = () => {
+    openModal(`
+      <h3>${d ? '編輯' : '新增'}訂金規則</h3>
+      <div class="m-body">
+        <div class="field"><span class="field-label">訂金規則名稱</span>
+          <input class="input" id="fName" value="${esc(f.name)}" placeholder="訂金規則 1">
+          <span class="hint">名稱不得重複</span></div>
+        <div class="field"><span class="field-label">收款方式</span>
+          <div class="rows" style="display:flex;flex-direction:column;gap:8px">
+            ${[['prepay', '預先收款', '顧客可透過轉帳、信用卡、超商代碼完成訂金支付'],
+               ['auth', '信用卡授權綁定', '顧客需完成信用卡授權，若因故爽約，可於授權期限內請款']]
+              .map(([v, n, sub]) => `<label class="check" data-way="${v}"><span class="radio"${f.way === v ? ' data-on' : ''}></span>
+                <span><span class="ck-label">${n}</span><div class="ck-desc">${sub}</div></span></label>`).join('')}
+          </div></div>
+        <div class="field"><span class="field-label">收款條件</span>
+          <div class="rows" style="display:flex;flex-direction:column;gap:10px">
+            <label class="check" data-cond="people"><span class="radio"${f.cond === 'people' ? ' data-on' : ''}></span>
+              <span class="inline2">依據預約人數
+                <input class="input w80 mono" id="fMin" value="${f.minPeople}"> 人以上，
+                <input class="input w80 mono" id="fPer" value="${f.perPerson}"> 元/人</span></label>
+            <label class="check" data-cond="fixed"><span class="radio"${f.cond === 'fixed' ? ' data-on' : ''}></span>
+              <span class="inline2">固定金額
+                <input class="input w110 mono" id="fFix" value="${f.fixed}"> 元/組</span></label>
+          </div>
+          <span class="hint">人數計算包含大人與小孩。不適用於 Google 預訂；自建預約由店員逐筆輸入金額。</span></div>
+      </div>
+      <div class="btn-row" style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn-md ghost" id="fCancel">取消</button>
+        <button class="btn-md primary" id="fSave">儲存</button>
+      </div>`);
+    document.querySelectorAll('[data-way]').forEach(el => el.onclick = () => { grab(); f.way = el.dataset.way; draw(); });
+    document.querySelectorAll('[data-cond]').forEach(el => el.onclick = e => {
+      if (e.target.tagName === 'INPUT') return; grab(); f.cond = el.dataset.cond; draw();
+    });
+    $('#fCancel').onclick = closeModal;
+    $('#fSave').onclick = () => {
+      grab();
+      if (!f.name.trim()) return toast('請輸入訂金規則名稱');
+      if (db.deposits.some(x => x.name.trim() === f.name.trim() && x.id !== f.id)) return toast('名稱不得重複');
+      const i = db.deposits.findIndex(x => x.id === f.id);
+      if (i >= 0) db.deposits[i] = f; else db.deposits.push(f);
+      persist(); closeModal(); renderDepList(); toast('已儲存');
+    };
+  };
+  const grab = () => {
+    f.name = $('#fName').value;
+    f.minPeople = +$('#fMin').value || 1; f.perPerson = +$('#fPer').value || 0; f.fixed = +$('#fFix').value || 0;
+  };
+  draw();
+}
+function depDelete(d) {
+  openModal(`
+    <h3>刪除訂金規則</h3>
+    <div class="m-body">
+      確定要刪除「${esc(d.name)}」嗎？
+      ${d.usedBy.length ? `<div class="vnote">此規則目前被 <b>${d.usedBy.length}</b> 個規則套用中：${d.usedBy.map(esc).join('、')}。<br>刪除後這些規則會變成<b>「不需要訂金」</b>。已處於「待付款/綁卡」的既有預約不受影響。</div>` : ''}
+    </div>
+    <div class="btn-row" style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-md ghost" id="dCancel">取消</button>
+      <button class="btn-md ghost-red" id="dOk">刪除</button>
+    </div>`);
+  $('#dCancel').onclick = closeModal;
+  $('#dOk').onclick = () => { db.deposits = db.deposits.filter(x => x.id !== d.id); persist(); closeModal(); renderDepList(); toast('已刪除'); };
+}
+
+/* ── 臨時預約關閉（US4-3）── A：獨立頁；B：例外預約規則的分頁 ── */
+let clDate = '2026-08-14', clStart = '18:00', clEnd = '20:00';
+const priorityCard = () => `
+  <div class="card">
+    <div class="card-head"><div class="ch-main">
+      <div class="ch-title">規則判斷優先順序</div>
+      <div class="ch-desc">同一天設定多種規則時，系統由上而下判斷。</div>
+    </div></div>
+    <div style="font-size:14px;line-height:22px;color:var(--text-body)">
+      1. 整日不可預約　2. <b>臨時預約關閉</b>　3. 例外時段規則　4. 常態時段規則　5. 單位容納能力限制
+    </div>
+  </div>`;
+function closureBlock() {
+  const cur = db.closures.find(c => c.date === clDate && c.start === clStart && c.end === clEnd);
+  const closed = new Set(cur ? cur.unitIds : []);
+  return `
+    <div class="card">
+      <div class="card-head"><div class="ch-main">
+        <div class="ch-title">選擇要關閉的時段</div>
+        <div class="ch-desc">關閉後，該時段內的指定預約單位<b>不再開放線上預約</b>；已存在的預約不受影響，後台自建預約也不受限制。</div>
+      </div></div>
+      <div class="inline2">
+        <input type="date" class="input" id="clDate" value="${clDate}" style="width:170px">
+        <input type="time" class="input mono" id="clStart" value="${clStart}" style="width:120px">〜
+        <input type="time" class="input mono" id="clEnd" value="${clEnd}" style="width:120px">
+      </div>
+    </div>
+    <div class="cl-grid">
+      <div class="card">
+        <div class="card-head"><div class="ch-main">
+          <div class="ch-title">預約單位</div>
+          <div class="ch-desc">順序沿用「後台操作偏好 &gt; 預約單位排序」，與時間軸上看到的一致。</div>
+        </div></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${orderedUnits().map(u => `
+            <div class="cl-item${closed.has(u.id) ? ' off' : ''}">
+              <span class="gchip">${esc(u.gname)}</span>
+              <span class="sname">${esc(u.name)}</span>
+              <span class="scap mono">${esc(u.cap)} 人</span>
+              <span class="sw${closed.has(u.id) ? '' : ' on'}" data-cu="${u.id}"></span>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="ch-main"><div class="ch-title">目前的關閉設定</div></div></div>
+        <div class="hist">
+          ${db.closures.length ? db.closures.map(c => `
+            <div class="hist-row">
+              <div><b class="mono">${c.date}</b> <span class="mono">${c.start}–${c.end}</span><br>
+                ${c.unitIds.map(id => esc((unitById(id) || {}).name || '')).join('、')}</div>
+              <span class="x" data-clx="${c.id}">解除</span>
+            </div>`).join('') : '<div class="empty">目前沒有臨時關閉的單位</div>'}
+        </div>
+      </div>
+    </div>`;
+}
+function wireClosure() {
+  ['clDate', 'clStart', 'clEnd'].forEach(id => {
+    const el = $('#' + id); if (!el) return;
+    el.onchange = () => { clDate = $('#clDate').value; clStart = $('#clStart').value; clEnd = $('#clEnd').value; route(); };
+  });
+  document.querySelectorAll('[data-cu]').forEach(sw => sw.onclick = () => {
+    const uid = sw.dataset.cu;
+    let c = db.closures.find(x => x.date === clDate && x.start === clStart && x.end === clEnd);
+    if (!c) { c = { id: 'c' + (++db.seq), date: clDate, start: clStart, end: clEnd, unitIds: [] }; db.closures.push(c); }
+    c.unitIds = c.unitIds.includes(uid) ? c.unitIds.filter(x => x !== uid) : c.unitIds.concat(uid);
+    db.closures = db.closures.filter(x => x.unitIds.length);
+    persist(); route();
+    toast(c.unitIds.includes(uid) ? '已關閉線上預約' : '已恢復開放');
+  });
+  document.querySelectorAll('[data-clx]').forEach(x => x.onclick = () => {
+    db.closures = db.closures.filter(c => c.id !== x.dataset.clx); persist(); route(); toast('已解除關閉');
+  });
+}
+function viewClosureA() {
+  setTitle('設定 / 預約設定', '臨時預約關閉設定');
+  $('#content').innerHTML = `
+    <div class="vnote"><b>版本 A・分散式</b>：側欄新增「臨時預約關閉設定」獨立頁，與「自動排位規則」「訂金管理」平行。優點是三個功能各自一頁、最貼近現況與既有 Settings 版型，改動最小；代價是側欄再長一項（預約設定已有 11 項）。優先層級卡片直接放進本頁，把版本 B 的優點吸收過來。</div>
+    ${priorityCard()}
+    ${closureBlock()}`;
+  wireClosure();
+}
+function viewExceptionB(tab) {
+  setTitle('設定 / 預約設定', '例外預約規則');
+  const t = tab || 'closure';
+  $('#content').innerHTML = `
+    <div class="vnote"><b>版本 B・收斂式</b>：臨時關閉收進「例外預約規則」成為第三個分頁，側欄不增項。優點是四種例外規則同頁、與優先層級的心智模型一致（整日不可預約 &gt; 臨時關閉 &gt; 例外時段規則）；代價是既有的例外頁要重排成分頁結構，且「臨時」操作藏得比較深。</div>
+    <div class="tabs">
+      <a data-tab="allday" class="${t === 'allday' ? 'on' : ''}">整日不可預約</a>
+      <a data-tab="exc" class="${t === 'exc' ? 'on' : ''}">例外時段規則</a>
+      <a data-tab="closure" class="${t === 'closure' ? 'on' : ''}">臨時預約關閉</a>
+    </div>
+    ${priorityCard()}
+    ${t === 'closure' ? closureBlock() : `<div class="card"><div class="empty">${t === 'allday' ? '「整日不可預約」為 Part 1 既有畫面，本 Demo 不重複實作' : '「例外時段規則」為 Part 1 既有畫面，本 Demo 不重複實作；Part 4 只在此新增「訂金規則」選擇器'}</div></div>`}`;
+  document.querySelectorAll('[data-tab]').forEach(a => a.onclick = () => viewExceptionB(a.dataset.tab));
+  if (t === 'closure') wireClosure();
+}
+
+/* ── Router ── */
+function route() {
+  renderChrome();
+  const h = location.hash || '#/auto';
+  if (h === '#/deposit') viewDeposit();
+  else if (h === '#/closure') { ver === 'A' ? viewClosureA() : viewExceptionB('closure'); }
+  else if (h === '#/exception') { ver === 'B' ? viewExceptionB('closure') : viewClosureA(); }
+  else viewAuto();
+}
+window.addEventListener('hashchange', route);
+$('#resetBtn').onclick = () => { db = seed(); persist(); toast('已重置範例資料'); route(); };
+if (!location.hash) location.hash = '#/auto';
+route();
+</script>
+
+</body>
+</html>
