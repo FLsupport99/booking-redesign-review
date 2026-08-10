@@ -529,6 +529,17 @@ test("時間選擇器是雙欄滾輪，且要按 OK 才寫回", async ({ page })
   await expect(page.locator(C.NEW_BOOKING.time)).toHaveText("13 : 30");
 });
 
+test("服務時長的上限是 23 小時（產品決定），級距維持定稿的每 5 分", async ({ page }) => {
+  await page.goto("/sections/timeline-new.html");
+  await ready(page);
+  await page.click("#nb-duration");
+  const hours = page.locator("#nb-wheel-h button");
+  await expect(hours).toHaveCount(24);              /* 0–23 */
+  await expect(hours.last()).toHaveText("23");
+  /* 每 5 分 → 最大可選是 23小時55分，不是 23:59 */
+  await expect(page.locator("#nb-wheel-m button").last()).toHaveText("55");
+});
+
 test("服務時長選擇器有接上，且與預約時間是同一組數值", async ({ page }) => {
   await page.goto("/sections/timeline-new.html");
   await ready(page);
