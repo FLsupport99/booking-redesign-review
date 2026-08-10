@@ -965,3 +965,8 @@ p, h1 { margin: 0; }
   font-size: var(--fs-title); font-weight: 500; letter-spacing: var(--ls-title); text-align: center;
 }
 .nb-done-pay { font-size: var(--fs-body); font-weight: 400; color: var(--text-75); }
+
+.nb-field-block { display: flex; flex-direction: column; gap: 2px; }
+.nb-field-block.has-error .nb-field { border-bottom-color: var(--alert); }
+.nb-field-error { font-size: var(--fs-small); line-height: var(--lh-small);
+  letter-spacing: var(--ls-small); color: var(--alert); }

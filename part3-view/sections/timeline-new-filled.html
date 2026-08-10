@@ -269,6 +269,17 @@
       </label>
     </div>
 
+
+    <div class="unit-card">
+      <div class="unit-head">
+        <p class="t-small item-label">預約單位</p>
+        <button class="unit-change" type="button" id="f-unit-change">變更 ›</button>
+      </div>
+      <p class="chip chip-group" id="f-unit-group"></p>
+      <p class="t-subtitle" id="f-unit-list"></p>
+      <p class="t-small text-75" id="f-unit-empty" hidden>請選擇預約單位</p>
+    </div>
+
     <!-- 預約問卷 -->
     <section class="drawer-sect" id="survey-sect">
       <p class="sect-title">預約問卷</p>
@@ -316,15 +327,6 @@
       </div>
     </section>
 
-    <div class="unit-card">
-      <div class="unit-head">
-        <p class="t-small item-label">預約單位</p>
-        <button class="unit-change" type="button" id="f-unit-change">變更 ›</button>
-      </div>
-      <p class="chip chip-group" id="f-unit-group"></p>
-      <p class="t-subtitle" id="f-unit-list"></p>
-      <p class="t-small text-75" id="f-unit-empty" hidden>請選擇預約單位</p>
-    </div>
   </div>
 
   <div class="drawer-foot">
@@ -421,11 +423,14 @@
         </div>
       </div>
 
-      <label class="nb-field">
-        <img class="nb-ic20" src="../assets/nb-email.svg" alt="">
-        <input type="email" id="nb-email" placeholder="Email">
-        <span class="nb-email-required" hidden>Email*</span>
-      </label>
+      <div class="nb-field-block">
+        <label class="nb-field">
+          <img class="nb-ic20" src="../assets/nb-email.svg" alt="">
+          <input type="email" id="nb-email" placeholder="Email">
+          <span class="nb-email-required" hidden>Email*</span>
+        </label>
+        <p class="nb-field-error" id="nb-email-error" hidden>email格式錯誤</p>
+      </div>
 
       <label class="nb-field">
         <img class="nb-ic20" src="../assets/nb-note.svg" alt="">
@@ -531,17 +536,6 @@
   </div>
 </aside>
 
-<!-- 選擇預約單位（修改抽屜的「變更」） -->
-<div class="modal-mask" id="modal-units" hidden>
-  <div class="modal" role="dialog" aria-labelledby="units-title">
-    <p class="modal-title" id="units-title">選擇預約單位</p>
-    <div class="unit-picker" id="unit-picker"></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline btn-md" type="button" data-close="#modal-units">繼續修改</button>
-      <button class="btn btn-primary btn-md" type="button" id="btn-units-ok">儲存變更</button>
-    </div>
-  </div>
-</div>
 
 <!-- 未儲存提醒（3-1-2 未儲存提醒） -->
 <div class="modal-mask" id="modal-unsaved" hidden>
