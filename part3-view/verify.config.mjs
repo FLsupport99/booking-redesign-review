@@ -28,6 +28,7 @@ export const MODES = [
       { id: "new-items", name: "選擇預約項目" },
       { id: "new-units", name: "選擇預約單位" },
       { id: "new-done", name: "完成新增" },
+      { id: "new-full", name: "時段已滿" },
       { id: "modify", name: "修改預約" },
       { id: "collapsed", name: "收合右側邊欄" },
       { id: "error", name: "Error toast" },
@@ -82,6 +83,10 @@ export const NEW_BOOKING = {
   timeHint: "#nb-time-hint",
   item: "#nb-item",
   unitPanel: "#nb-unit-panel",
+  timePicker: "#nb-timepicker",
+  datePicker: "#nb-datepicker",
+  unitsFull: "#nb-units-full",
+  unitsOk: "#nb-units-ok",
 };
 
 /* 修改抽屜的區塊順序（走查 A 抓到過一次錯位）與「變更」單位的互動 */
@@ -152,7 +157,7 @@ export const figma = {
     },
     {
       id: "413:154219", name: "2-2-2 服務項目預約_選擇預約項目",
-      frames: ["413:124781", "413:142448"],
+      frames: ["413:124781", "413:142448", "413:142426", "413:142440"],
     },
     {
       id: "413:154220", name: "2-2-3 服務項目預約_完成新增",
@@ -180,6 +185,9 @@ export const figma = {
       id: "381:109846", name: "2-1-2 新增預約_Pickers",
       frames: ["377:56889", "377:59212", "377:57630", "377:58461", "377:59956",
                "377:59989", "377:60021", "377:60051",
+               /* 2026-08-10：build_manifest 的尺寸門檻原本 200×200，
+                  把這幾張窄/矮的互動狀態圖濾掉了，門檻降到 100 後才出現 */
+               "377:58381", "377:58421", "377:60081",
                "381:105356", "381:108282", "381:106798"],
     },
     {

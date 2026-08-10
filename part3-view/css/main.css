@@ -76,9 +76,11 @@ p, h1 { margin: 0; }
 .topnav { display: flex; align-items: center; gap: 16px; height: 36px; }
 .page-title { flex: none; }
 .datenav { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; }
+/* 定稿 Ellipse 51：20×20、常駐 1px 框線（不是只有 hover 才出現） */
 .date-arrow {
-  width: 24px; height: 24px; border-radius: 50%; color: var(--text-75);
-  display: grid; place-items: center; font-size: 10px;
+  width: 20px; height: 20px; border-radius: 50%; color: var(--text-75);
+  border: 1px solid var(--gray-220);
+  display: grid; place-items: center; font-size: 9px;
 }
 .date-arrow:hover { background: var(--gray-245); }
 .btn-pill {
@@ -970,3 +972,22 @@ p, h1 { margin: 0; }
 .nb-field-block.has-error .nb-field { border-bottom-color: var(--alert); }
 .nb-field-error { font-size: var(--fs-small); line-height: var(--lh-small);
   letter-spacing: var(--ls-small); color: var(--alert); }
+
+/* 2-1-2 Pickers */
+.nb-timegrid { display: flex; flex-wrap: wrap; gap: 8px; }
+.nb-timegrid button {
+  width: 72px; padding: 8px 0; border: 1px solid var(--gray-220); border-radius: var(--r-card);
+  font-size: var(--fs-body); letter-spacing: var(--ls-body); font-variant-numeric: tabular-nums;
+}
+.nb-timegrid button:hover { border-color: var(--primary); color: var(--primary-dark); }
+.nb-timegrid button.is-selected { border-color: var(--primary); background: var(--primary-light-3); color: var(--primary-dark); }
+.nb-timegrid button:disabled { color: var(--text-27); background: var(--gray-245); cursor: default; }
+.nb-cal-head { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.nb-cal-head p { font-size: var(--fs-title); font-weight: 500; letter-spacing: var(--ls-title); }
+.nb-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; }
+.nb-cal-grid span, .nb-cal-grid button { padding: 8px 0; text-align: center;
+  font-size: var(--fs-body); letter-spacing: var(--ls-body); font-variant-numeric: tabular-nums; }
+.nb-cal-grid span { color: var(--text-60); font-size: var(--fs-small); }
+.nb-cal-grid button { border-radius: var(--r-btn); }
+.nb-cal-grid button:hover { background: var(--gray-245); }
+.nb-cal-grid button.is-selected { background: var(--primary); color: var(--text-on-color); }
