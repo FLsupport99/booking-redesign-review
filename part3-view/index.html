@@ -1,3 +1,142 @@
-<!doctype html><meta charset="utf-8"><title>Part 3 ② 預約管理視圖</title>
-<h1>Part 3 ② 預約管理視圖</h1>
-<ul><li><a href="1-%E6%99%82%E9%96%93%E8%BB%B8.html">① 時間軸</a></li></ul>
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Part 3 預約管理 — 檢視</title>
+<style>
+  /* 沿用本站既有樣式（index.html／designs.html 那套），不另創一套風格 */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "PingFang TC", "Noto Sans TC", sans-serif; background: #f4f5f6; color: #222;
+         height: 100vh; display: flex; flex-direction: column; }
+
+  header { background: #fff; border-bottom: 1px solid #e5e5e5; padding: 10px 16px;
+           display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 15px; font-weight: 600; }
+  header .sp { flex: 1; }
+  .seg { display: flex; border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; }
+  .seg button { padding: 5px 12px; font-size: 13px; background: #fff; border: 0; cursor: pointer; color: #666; }
+  .seg button + button { border-left: 1px solid #e5e5e5; }
+  .seg button[aria-pressed="true"] { background: #ECF8F3; color: #29A379; font-weight: 500; }
+  header a.out { font-size: 13px; color: #29A379; text-decoration: none; }
+
+  main { flex: 1; display: flex; min-height: 0; }
+  nav { width: 232px; flex: none; background: #fff; border-right: 1px solid #e5e5e5;
+        overflow-y: auto; padding: 8px 0 24px; }
+  nav h2 { font-size: 11px; color: #aaa; font-weight: 600; padding: 12px 16px 4px; letter-spacing: .06em; }
+  nav button { display: block; width: 100%; text-align: left; padding: 7px 16px; font-size: 13px;
+               background: none; border: 0; cursor: pointer; color: #444; line-height: 1.5; }
+  nav button:hover { background: #f7f8f8; }
+  nav button[aria-current="true"] { background: #ECF8F3; color: #29A379; font-weight: 500;
+               box-shadow: inset 3px 0 0 #3FBA88; }
+
+  .stage { flex: 1; min-width: 0; display: grid; place-items: center; padding: 20px; overflow: auto; }
+  .frame { background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; overflow: hidden;
+           box-shadow: 0 6px 24px rgba(0,0,0,.06); }
+  .frame iframe { display: block; border: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Part 3 預約管理</h1>
+  <div class="seg" id="seg-size" role="group" aria-label="視窗尺寸">
+    <button type="button" data-w="1024" data-h="768" aria-pressed="true">桌機 1024</button>
+    <button type="button" data-w="390" data-h="844" aria-pressed="false">手機 390</button>
+  </div>
+  <div class="seg" id="seg-mode" role="group" aria-label="預約模式">
+    <button type="button" data-bmode="hier" aria-pressed="true">階層</button>
+    <button type="button" data-bmode="service" aria-pressed="false">服務</button>
+    <button type="button" data-bmode="basic" aria-pressed="false">基本</button>
+    <button type="button" data-bmode="capacity" aria-pressed="false">總量</button>
+  </div>
+  <div class="seg" id="seg-overflow" role="group" aria-label="長字串">
+    <button type="button" data-overflow="1" aria-pressed="false">長字串</button>
+  </div>
+  <span class="sp"></span>
+  <a class="out" id="open-new" href="#" target="_blank" rel="noopener">另開分頁 ↗</a>
+</header>
+
+<main>
+  <nav id="nav" aria-label="畫面清單"></nav>
+  <div class="stage">
+    <div class="frame" id="frame">
+      <iframe id="view" title="畫面預覽" src="about:blank"></iframe>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+/* 清單直接讀驗收設定，不另外維護一份——新增 section 會自動出現在這裡。
+   （這站是唯讀的聚合層，不該有「只有這裡才有」的資料。） */
+import { MODES } from "./verify.config.mjs";
+
+const state = { src: null, w: 1024, h: 768, bmode: "hier", overflow: false };
+
+const nav = document.getElementById("nav");
+const view = document.getElementById("view");
+const frame = document.getElementById("frame");
+
+const groups = MODES.map((m) => ({
+  title: m.label,
+  items: [{ label: "主畫面", src: m.file },
+    ...(m.sections ?? []).map((s) => ({ label: s.name, src: `sections/${m.key}-${s.id}.html` }))],
+}));
+
+nav.innerHTML = groups.map((g) => `
+  <h2>${g.title}</h2>
+  ${g.items.map((i) => `<button type="button" data-src="${i.src}">${i.label}</button>`).join("")}`).join("");
+
+function url() {
+  const q = new URLSearchParams();
+  if (state.bmode !== "hier") q.set("bmode", state.bmode);
+  if (state.overflow) q.set("overflow", "1");
+  const s = q.toString();
+  return encodeURI(state.src) + (s ? `?${s}` : "");
+}
+
+function render() {
+  view.style.width = `${state.w}px`;
+  view.style.height = `${state.h}px`;
+  frame.style.width = `${state.w}px`;
+  view.src = url();
+  document.getElementById("open-new").href = url();
+  nav.querySelectorAll("button").forEach((b) =>
+    b.setAttribute("aria-current", String(b.dataset.src === state.src)));
+}
+
+nav.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-src]");
+  if (!b) return;
+  state.src = b.dataset.src;
+  render();
+});
+
+function segment(id, apply) {
+  document.getElementById(id).addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    apply(b);
+    render();
+  });
+}
+segment("seg-size", (b) => {
+  state.w = Number(b.dataset.w); state.h = Number(b.dataset.h);
+  b.parentElement.querySelectorAll("button").forEach((x) =>
+    x.setAttribute("aria-pressed", String(x === b)));
+});
+segment("seg-mode", (b) => {
+  state.bmode = b.dataset.bmode;
+  b.parentElement.querySelectorAll("button").forEach((x) =>
+    x.setAttribute("aria-pressed", String(x === b)));
+});
+segment("seg-overflow", (b) => {
+  state.overflow = !state.overflow;
+  b.setAttribute("aria-pressed", String(state.overflow));
+});
+
+state.src = groups[0].items[0].src;
+render();
+</script>
+</body>
+</html>

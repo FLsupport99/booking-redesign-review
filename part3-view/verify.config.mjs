@@ -6,18 +6,6 @@ export const TITLE_PREFIX = "預約管理";
 /* 本專案的「MODES」是三個視圖。每個視圖有自己的狀態清單（不是 customer-booking 那種共用矩陣）。 */
 export const MODES = [
   {
-    key: "list",
-    file: "3-清單.html",
-    label: "③ 清單",
-    sections: [{ id: "modify", name: "清單_修改預約" }],
-  },
-  {
-    key: "space",
-    file: "2-空間圖.html",
-    label: "② 空間圖",
-    sections: [{ id: "popover", name: "空間圖 popover" }],
-  },
-  {
     key: "timeline",
     file: "1-時間軸.html",
     label: "① 時間軸",
@@ -35,6 +23,18 @@ export const MODES = [
       { id: "unsaved", name: "未儲存提醒" },
       { id: "done", name: "修改完成" },
     ],
+  },
+  {
+    key: "space",
+    file: "2-空間圖.html",
+    label: "② 空間圖",
+    sections: [{ id: "popover", name: "空間圖 popover" }],
+  },
+  {
+    key: "list",
+    file: "3-清單.html",
+    label: "③ 清單",
+    sections: [{ id: "modify", name: "清單_修改預約" }],
   },
 ];
 
