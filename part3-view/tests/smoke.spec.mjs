@@ -453,3 +453,35 @@ test("階層模式的項目選單有群組標題與子項目", async ({ page }) 
   await expect(page.locator("#nb-item-list .nb-item-group > p")).not.toHaveCount(0);
   await expect(page.locator("#nb-item-list .nb-item-sub")).not.toHaveCount(0);
 });
+
+
+/* ---------- 走查 A 抓到的兩個問題，補上斷言避免再犯 ---------- */
+
+test("修改抽屜的區塊順序：預約單位在問卷與訂金之前", async ({ page }) => {
+  await page.goto("/sections/timeline-modify.html");
+  await ready(page);
+  /* 定稿（新增與修改抽屜一致）：顧客資訊 → 預約單位 → 預約問卷 → 要求訂金。
+     實作曾經把預約單位擺到最底部、排在訂金之後。 */
+  const tops = [];
+  for (const sel of C.EDIT_DRAWER_ORDER) {
+    tops.push((await page.locator(sel).boundingBox()).y);
+  }
+  expect(tops).toEqual([...tops].sort((a, b) => a - b));
+});
+
+test("修改抽屜的「變更」能開出單位選擇，選完回到修改抽屜", async ({ page }) => {
+  await page.goto("/sections/timeline-modify.html");
+  await ready(page);
+  await expect(page.locator("#nb-units")).toBeHidden();
+
+  /* 這顆按鈕原本沒接任何事件——按了完全沒反應 */
+  await page.click(C.EDIT_UNIT_CHANGE);
+  await expect(page.locator("#nb-units")).toBeVisible();
+  await expect(page.locator(C.EDIT_GATE.drawer)).toBeHidden();
+
+  await page.locator("#nb-unit-groups .nb-unit").first().click();
+  await page.click("#nb-units-ok");
+  await expect(page.locator("#nb-units")).toBeHidden();
+  await expect(page.locator(C.EDIT_GATE.drawer)).toBeVisible();
+  await expect(page.locator("#f-unit-list")).not.toBeEmpty();
+});
