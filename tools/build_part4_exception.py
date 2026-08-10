@@ -146,6 +146,10 @@ src = inject(src, "  document.getElementById('blockBtn').addEventListener('click
              "\n  document.getElementById('p4ClosureBtn').addEventListener('click', p4OpenModal);",
              before=False, label="bind")
 
+# 右下角「回後台模擬器」原本指向 sim.html（非整合版），改指方案 C 的整合頁
+src = src.replace('<a href="sim.html"', '<a href="part4_timeline.html#/book/timeline"', 1)
+src = src.replace('← 回後台模擬器', '→ 方案 C・時間軸整合版', 1)
+
 src = src.replace("<title>", "<title>Part4 整合版｜", 1)
 src = src.replace("<!-- Shop-Rebirth Prototype · 例外預約規則 · 維護：FindLife Support -->",
                   "<!-- Part4 整合版：由 tools/build_part4_exception.py 從 exception_rules.html 產生，請勿直接編輯 -->", 1)
