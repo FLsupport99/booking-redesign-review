@@ -12,6 +12,15 @@ body {
 }
 button, input { font: inherit; color: inherit; }
 button { cursor: pointer; background: none; border: 0; }
+
+/* ---------- 互動回饋（定稿未定義的部分） ----------
+   走查掃過後，除了月曆格那條確定是漏改，其餘按鈕「定稿有沒有畫 hover/pressed 變體」
+   無法判斷。這裡**不發明新色彩**，只用黑色微疊加補一致的回饋，讓可點元素都有反應。
+   這是實作為了可用性補的，不是對定稿的還原；若之後設計補了變體，以定稿為準。
+   放在這裡（而不是檔尾）是為了讓後面的特定規則——例如 Picker 的薄荷綠——能覆蓋。 */
+button:not(:disabled):hover { box-shadow: inset 0 0 0 999px rgba(0, 0, 0, .03); }
+button:not(:disabled):active { box-shadow: inset 0 0 0 999px rgba(0, 0, 0, .08); }
+.nav-item:active { box-shadow: inset 0 0 0 999px rgba(255, 255, 255, .08); }
 ul { margin: 0; padding: 0; list-style: none; }
 p, h1 { margin: 0; }
 [hidden] { display: none !important; }
@@ -1063,7 +1072,12 @@ p, h1 { margin: 0; }
   font-size: var(--fs-body); letter-spacing: var(--ls-body); font-variant-numeric: tabular-nums; }
 .nb-cal-grid span { color: var(--text-60); font-size: var(--fs-small); }
 .nb-cal-grid button { width: 42px; height: 42px; border-radius: 50%; margin: 0 auto; }
-.nb-cal-grid button:hover { background: var(--gray-245); }
+/* 月曆格與時間輪是同一個 Picker 元件族，時間輪已用定稿的 Complementary/Hover，
+   月曆這格漏改成通用灰——走查抓到的唯一「確定落差」。 */
+.nb-cal-grid button:hover { background: rgba(236, 248, 243, .25); box-shadow: inset 0 0 0 999px rgba(0, 0, 0, .05); }
+.nb-cal-grid button:active { background: rgba(236, 248, 243, .5); box-shadow: inset 0 0 0 999px rgba(0, 0, 0, .13); }
 .nb-cal-grid button.is-selected { background: var(--primary); color: var(--text-on-color); }
 .nb-cal-head { gap: 4px; }
 .nb-cal-head button { padding: 4px 8px; }
+
+

@@ -768,14 +768,19 @@ function pickNewTime(t) {
 const WHEEL = {
   time: { title: "選擇時間", hours: () => range(0, 23), mins: () => [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55],
           fmt: (h, m) => `${pad(h)}:${pad(m)}` },
-  duration: { title: "選擇服務時間長度", hours: () => range(0, 6), mins: () => [0, 15, 30, 45],
+  /* 服務時長與預約時間是同一元件套不同數值：分同樣每 5 分（不是每 15 分）、
+     預設 0:00（不是 2:00）。走查對照 377:59172 後修正。
+     ⚠️ 小時上限：定稿的可視窗格看得到 0–7，實際上限看不出來；
+     既然是同一元件，這裡沿用與預約時間相同的 0–23。 */
+  duration: { title: "選擇服務時間長度", hours: () => range(0, 23),
+              mins: () => range(0, 11).map((i) => i * 5),
               fmt: (h, m) => `${h}小時${m}分` },
 };
 const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
 
 function openWheel(kind) {
   state.wheelKind = kind;
-  state.wheelH = state.wheelH ?? (kind === "time" ? 12 : 2);
+  state.wheelH = state.wheelH ?? (kind === "time" ? 12 : 0);
   state.wheelM = state.wheelM ?? 0;
   $("#nb-timepicker").querySelector(".nb-title2").textContent = WHEEL[kind].title;
   renderWheel();
