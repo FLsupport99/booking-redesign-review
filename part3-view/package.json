@@ -7,8 +7,9 @@
     "build": "node ../verify-kit/build.mjs",
     "copy-check": "node ../verify-kit/figma-copy-check.mjs",
     "smoke": "playwright test",
-    "verify": "npm run build && npm run copy-check && npm run smoke",
-    "icons": "node ../verify-kit/figma-export-svg.mjs"
+    "verify": "npm run match-test && npm run build && npm run copy-check && npm run smoke",
+    "icons": "node ../verify-kit/figma-export-svg.mjs",
+    "match-test": "node ../verify-kit/match.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1"
