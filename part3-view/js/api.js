@@ -137,6 +137,10 @@ const api = (() => {
         groups: GROUPS,
         smsPoints: 1000,
         posSyncing: true,
+        /* 新增預約的三種擋下情境（定稿 2-1-1 有各自一張） */
+        closedAllDay: false,
+        closedItem: false,
+        hasUnits: true,
         hasDuplicate: true,
         /* 修改抽屜的訂金說明（定稿 3-1-2）。mode: "none" | "prepay" | "card_auth" */
         deposit: {

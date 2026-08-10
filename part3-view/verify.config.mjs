@@ -23,6 +23,8 @@ export const MODES = [
     label: "① 時間軸",
     sections: [
       { id: "popover", name: "預約 popover" },
+      { id: "new", name: "新增預約" },
+      { id: "new-filled", name: "新增預約_填寫後" },
       { id: "modify", name: "修改預約" },
       { id: "collapsed", name: "收合右側邊欄" },
       { id: "error", name: "Error toast" },
@@ -54,6 +56,19 @@ export const UNSAVED = {
   keep: "#btn-keep-edit",
   discard: "#btn-discard",
   dirtyField: "#f-name",
+};
+
+/* 新增預約抽屜（2-1-1）。⭐ 定稿 2-1-1_Start 在該列 x=100 最左＝初始狀態，
+   畫面上沒有抽屜；要按工具列的「＋預約」才出現。 */
+export const NEW_BOOKING = {
+  drawer: "#new-drawer",
+  open: "#btn-add-booking",
+  close: "#nb-close",
+  submit: "#nb-submit",
+  walkin: "#nb-walkin",
+  customer: "#nb-customer",
+  time: "#nb-time",
+  timeHint: "#nb-time-hint",
 };
 
 export const TOAST = "#toast";
@@ -103,6 +118,16 @@ export const figma = {
       frames: ["500:50579", "500:51442"],
     },
     {
+      id: "381:105355", name: "2-1-1 階層項目預約_新增預約",
+      frames: ["377:61212", "377:45699", "377:60912", "377:61112", "377:63447",
+               /* 377:63552（新增預約_開啟預約建立通知）在 Figma 已刪除，
+                  manifest_p3.json（2026-08-03 建）尚未同步，故不列入 */
+               "377:63657", "377:63857", "377:63757", "377:64568",
+               "413:141904", "377:65056", "377:64952", "377:61012", "377:64852",
+               "377:56176", "377:55462", "526:94904", "377:64054", "377:64370",
+               "377:65162", "381:99303", "381:102125", "381:103536"],
+    },
+    {
       id: "506:90183", name: "3-3-1 清單",
       frames: [/* 桌機 8 種狀態 */
                "472:56764", "496:43355", "506:53956", "506:54444",
@@ -136,6 +161,8 @@ export const figma = {
     /^[A-Za-z0-9@._-]+$/,                         // email／英數 id（含帶數字的假信箱）
     /^(鄂瑜|蔡|暮|吳恩氣|熊|陳樂|孫小美|河智昊|鹿|廖文強|楊|邱|程樂樂)$/,  // 假顧客名
     /^Allison Ekstrom Bothman$/,                   // 假顧客名（長名字換行示意）
+    /^(林小美|葉大雄|章|江|賴|呂文|盧廣仲|兩津|林忠諭|白安|陸)$/,   // 顧客搜尋清單的假名單
+    /^不吃辣$/,                                    // 問卷選項假資料
     /^[FOB]\d?$/, /^[FOB] 區$/, /^群組[A-Z]$/, /^桌次\d/, /^Unit \d/, /^單位\d/,  // 桌次／組別假資料
     /^(精緻主廚特餐|早午時光|空間圖\d)/,            // 預約項目假資料
     /^(顧客備註|店家備註) /,                        // 備註示意內容

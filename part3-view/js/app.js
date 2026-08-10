@@ -128,6 +128,13 @@ async function applySectionPreset(section) {
       markDirty();
       requestClose();
       break;
+    case "new": openNew(); break;
+    case "new-filled":
+      openNew();
+      $("#nb-time").click();
+      $("#nb-phone").value = "0988123123";
+      updateNewCta();
+      break;
     case "done":
       openEdit(first.id);
       $("#f-name").value = "孫小美";
@@ -585,6 +592,43 @@ function toggleSidebar(collapsed) {
   $("#cust-toggle").setAttribute("aria-expanded", String(!state.collapsed));
 }
 
+/* ---------- 新增預約抽屜（2-1-1） ----------
+   ⭐ 顯示時機：定稿 2-1-1_Start 在該列 x=100（最左）＝初始狀態，畫面上沒有抽屜；
+   要按工具列的「＋預約」才出現。 */
+function openNew() {
+  closePopover();
+  $("#edit-drawer").hidden = true;      // 兩個抽屜共用同一個槽位，不能同時開
+  $("#new-drawer").hidden = false;
+  updateNewCta();
+}
+function closeNew() { $("#new-drawer").hidden = true; }
+
+/* 定稿 Default：時間未選時顯示「-- : --」與橘色「請選擇時間」，主鈕不可按。
+   現場顧客勾選後不需填顧客資訊（顧客區整塊收起）。 */
+/* 定稿的三種擋下狀態：整日關閉、單一項目關閉、尚未設定預約單位 */
+function applyNewClosedState() {
+  const s = state.shop;
+  $("#nb-closed-day").hidden = !s.closedAllDay;
+  $("#nb-closed-item").hidden = !s.closedItem;
+  if (s.closedItem) {
+    $("#nb-closed-item").textContent = `此預約項目於${fmtDate(state.date)}已關閉預約`;
+  }
+  /* 定稿：未設定預約單位時，面板顯示「尚未設定預約單位」，下方另有「請先設定預約單位」的引導 */
+  $("#nb-unit-empty").hidden = s.hasUnits !== false;
+  $("#nb-unit-cta").hidden = s.hasUnits !== false;
+}
+
+function updateNewCta() {
+  applyNewClosedState();
+  const walkin = $("#nb-walkin").checked;
+  $("#nb-customer").hidden = walkin;
+  const timeChosen = $("#nb-time").textContent.trim() !== "-- : --";
+  $("#nb-time-hint").hidden = timeChosen;
+  const needCustomer = !walkin && !$("#nb-phone").value.trim();
+  const blocked = state.shop.closedAllDay || state.shop.closedItem || state.shop.hasUnits === false;
+  $("#nb-submit").disabled = blocked || !timeChosen || needCustomer;
+}
+
 /* ---------- 事件 ---------- */
 function bindEvents() {
   $("#cust-toggle").addEventListener("click", () => toggleSidebar());
@@ -595,6 +639,24 @@ function bindEvents() {
     $("#nav-scrim").hidden = !open;
     $("#m-burger").setAttribute("aria-expanded", String(open));
   };
+  /* ＋預約（桌機工具列與手機底部固定鈕）開新增抽屜 */
+  $("#btn-add-booking").addEventListener("click", openNew);
+  $("#m-add-booking").addEventListener("click", openNew);
+  $("#nb-close").addEventListener("click", closeNew);
+  $("#nb-walkin").addEventListener("change", updateNewCta);
+  $("#nb-phone").addEventListener("input", updateNewCta);
+  $("#nb-time").addEventListener("click", () => {
+    /* demo：點一次就選定一個時間，讓「請選擇時間」提示與主鈕狀態可驗證 */
+    $("#nb-time").textContent = "12 : 00";
+    updateNewCta();
+  });
+  $$("[data-nb-step]").forEach((b) => b.addEventListener("click", () => {
+    const el = $(b.dataset.nbStep === "adults" ? "#nb-adults" : "#nb-children");
+    const next = Math.max(0, Number(el.textContent) + Number(b.dataset.delta));
+    el.textContent = next;
+    el.classList.toggle("is-zero", next === 0);
+  }));
+
   $("#m-burger").addEventListener("click", () => setNav(!$(".nav").classList.contains("is-open")));
   $("#nav-scrim").addEventListener("click", () => setNav(false));
 

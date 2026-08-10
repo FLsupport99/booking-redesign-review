@@ -332,6 +332,149 @@
   </div>
 </aside>
 
+<!-- 新增預約抽屜（2-1-1，350 寬，與修改預約同一個槽位） -->
+<aside class="drawer nb-drawer" id="new-drawer" aria-label="新增預約" hidden>
+  <div class="nb-top">
+    <span class="nb-top-spacer" aria-hidden="true"></span>
+    <p class="nb-title">新增預約</p>
+    <button class="nb-close" type="button" id="nb-close" aria-label="關閉">
+      <img src="assets/nb-close.svg" alt=""></button>
+  </div>
+
+  <div class="nb-content">
+    <label class="nb-walkin">
+      <span class="nb-check-row">
+        <input type="checkbox" id="nb-walkin">
+        <span class="nb-box"></span>
+        <span class="nb-check-label">現場顧客</span>
+      </span>
+      <span class="nb-hint">勾選後無需填寫顧客資訊</span>
+    </label>
+
+    <button class="nb-item" type="button" id="nb-item">
+      <span class="nb-item-label">預約項目</span>
+      <span class="nb-item-value">
+        <span id="nb-item-value">請選擇預約項目</span>
+        <img class="nb-ic20" src="assets/nb-arrow.svg" alt="">
+      </span>
+    </button>
+
+    <div class="nb-info">
+      <button class="nb-date" type="button" id="nb-date">
+        <span id="nb-date-value">2026-07-17</span><span id="nb-date-week">週五</span>
+        <img class="nb-ic16" src="assets/nb-triangle.svg" alt="">
+      </button>
+
+      <div class="nb-time-input">
+        <button class="nb-time" type="button" id="nb-time">-- : --</button>
+        <p class="nb-time-hint" id="nb-time-hint">請選擇時間</p>
+      </div>
+
+      <button class="nb-duration" type="button" id="nb-duration">
+        <img class="nb-ic16" src="assets/nb-clock.svg" alt="">
+        <span id="nb-duration-value">請選擇服務時間長度</span>
+        <img class="nb-ic16" src="assets/nb-arrow.svg" alt="">
+      </button>
+
+      <div class="nb-party">
+        <div class="nb-party-col">
+          <p class="nb-party-label">大人</p>
+          <div class="nb-stepper">
+            <button type="button" data-nb-step="adults" data-delta="-1" aria-label="減少大人">
+              <img src="assets/nb-minus.svg" alt=""></button>
+            <p class="nb-num" id="nb-adults">1</p>
+            <button type="button" data-nb-step="adults" data-delta="1" aria-label="增加大人">
+              <img src="assets/nb-plus.svg" alt=""></button>
+          </div>
+        </div>
+        <div class="nb-party-col">
+          <p class="nb-party-label">小孩</p>
+          <div class="nb-stepper">
+            <button type="button" data-nb-step="children" data-delta="-1" aria-label="減少小孩">
+              <img src="assets/nb-minus.svg" alt=""></button>
+            <p class="nb-num is-zero" id="nb-children">0</p>
+            <button type="button" data-nb-step="children" data-delta="1" aria-label="增加小孩">
+              <img src="assets/nb-plus.svg" alt=""></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nb-customer" id="nb-customer">
+      <label class="nb-field">
+        <img class="nb-ic20" src="assets/nb-phone.svg" alt="">
+        <input type="tel" id="nb-phone" placeholder="手機號碼*">
+      </label>
+
+      <div class="nb-name-block">
+        <label class="nb-field">
+          <img class="nb-ic20" src="assets/nb-customer.svg" alt="">
+          <input type="text" id="nb-name" placeholder="姓名*">
+        </label>
+        <div class="nb-gender" role="radiogroup" aria-label="稱謂">
+          <label class="nb-radio"><input type="radio" name="nb-title" value="其他" checked>
+            <img class="on" src="assets/nb-radio-on.svg" alt=""><img class="off" src="assets/nb-radio-off.svg" alt="">其他</label>
+          <label class="nb-radio"><input type="radio" name="nb-title" value="先生">
+            <img class="on" src="assets/nb-radio-on.svg" alt=""><img class="off" src="assets/nb-radio-off.svg" alt="">先生</label>
+          <label class="nb-radio"><input type="radio" name="nb-title" value="小姐">
+            <img class="on" src="assets/nb-radio-on.svg" alt=""><img class="off" src="assets/nb-radio-off.svg" alt="">小姐</label>
+        </div>
+      </div>
+
+      <label class="nb-field">
+        <img class="nb-ic20" src="assets/nb-email.svg" alt="">
+        <input type="email" id="nb-email" placeholder="Email">
+        <span class="nb-email-required" hidden>Email*</span>
+      </label>
+
+      <label class="nb-field">
+        <img class="nb-ic20" src="assets/nb-note.svg" alt="">
+        <input type="text" id="nb-note" placeholder="商家備註">
+      </label>
+    </div>
+
+    <div class="nb-panel">
+      <div class="nb-panel-row">
+        <p class="nb-panel-label">預約單位</p>
+        <button class="nb-panel-action" type="button" id="nb-pick-unit">選擇預約單位
+          <img class="nb-ic14" src="assets/nb-arrow.svg" alt=""></button>
+      </div>
+      <p class="nb-unit-list" id="nb-unit-list" hidden></p>
+      <p class="nb-unit-empty" id="nb-unit-empty">尚未設定預約單位</p>
+      <p class="nb-unit-empty" id="nb-unit-cta" hidden>請先設定預約單位</p>
+    </div>
+
+    <hr class="nb-divider">
+
+    <button class="nb-panel nb-panel-btn" type="button" id="nb-survey">
+      <p class="nb-panel-title">預約問卷</p>
+      <img class="nb-ic20" src="assets/nb-arrow.svg" alt="">
+    </button>
+
+    <hr class="nb-divider">
+
+    <div class="nb-notify" id="nb-notify" hidden>
+      <p class="nb-panel-title">預約建立通知</p>
+      <p class="nb-notify-hint">請選擇通知發送方式</p>
+    </div>
+
+    <div class="nb-deposit">
+      <p class="nb-panel-title">要求訂金</p>
+      <button class="nb-switch" type="button" id="nb-deposit-toggle" role="switch" aria-checked="false">
+        <img src="assets/nb-switch.svg" alt=""></button>
+    </div>
+  </div>
+
+  <!-- 關閉預約：定稿有「整日關閉」與「單一項目關閉」兩種提示 -->
+  <p class="nb-closed" id="nb-closed-day" hidden>此日已關閉預約</p>
+  <p class="nb-closed" id="nb-closed-item" hidden></p>
+
+  <div class="nb-bottom">
+    <button class="nb-submit" type="button" id="nb-submit">新增預約</button>
+    <button class="nb-again" type="button" id="nb-again" hidden>繼續新增</button>
+  </div>
+</aside>
+
 <!-- 選擇預約單位（修改抽屜的「變更」） -->
 <div class="modal-mask" id="modal-units" hidden>
   <div class="modal" role="dialog" aria-labelledby="units-title">
