@@ -10,6 +10,12 @@
    frames：只收集這些 frame id 底下的文字。設計稿畫布上常留有「字太多」「加底色」這類
    **設計自己的修改註記**——它們是 TEXT 節點但不屬於任何畫面，用 frame 白名單直接排除，
    比一條條寫進 IGNORE_PATTERNS 精準。不給 frames 就沿用「整個節點全抓」。
+
+   ⚠️ MANIFEST：指向 manifest_p3.json 之類的 frame 盤點檔後，本工具會比對
+   「manifest 裡有、但沒有出現在任何 TARGETS[].frames 的 frame」並出聲警告。
+   Part 3 曾因此漏掉整組 loose frames——那三張是 400×768 的規格說明卡，
+   裡面全是行為規則（大人最低 1、服務時長自動帶入…），一路到最後才被讀到。
+   漏列不會有任何徵兆，所以需要這道主動比對。
 */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -20,7 +26,8 @@ import { createMatcher } from "./match.mjs";
 const CONFIG = resolve(process.cwd(), process.env.VERIFY_CONFIG || "verify.config.mjs");
 const ROOT = dirname(CONFIG);
 const { figma } = await import(pathToFileURL(CONFIG).href);
-const { FILE_KEY, TARGETS, SOURCE_FILES, IGNORE_PATTERNS = [], ACCEPTED = {} } = figma;
+const { FILE_KEY, TARGETS, SOURCE_FILES, IGNORE_PATTERNS = [], ACCEPTED = {},
+        MANIFEST, NOT_SCANNED = {} } = figma;
 
 const token = readFileSync(resolve(homedir(), "FL-Agent/FL-Salesapp/.env"), "utf8")
   .split("\n").find((l) => l.startsWith("FIGMA_TOKEN="))
@@ -98,6 +105,22 @@ for (const t of TARGETS) {
   results.push({ ...t, total: texts.size, missing, unseen });
 }
 
+/* manifest 裡有、卻沒被任何 TARGETS 列到的 frame —— 靜默漏掉的來源 */
+let unlisted = [];
+if (MANIFEST) {
+  const m = JSON.parse(readFileSync(resolve(ROOT, MANIFEST), "utf8"));
+  /* NOT_SCANNED：明確聲明「不掃描」並附理由的 frame（例如規格說明卡——
+     那是寫給實作看的行為說明，文字不會出現在 UI 上，拿去比對文案是錯的機制）。
+     算作已交代，但不掃內容。每張 frame 都必須二選一，不能靜默略過。 */
+  const listed = new Set([...TARGETS.flatMap((t) => t.frames || []), ...Object.keys(NOT_SCANNED)]);
+  for (const g of m.groups || []) {
+    for (const f of g.loose || []) if (!listed.has(f[0])) unlisted.push([f[0], f[1], "loose"]);
+    for (const s of g.sections || []) {
+      for (const f of s.fr) if (!listed.has(f[0])) unlisted.push([f[0], f[1], s.name]);
+    }
+  }
+}
+
 if (process.argv.includes("--json")) {
   console.log(JSON.stringify(results, null, 1));
 } else {
@@ -114,6 +137,11 @@ if (process.argv.includes("--json")) {
       r.unseen.forEach((f) => console.log(`        ⚠️ frame ${f} 不在此節點內，稽核沒掃到`));
     }
   }
-  console.log(`\n=== ${bad === 0 ? "全部相符" : `${bad} 條與定稿不符或未實作`} ===`);
+  if (unlisted.length) {
+    console.log(`\n⚠️ manifest 有、但沒有納入稽核的 frame（${unlisted.length} 張）：`);
+    unlisted.forEach(([id, name, where]) => console.log(`        ・${id}  ${name}  [${where}]`));
+    bad += unlisted.length;
+  }
+  console.log(`\n=== ${bad === 0 ? "全部相符" : `${bad} 條與定稿不符或未列入`} ===`);
   process.exitCode = bad ? 1 : 0;
 }

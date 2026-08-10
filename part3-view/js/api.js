@@ -150,6 +150,14 @@ const api = (() => {
     },
 
     /* 預約項目（2-1-2 選單）與預約單位群組（2-1-3）。名稱取自定稿的示意資料。 */
+    /* 說明卡：服務時間長度依「線上預約時段」設定自動帶入；沒設定的時段回 null。
+       demo：整點有設定（90 分），半點沒設定（要自訂）。 */
+    getSlotDuration(itemId, time) {
+      if (!time) return null;
+      const [, m] = time.split(":").map(Number);
+      return m === 0 ? 90 : null;
+    },
+
     async getBookingItems() {
       await delay(60);
       return [

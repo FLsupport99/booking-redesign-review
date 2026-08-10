@@ -582,7 +582,12 @@ function openEdit(id) {
   $("#f-unit-list").textContent = b.units.join("、");
 
   const dep = state.shop.deposit;
-  $("#deposit-sect").hidden = dep.mode === "none";
+  $("#deposit-sect").hidden = false;
+  /* 說明卡 413:154221：「若原本沒有訂金，修改時可要求訂金，
+     但一旦要求訂金，就不可再修改」——已要求過的就鎖住。 */
+  const locked = !!b.depositRequested;
+  $("#deposit-lock").hidden = !locked;
+  $$("#deposit-sect input").forEach((el) => { el.disabled = locked; });
   $("#deposit-hint").textContent =
     dep.mode === "card_auth" ? dep.cardAuthHint : dep.prepayHint;
   $("#notify-warn").hidden = state.shop.smsPoints > 0;
@@ -725,6 +730,8 @@ function updateNewCta() {
   applyNewClosedState();
   const walkin = $("#nb-walkin").checked;
   $("#nb-customer").hidden = walkin;
+  /* 說明卡 377:43808：「勾選『現場客』將不會發送任何預約通知」 */
+  $("#nb-notify").hidden = walkin || state.shop.smsPoints == null;
   const timeChosen = $("#nb-time").textContent.trim() !== "-- : --";
   $("#nb-time-hint").hidden = timeChosen;
   const needCustomer = !walkin && !$("#nb-phone").value.trim();
@@ -754,8 +761,23 @@ async function openItemMenu() {
 /* ---------- 2-1-2 時間／日期選擇器 ----------
    原本 #nb-time 點一下就把文字寫死成 12:00，不是真的選擇器（走查 C 抓到）。 */
 /* 直接指定時間（段落快轉與測試用），走與真人點選同一條路徑 */
+/* 說明卡 377:43808：「服務時間長度」依所選時間自動帶入該預約項目在
+   「線上預約時段」設定的長度；若該時段沒設定線上預約，才需自訂。 */
+function applyAutoDuration(t) {
+  const mins = api.getSlotDuration(state.newItemId, t);
+  const el = $("#nb-duration-value");
+  if (mins == null) {
+    el.textContent = "請選擇服務時間長度";
+    el.dataset.auto = "";
+    return;
+  }
+  el.textContent = `${Math.floor(mins / 60)}小時${mins % 60}分`;
+  el.dataset.auto = "1";
+}
+
 function pickNewTime(t) {
   state.newTime = t;
+  applyAutoDuration(t);
   const [h, m] = t.split(":").map(Number);
   state.wheelH = h; state.wheelM = m;
   $("#nb-time").textContent = t.replace(":", " : ");
@@ -973,9 +995,22 @@ function bindEvents() {
     $("#nav-scrim").hidden = !open;
     $("#m-burger").setAttribute("aria-expanded", String(open));
   };
+  /* 說明卡 413:154221：修改預約時仍可看其他資訊、可切換視圖，
+     但不可點「+候位」「編輯預約」——點了要跳未儲存提醒。 */
+  const blockedWhileEditing = (fn) => (e) => {
+    if (!$("#edit-drawer").hidden) {
+      e.preventDefault();
+      $("#modal-unsaved").hidden = false;
+      focusInto("#modal-unsaved");
+      return;
+    }
+    fn(e);
+  };
+
   /* ＋預約（桌機工具列與手機底部固定鈕）開新增抽屜 */
-  $("#btn-add-booking").addEventListener("click", openNew);
-  $("#m-add-booking").addEventListener("click", openNew);
+  $("#btn-add-booking").addEventListener("click", blockedWhileEditing(openNew));
+  $("#btn-add-wait").addEventListener("click", blockedWhileEditing(() => {}));
+  $("#m-add-booking").addEventListener("click", blockedWhileEditing(openNew));
   $("#nb-close").addEventListener("click", closeNew);
   $("#nb-item").addEventListener("click", openItemMenu);
   $("#nb-pick-unit").addEventListener("click", openUnitPicker);
@@ -1017,7 +1052,9 @@ function bindEvents() {
     if (head) return head.closest(".nb-item-group").classList.toggle("is-open");
     const sub = e.target.closest(".nb-item-sub");
     if (!sub) return;
+      state.newItemId = sub.dataset.sub;
     $("#nb-item-value").textContent = sub.dataset.sub;
+    if (state.newTime) applyAutoDuration(state.newTime);
     swapNewPanel("#new-drawer");
   });
 
@@ -1067,6 +1104,7 @@ function bindEvents() {
     if (state.wheelKind === "time") {
       state.newTime = `${pad(state.wheelH)}:${pad(state.wheelM)}`;
       $("#nb-time").textContent = state.newTime.replace(":", " : ");
+      applyAutoDuration(state.newTime);
     } else {
       $("#nb-duration-value").textContent = v;
     }
@@ -1099,9 +1137,11 @@ function bindEvents() {
     state.calMonth = new Date(state.calMonth.getFullYear() + 1, state.calMonth.getMonth(), 1);
     renderCalendar();
   });
+  /* 說明卡 377:43808：「大人人數 default 為 1，最低也是 1，不可為 0」 */
   $$("[data-nb-step]").forEach((b) => b.addEventListener("click", () => {
-    const el = $(b.dataset.nbStep === "adults" ? "#nb-adults" : "#nb-children");
-    const next = Math.max(0, Number(el.textContent) + Number(b.dataset.delta));
+    const adults = b.dataset.nbStep === "adults";
+    const el = $(adults ? "#nb-adults" : "#nb-children");
+    const next = Math.max(adults ? 1 : 0, Number(el.textContent) + Number(b.dataset.delta));
     el.textContent = next;
     el.classList.toggle("is-zero", next === 0);
   }));
@@ -1121,7 +1161,7 @@ function bindEvents() {
     });
     $("#list-body").addEventListener("click", (e) => {
       const edit = e.target.closest(".lm-edit");
-      if (edit) openEdit(edit.closest(".lrow").dataset.id);
+      if (edit) blockedWhileEditing(() => openEdit(edit.closest(".lrow").dataset.id))(e);
     });
   }
 
@@ -1154,11 +1194,11 @@ function bindEvents() {
 
   $("#cust-list")?.addEventListener("click", (e) => {
     const edit = e.target.closest(".btn-edit");
-    if (edit) openEdit(edit.closest(".cust-card").dataset.id);
+    if (edit) blockedWhileEditing(() => openEdit(edit.closest(".cust-card").dataset.id))(e);
   });
   $("#booking-popover").addEventListener("click", (e) => {
     const edit = e.target.closest(".btn-edit");
-    if (edit) openEdit(edit.closest(".cust-card").dataset.id);
+    if (edit) blockedWhileEditing(() => openEdit(edit.closest(".cust-card").dataset.id))(e);
   });
 
   $("#cust-statustabs")?.addEventListener("click", (e) => {
@@ -1175,9 +1215,11 @@ function bindEvents() {
   $("#edit-drawer").addEventListener("input", markDirty);
   $("#edit-drawer").addEventListener("change", markDirty);
 
+  /* 同上，修改抽屜也適用（說明卡 413:154221 有同一條） */
   $$(".step").forEach((b) => b.addEventListener("click", () => {
-    const el = $(b.dataset.step === "adults" ? "#num-adults" : "#num-children");
-    const next = Math.max(0, Number(el.textContent) + Number(b.dataset.delta));
+    const adults = b.dataset.step === "adults";
+    const el = $(adults ? "#num-adults" : "#num-children");
+    const next = Math.max(adults ? 1 : 0, Number(el.textContent) + Number(b.dataset.delta));
     el.textContent = next;
     markDirty();
   }));
