@@ -102,6 +102,7 @@ function statusActions(b) {
     renderTimebar();
     renderFloorTabs();
     renderFloor();
+    bindTimebar();
   } else {
     renderRowheads();
     renderTimehead();
@@ -360,6 +361,28 @@ function renderTimebar() {
   $("#tb-track").innerHTML = cells.join("");
 }
 
+/* 時間軸列的左右箭頭原本沒綁事件、純裝飾。定稿配這兩顆就是要解決
+   「可視範圍只有十幾個小時」的問題，補上翻頁並把「現在」捲進視野。 */
+function bindTimebar() {
+  const track = $("#tb-track");
+  const page = () => Math.max(120, track.clientWidth - 80);
+  $("#tb-prev").addEventListener("click", () => { track.scrollLeft -= page(); });
+  $("#tb-next").addEventListener("click", () => { track.scrollLeft += page(); });
+  scrollNowIntoView();
+}
+
+function scrollNowIntoView() {
+  const track = $("#tb-track");
+  const now = $("#tb-track .tb-hour.is-now");
+  if (!now) return;
+  /* 初始定位要立即完成——.tb-track 有 scroll-behavior:smooth，
+     用動畫的話畫面剛載入時「現在」還在視窗外。翻頁才需要平滑。 */
+  const prev = track.style.scrollBehavior;
+  track.style.scrollBehavior = "auto";
+  track.scrollLeft = now.offsetLeft - track.clientWidth / 2 + now.offsetWidth / 2;
+  track.style.scrollBehavior = prev;
+}
+
 function renderFloorTabs() {
   $("#floor-tabs").innerHTML = state.floors.map((f, i) => `
     <button class="floor-tab${i === state.floor ? " is-active" : ""}" type="button"
@@ -466,18 +489,62 @@ function renderCustList() {
   $("#cust-list").innerHTML = state.bookings.slice(0, 6).map(cardHtml).join("");
 }
 
+/* 空間圖的 popover 在定稿是**獨立元件** Card / Table Info-new（523:55144），
+   不是「時間軸的卡＋兩顆按鈕」——頂部是綠色時間條、沒有 Units chips、
+   按鈕是同一列 justify-between。第 4 關走查抓到後展開比對才發現差這麼多。 */
+function tableCardHtml(b) {
+  const end = fromMin(toMin(b.start) + b.mins);
+  return `
+  <article class="tcard" data-id="${b.id}">
+    <span class="tcard-tail" aria-hidden="true"></span>
+    <div class="tcard-state">
+      <span class="tcard-time">${b.start} - ${end}</span>
+      <span class="tcard-status">${statusLabel(b.status)}</span>
+    </div>
+    <div class="tcard-info">
+      ${b.stayedMins ? `<div class="tcard-tags">${stayedLine(b)}</div>` : ""}
+      <div class="tcard-basic">
+        <div class="tcard-who">
+          <p class="tcard-name">${b.name}<span class="tcard-gender">${b.title}</span>
+            <button class="tcard-edit" type="button" aria-label="修改預約">
+              <img src="${A()}assets/ls-edit.svg" alt=""></button></p>
+          <p class="tcard-phone"><img src="${A()}assets/ls-note.svg" alt="">${b.phone}</p>
+        </div>
+        <p class="tcard-party">
+          <span><i>${b.adults}</i>大人</span><span><i>${b.children}</i>小孩</span>
+        </p>
+      </div>
+      <div class="tcard-remark">
+        <div class="tcard-choices">${b.surveyChoices.map((t) => `<span>${t}</span>`).join("")}</div>
+        <p class="tcard-answer">${b.question}</p>
+        <p class="tcard-note"><img src="${A()}assets/ls-remark-cust.svg" alt="">${b.custNote}</p>
+        <p class="tcard-note"><img src="${A()}assets/ls-remark-shop.svg" alt="">${b.shopNote}</p>
+      </div>
+      <p class="tcard-sync${b.posSync ? "" : " is-off"}">
+        ${b.posSync ? "與肚肚同步" : "未與肚肚同步"}: ${b.posSyncAt}
+        <img src="${A()}assets/ls-synced.svg" alt=""></p>
+    </div>
+    <div class="tcard-buttons">
+      <span class="tcard-move">
+        <button class="tcard-swap" type="button" id="btn-swap">交換</button>
+        <button class="tcard-pick" type="button" id="btn-pick-seat">選位</button>
+      </span>
+      <span class="tcard-acts">
+        <button class="tcard-ghost" type="button">未到</button>
+        <button class="tcard-solid" type="button">入座</button>
+      </span>
+    </div>
+  </article>`;
+}
+
 /* ---------- popover（3-1-1 時間軸_popover） ---------- */
 function openPopover(id, anchor) {
   const b = state.bookings.find((x) => x.id === id);
   if (!b) return;
   const p = $("#booking-popover");
-  /* 空間圖的 popover 比時間軸多兩個桌位動作（定稿 3-2 空間圖_Popover） */
-  const spaceActions = MODE !== "space" ? "" : `
-    <div class="pop-actions">
-      <button class="btn btn-outline btn-md" type="button" id="btn-swap">交換</button>
-      <button class="btn btn-outline btn-md" type="button" id="btn-pick-seat">選位</button>
-    </div>`;
-  p.innerHTML = cardHtml(b) + spaceActions;
+  /* 兩種視圖在定稿是兩個不同的 component，不共用 */
+  p.innerHTML = MODE === "space" ? tableCardHtml(b) : cardHtml(b);
+  p.classList.toggle("is-table", MODE === "space");
   p.hidden = false;
   if (anchor) {
     const r = anchor.getBoundingClientRect();
@@ -659,12 +726,15 @@ async function openItemMenu() {
   const items = await api.getBookingItems();
   /* 服務項目模式只有一層：項目本身就是可選項，沒有子項目 */
   const flat = BMODE === "service";
+  /* 定稿「預約項目選單_收合」（377:60081）：父層預設收合，點了才展開子項目。
+     原本是一次全部攤平，hier 模式下會把所有子項目塞滿整頁。 */
   $("#nb-item-list").innerHTML = items.map((it) => (flat ? `
-    <div class="nb-item-group">
+    <div class="nb-item-group is-open">
       <button class="nb-item-sub" type="button" data-sub="${it.name}">${it.name}</button>
     </div>` : `
     <div class="nb-item-group">
-      <p>${it.name}</p>
+      <button class="nb-item-head" type="button" data-toggle>${it.name}
+        <img src="${A()}assets/nb-arrow.svg" alt=""></button>
       ${it.subs.map((sub) => `<button class="nb-item-sub" type="button" data-sub="${it.name}－${sub}">${sub}</button>`).join("")}
     </div>`)).join("");
   swapNewPanel("#nb-items");
@@ -675,21 +745,43 @@ async function openItemMenu() {
 /* 直接指定時間（段落快轉與測試用），走與真人點選同一條路徑 */
 function pickNewTime(t) {
   state.newTime = t;
+  const [h, m] = t.split(":").map(Number);
+  state.wheelH = h; state.wheelM = m;
   $("#nb-time").textContent = t.replace(":", " : ");
   updateNewCta();
 }
 
-function openTimePicker() {
-  const open = toMin(api.OPEN);
-  const cells = [];
-  for (let i = 0; i < api.SLOT_COUNT; i++) {
-    const t = fromMin(open + i * api.SLOT_MIN);
-    /* demo 劇本：18:30 是滿位時段，選了會在單位選擇顯示「所選人數於此時段預約已滿」 */
-    cells.push(`<button type="button" data-time="${t}"${t === state.newTime ? ' class="is-selected"' : ""}>${t}</button>`);
-  }
-  $("#nb-timegrid").innerHTML = cells.join("");
+/* 定稿的時間選擇器是雙欄滾輪（時／分）＋ OK 才寫回。
+   「預約時間」與「服務時間長度」是同一元件套不同數值範圍（377:57630 / 377:58461）。
+   走查抓到原本做成攤平按鈕格，互動模型錯了。 */
+const WHEEL = {
+  time: { title: "選擇時間", hours: () => range(0, 23), mins: () => [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55],
+          fmt: (h, m) => `${pad(h)}:${pad(m)}` },
+  duration: { title: "選擇服務時間長度", hours: () => range(0, 6), mins: () => [0, 15, 30, 45],
+              fmt: (h, m) => `${h}小時${m}分` },
+};
+const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+
+function openWheel(kind) {
+  state.wheelKind = kind;
+  state.wheelH = state.wheelH ?? (kind === "time" ? 12 : 2);
+  state.wheelM = state.wheelM ?? 0;
+  $("#nb-timepicker").querySelector(".nb-title2").textContent = WHEEL[kind].title;
+  renderWheel();
   swapNewPanel("#nb-timepicker");
 }
+
+function renderWheel() {
+  const w = WHEEL[state.wheelKind];
+  const col = (vals, sel, key) => vals.map((v) =>
+    `<button type="button" data-wheel="${key}" data-v="${v}"${v === sel ? ' class="is-selected"' : ""}>${pad(v)}</button>`).join("");
+  $("#nb-wheel-h").innerHTML = col(w.hours(), state.wheelH, "h");
+  $("#nb-wheel-m").innerHTML = col(w.mins(), state.wheelM, "m");
+  $("#nb-wheel-h .is-selected")?.scrollIntoView({ block: "center" });
+  $("#nb-wheel-m .is-selected")?.scrollIntoView({ block: "center" });
+}
+
+const openTimePicker = () => openWheel("time");
 
 function openDatePicker() {
   state.calMonth = state.calMonth || new Date(state.date.getFullYear(), state.date.getMonth(), 1);
@@ -845,6 +937,8 @@ function bindEvents() {
   }));
 
   $("#nb-item-list").addEventListener("click", (e) => {
+    const head = e.target.closest("[data-toggle]");
+    if (head) return head.closest(".nb-item-group").classList.toggle("is-open");
     const sub = e.target.closest(".nb-item-sub");
     if (!sub) return;
     $("#nb-item-value").textContent = sub.dataset.sub;
@@ -879,12 +973,27 @@ function bindEvents() {
     $("#nb-email-error").hidden = !bad;
   });
   $("#nb-time").addEventListener("click", openTimePicker);
+  /* 服務時長原本是死樁：按鈕在、但 js 完全沒引用（走查抓到） */
+  $("#nb-duration").addEventListener("click", () => openWheel("duration"));
   $("#nb-date").addEventListener("click", openDatePicker);
-  $("#nb-timegrid").addEventListener("click", (e) => {
-    const b = e.target.closest("[data-time]");
+
+  $(".nb-wheel").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-wheel]");
     if (!b) return;
-    state.newTime = b.dataset.time;
-    $("#nb-time").textContent = state.newTime.replace(":", " : ");
+    if (b.dataset.wheel === "h") state.wheelH = Number(b.dataset.v);
+    else state.wheelM = Number(b.dataset.v);
+    renderWheel();
+  });
+  /* 定稿要按 OK 才寫回——選了沒按 OK 不算 */
+  $("#nb-wheel-ok").addEventListener("click", () => {
+    const w = WHEEL[state.wheelKind];
+    const v = w.fmt(state.wheelH, state.wheelM);
+    if (state.wheelKind === "time") {
+      state.newTime = `${pad(state.wheelH)}:${pad(state.wheelM)}`;
+      $("#nb-time").textContent = state.newTime.replace(":", " : ");
+    } else {
+      $("#nb-duration-value").textContent = v;
+    }
     swapNewPanel("#new-drawer");
     updateNewCta();
   });
@@ -903,6 +1012,15 @@ function bindEvents() {
   });
   $("#nb-cal-next").addEventListener("click", () => {
     state.calMonth = new Date(state.calMonth.getFullYear(), state.calMonth.getMonth() + 1, 1);
+    renderCalendar();
+  });
+  /* 定稿的月曆標題列有 4 顆：《跳年 ‹上月 ›下月 》跳年 */
+  $("#nb-cal-prev-y").addEventListener("click", () => {
+    state.calMonth = new Date(state.calMonth.getFullYear() - 1, state.calMonth.getMonth(), 1);
+    renderCalendar();
+  });
+  $("#nb-cal-next-y").addEventListener("click", () => {
+    state.calMonth = new Date(state.calMonth.getFullYear() + 1, state.calMonth.getMonth(), 1);
     renderCalendar();
   });
   $$("[data-nb-step]").forEach((b) => b.addEventListener("click", () => {

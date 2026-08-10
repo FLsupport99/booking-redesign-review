@@ -298,8 +298,59 @@ p, h1 { margin: 0; }
   box-shadow: 0 8px 24px rgba(0, 0, 0, .12); padding: 10px;
 }
 
-.pop-actions { display: flex; gap: 8px; margin-top: 8px; }
-.pop-actions .btn { flex: 1; }
+/* Card / Table Info-new（523:55144）——空間圖 popover 專用元件，與時間軸的卡不同 */
+.popover.is-table { width: 344px; padding: 0; border: 0; border-radius: 6px;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, .1)); box-shadow: none; }
+.tcard { position: relative; background: var(--bg-page); border-radius: 6px; }
+.tcard-tail { position: absolute; left: -5px; top: 22px; width: 10px; height: 10px;
+  background: var(--primary-se); transform: rotate(45deg); }
+.tcard-state { margin: 8px 8px 0; display: flex; border-radius: 6px; overflow: hidden; }
+.tcard-time { flex: 1; background: var(--primary-se); color: var(--text-on-color);
+  padding: 2px 12px; font-size: var(--fs-body); line-height: var(--lh-body); letter-spacing: var(--ls-body); }
+.tcard-status { width: 84px; background: var(--primary-se); color: var(--text-on-color);
+  border-left: 1px solid var(--bg-page); display: grid; place-items: center;
+  font-size: var(--fs-caption); letter-spacing: var(--ls-caption); }
+.tcard-info { padding: 8px; }
+.tcard-tags { display: flex; justify-content: flex-end; }
+.tcard-basic { display: flex; gap: 12px; align-items: flex-start; padding: 4px 0; }
+.tcard-who { flex: 1; min-width: 0; }
+.tcard-name { display: flex; align-items: center; gap: 8px;
+  font-size: var(--fs-h3); font-weight: 500; letter-spacing: .03em; }
+.tcard-gender { font-size: var(--fs-small); line-height: var(--lh-small); color: var(--text-75); font-weight: 400; }
+.tcard-edit { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--gray-245); }
+.tcard-edit img { width: 16px; height: 16px; display: block; }
+.tcard-phone { display: flex; align-items: center; gap: 4px; margin-top: 2px;
+  font-size: var(--fs-caption); letter-spacing: var(--ls-caption); color: var(--text-75); }
+.tcard-phone img { width: 20px; height: 20px; display: block; }
+.tcard-party { display: flex; gap: 4px; align-items: flex-end;
+  font-size: var(--fs-small); color: var(--text-75); }
+.tcard-party i { font-style: normal; font-size: var(--fs-h3); font-weight: 500;
+  color: var(--primary); letter-spacing: .03em; margin-right: 2px; }
+.tcard-remark { display: flex; flex-direction: column; gap: 4px; padding-top: 2px; }
+.tcard-choices { display: flex; flex-wrap: wrap; gap: 4px; }
+.tcard-choices span { border: 1px solid var(--gray-220); border-radius: var(--r-btn);
+  padding: 2px 8px; font-size: var(--fs-small); line-height: var(--lh-small); color: var(--text-75); }
+.tcard-answer { padding-left: 18px; font-size: var(--fs-small);
+  line-height: var(--lh-small); color: var(--text-75); }
+.tcard-note { display: flex; gap: 2px; font-size: var(--fs-small);
+  line-height: var(--lh-small); color: var(--text-75); }
+.tcard-note img { width: 16px; height: 16px; display: block; flex: none; }
+.tcard-sync { display: flex; align-items: center; justify-content: flex-end; gap: 4px;
+  padding: 8px 0 6px; font-size: 10px; color: var(--primary); }
+.tcard-sync.is-off { color: var(--alert); }
+.tcard-sync img { width: 16px; height: 16px; display: block; }
+/* 定稿是同一列 justify-between：左邊桌位動作、右邊狀態動作 */
+.tcard-buttons { display: flex; align-items: flex-end; justify-content: space-between; padding: 8px; }
+.tcard-move { display: flex; gap: 4px; }
+.tcard-acts { display: flex; gap: 8px; }
+.tcard-swap, .tcard-pick, .tcard-ghost, .tcard-solid {
+  border-radius: 6px; font-size: var(--fs-body); line-height: 16px; text-align: center;
+}
+.tcard-swap { background: var(--emphasis-d1); color: var(--text-on-color); padding: 4px 8px; }
+.tcard-pick { background: var(--emphasis); color: var(--text-on-color); padding: 4px 8px; }
+.tcard-ghost { width: 72px; padding: 8px; border: 1px solid var(--gray-220); color: var(--text-75); }
+.tcard-solid { width: 72px; padding: 8px; background: var(--secondary-dark); color: var(--text-on-color); }
 
 /* ---------- 修改預約抽屜 ---------- */
 .drawer {
@@ -407,10 +458,15 @@ p, h1 { margin: 0; }
   height: var(--timebar-h); flex: none; position: relative;
   background: var(--bg-page); display: flex; align-items: center;
 }
+/* 原本是 overflow:hidden + justify-center＝固定裁切在正中間：
+   「現在」跑出這個窗口就完全看不到，左右箭頭又沒接事件，等於沒有補救方式。
+   改成可橫向捲動，箭頭接上翻頁（走查 B 抓到）。 */
 .tb-track {
   position: absolute; left: 30px; right: 125px; top: 50%; transform: translateY(-50%);
-  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  display: flex; align-items: center; overflow-x: auto; scroll-behavior: smooth;
+  scrollbar-width: none;
 }
+.tb-track::-webkit-scrollbar { display: none; }
 .tb-hour {
   flex: none; width: var(--hour-w); padding: 7px 0;
   font-size: var(--fs-small); line-height: 16px; text-align: center; color: var(--gray-103);
@@ -774,7 +830,7 @@ p, h1 { margin: 0; }
 
   .floor-tabs { padding: 8px 8px 0; }
   .floor-canvas { margin: 0 8px 72px; }
-  .timebar { overflow-x: auto; }
+  /* 真正裁切內容的是 .tb-track，父層 .timebar 加 overflow-x 沒有任何效果（原本是死碼） */
 }
 
 
@@ -916,7 +972,15 @@ p, h1 { margin: 0; }
   width: 100%; text-align: left; padding: 10px 12px; border-radius: var(--r-card);
   font-size: var(--fs-body); line-height: var(--lh-body); letter-spacing: var(--ls-body); color: var(--text-75);
 }
-.nb-item-sub:hover { background: var(--gray-245); }
+.nb-item-sub:hover { background: rgba(236, 248, 243, .25); box-shadow: inset 0 0 0 999px rgba(0, 0, 0, .05); }
+.nb-item-sub:active { background: rgba(236, 248, 243, .5); box-shadow: inset 0 0 0 999px rgba(0, 0, 0, .13); }
+/* 定稿「預約項目選單_收合」：父層先收合，點了才展開子項目 */
+.nb-item-head { width: 100%; display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; border-bottom: 1px solid var(--gray-240);
+  font-size: var(--fs-body); font-weight: 500; letter-spacing: var(--ls-body); }
+.nb-item-head img { width: 16px; height: 16px; display: block; transition: transform .15s; }
+.nb-item-group.is-open .nb-item-head img { transform: rotate(180deg); }
+.nb-item-group:not(.is-open) .nb-item-sub { display: none; }
 .nb-item-sub.is-selected { background: var(--primary-light-3); color: var(--primary-dark); }
 
 /* 人數計算 */
@@ -974,20 +1038,32 @@ p, h1 { margin: 0; }
   letter-spacing: var(--ls-small); color: var(--alert); }
 
 /* 2-1-2 Pickers */
-.nb-timegrid { display: flex; flex-wrap: wrap; gap: 8px; }
-.nb-timegrid button {
-  width: 72px; padding: 8px 0; border: 1px solid var(--gray-220); border-radius: var(--r-card);
+/* 定稿的時間選擇器是**雙欄滾輪 + OK 確認**（377:57630 / 377:58461 同一元件套兩種數值），
+   不是攤平的按鈕格。走查抓到後改寫——互動模型不同，不是換 CSS 能修的。 */
+.nb-wheel { display: flex; width: 112px; margin: 0 auto; height: 240px;
+  border: 1px solid var(--gray-220); border-radius: 6px; overflow: hidden; }
+.nb-wheel-col { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
+.nb-wheel-col + .nb-wheel-col { border-left: 1px solid var(--gray-220); }
+.nb-wheel-col button {
+  display: block; width: 100%; padding: 8px 0; text-align: center;
   font-size: var(--fs-body); letter-spacing: var(--ls-body); font-variant-numeric: tabular-nums;
 }
-.nb-timegrid button:hover { border-color: var(--primary); color: var(--primary-dark); }
-.nb-timegrid button.is-selected { border-color: var(--primary); background: var(--primary-light-3); color: var(--primary-dark); }
-.nb-timegrid button:disabled { color: var(--text-27); background: var(--gray-245); cursor: default; }
+/* Complementary/Hover、Pressed 是薄荷綠疊加，不是專案通用的灰 */
+.nb-wheel-col button:hover { background: rgba(236, 248, 243, .25); box-shadow: inset 0 0 0 999px rgba(0, 0, 0, .05); }
+.nb-wheel-col button:active { background: rgba(236, 248, 243, .5); box-shadow: inset 0 0 0 999px rgba(0, 0, 0, .13); }
+.nb-wheel-col button.is-selected { background: var(--primary-light-3); color: var(--primary-dark); font-weight: 500; }
+.nb-wheel-ok { display: block; margin: 12px auto 0; width: 112px; padding: 8px 0;
+  background: var(--primary); color: var(--text-on-color); border-radius: 6px;
+  font-size: var(--fs-body); font-weight: 500; }
+.nb-wheel-ok:disabled { background: var(--gray-220); cursor: default; }
 .nb-cal-head { display: flex; align-items: center; justify-content: space-between; width: 100%; }
 .nb-cal-head p { font-size: var(--fs-title); font-weight: 500; letter-spacing: var(--ls-title); }
 .nb-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; }
 .nb-cal-grid span, .nb-cal-grid button { padding: 8px 0; text-align: center;
   font-size: var(--fs-body); letter-spacing: var(--ls-body); font-variant-numeric: tabular-nums; }
 .nb-cal-grid span { color: var(--text-60); font-size: var(--fs-small); }
-.nb-cal-grid button { border-radius: var(--r-btn); }
+.nb-cal-grid button { width: 42px; height: 42px; border-radius: 50%; margin: 0 auto; }
 .nb-cal-grid button:hover { background: var(--gray-245); }
 .nb-cal-grid button.is-selected { background: var(--primary); color: var(--text-on-color); }
+.nb-cal-head { gap: 4px; }
+.nb-cal-head button { padding: 4px 8px; }
