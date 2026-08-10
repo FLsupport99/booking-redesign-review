@@ -377,14 +377,32 @@ test("⭐ 新增抽屜未按「＋預約」前不存在，按了才出現", asyn
   await expect(page.locator(C.NEW_BOOKING.drawer)).toBeHidden();
 });
 
-test("新增與修改兩個抽屜共用同一個槽位，不會同時開", async ({ page }) => {
+test("修改中點「＋預約」不會直接切走，而是跳未儲存提醒", async ({ page }) => {
   await page.goto("/sections/timeline-modify.html");
   await ready(page);
   await expect(page.locator(C.EDIT_GATE.drawer)).toBeVisible();
 
+  /* 說明卡 413:154221：修改預約時不可點「+候位」「編輯預約」，點了跳未儲存提醒。
+     這條測試原本編碼的是「直接切到新增抽屜」的舊行為。 */
+  await page.click(C.NEW_BOOKING.open);
+  await expect(page.locator(C.UNSAVED.modal)).toBeVisible();
+  await expect(page.locator(C.NEW_BOOKING.drawer)).toBeHidden();
+  await expect(page.locator(C.EDIT_GATE.drawer)).toBeVisible();
+});
+
+test("修改中點「＋候位」同樣跳未儲存提醒", async ({ page }) => {
+  await page.goto("/sections/timeline-modify.html");
+  await ready(page);
+  await page.click("#btn-add-wait");
+  await expect(page.locator(C.UNSAVED.modal)).toBeVisible();
+});
+
+test("沒在修改時，「＋預約」正常開新增抽屜", async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
   await page.click(C.NEW_BOOKING.open);
   await expect(page.locator(C.NEW_BOOKING.drawer)).toBeVisible();
-  await expect(page.locator(C.EDIT_GATE.drawer)).toBeHidden();
+  await expect(page.locator(C.UNSAVED.modal)).toBeHidden();
 });
 
 test("未選時間時主鈕不可按，並顯示「請選擇時間」", async ({ page }) => {
@@ -797,4 +815,56 @@ test("可點元素都有按壓回饋（沒有一顆是按了沒反應的）", as
     });
   });
   expect(missing).toEqual([]);
+});
+
+
+/* ---------- 規格說明卡（377:43808 / 413:154221 / 496:47063）的行為規則 ----------
+   這三張是 400×768 的說明卡，被 build_manifest 歸進 loose、從未納入稽核，
+   一路到最後才讀到。裡面的規則第 2、3 關都抓不到——文案全都在，行為沒做。 */
+
+test("大人人數最低是 1，不可減到 0", async ({ page }) => {
+  await page.goto("/sections/timeline-new.html");
+  await ready(page);
+  await expect(page.locator("#nb-adults")).toHaveText("1");
+
+  for (let i = 0; i < 3; i++) await page.click('[data-nb-step="adults"][data-delta="-1"]');
+  await expect(page.locator("#nb-adults")).toHaveText("1");
+
+  /* 小孩可以是 0 */
+  await expect(page.locator("#nb-children")).toHaveText("0");
+  await page.click('[data-nb-step="children"][data-delta="-1"]');
+  await expect(page.locator("#nb-children")).toHaveText("0");
+});
+
+test("修改抽屜的大人人數同樣不可減到 0", async ({ page }) => {
+  await page.goto("/sections/timeline-modify.html");
+  await ready(page);
+  for (let i = 0; i < 5; i++) await page.click('.step[data-step="adults"][data-delta="-1"]');
+  await expect(page.locator("#num-adults")).toHaveText("1");
+});
+
+test("勾選現場客後不發預約通知（通知區塊收起）", async ({ page }) => {
+  await page.goto("/sections/timeline-new.html");
+  await ready(page);
+  await page.check(C.NEW_BOOKING.walkin);
+  await expect(page.locator("#nb-notify")).toBeHidden();
+});
+
+test("服務時間長度依所選時間自動帶入；該時段沒設定才需自訂", async ({ page }) => {
+  await page.goto("/sections/timeline-new.html");
+  await ready(page);
+  await expect(page.locator("#nb-duration-value")).toHaveText("請選擇服務時間長度");
+
+  /* 整點在 demo 資料裡有設定線上預約時段 → 自動帶入 */
+  await page.click(C.NEW_BOOKING.time);
+  await page.locator("#nb-wheel-h button", { hasText: /^13$/ }).click();
+  await page.locator("#nb-wheel-m button", { hasText: /^00$/ }).click();
+  await page.click("#nb-wheel-ok");
+  await expect(page.locator("#nb-duration-value")).toHaveText("1小時30分");
+
+  /* 半點沒設定 → 回到需自訂 */
+  await page.click(C.NEW_BOOKING.time);
+  await page.locator("#nb-wheel-m button", { hasText: /^30$/ }).click();
+  await page.click("#nb-wheel-ok");
+  await expect(page.locator("#nb-duration-value")).toHaveText("請選擇服務時間長度");
 });

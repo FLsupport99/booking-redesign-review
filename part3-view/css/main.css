@@ -1081,3 +1081,5 @@ p, h1 { margin: 0; }
 .nb-cal-head button { padding: 4px 8px; }
 
 
+
+.deposit-lock { color: var(--text-60); }
