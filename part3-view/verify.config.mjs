@@ -95,6 +95,14 @@ export const EDIT_UNIT_CHANGE = "#f-unit-change";
 
 export const TOAST = "#toast";
 export const POPOVER = "#booking-popover";
+/* 空間圖的 popover 在定稿是獨立元件 Card / Table Info-new，與時間軸的不同 */
+export const TABLE_CARD = {
+  root: ".tcard",
+  state: ".tcard-state",
+  swap: ".tcard-swap",
+  pick: ".tcard-pick",
+  units: ".card-chip.is-unit",
+};
 export const NOW_LINE = "#now-line";
 
 /* 清單（3-3-1／3-3-2） */
@@ -109,6 +117,8 @@ export const LIST = {
 };
 
 /* 空間圖（3-2） */
+export const TIMEBAR = { track: "#tb-track", prev: "#tb-prev", next: "#tb-next", now: ".tb-hour.is-now" };
+
 export const SPACE = {
   view: "#view-space",
   timebar: "#timebar",

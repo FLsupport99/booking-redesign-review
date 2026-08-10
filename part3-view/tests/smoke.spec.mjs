@@ -442,15 +442,16 @@ test("服務項目模式的項目選單只有一層，沒有子項目", async ({
   await page.click(C.NEW_BOOKING.item);
   await expect(page.locator("#nb-items")).toBeVisible();
   /* 單層：每個 group 只有一個可選按鈕，且沒有群組標題 */
-  await expect(page.locator("#nb-item-list .nb-item-group > p")).toHaveCount(0);
+  await expect(page.locator("#nb-item-list .nb-item-head")).toHaveCount(0);
 });
 
-test("階層模式的項目選單有群組標題與子項目", async ({ page }) => {
+test("階層模式的項目選單有可展開的父層標題與子項目", async ({ page }) => {
   await page.goto(url(TL.file) + "?bmode=hier");
   await ready(page);
   await page.click(C.NEW_BOOKING.open);
   await page.click(C.NEW_BOOKING.item);
-  await expect(page.locator("#nb-item-list .nb-item-group > p")).not.toHaveCount(0);
+  /* accordion：父層是可點的標題列，子項目在 DOM 裡但預設收合 */
+  await expect(page.locator("#nb-item-list .nb-item-head")).not.toHaveCount(0);
   await expect(page.locator("#nb-item-list .nb-item-sub")).not.toHaveCount(0);
 });
 
@@ -489,19 +490,51 @@ test("修改抽屜的「變更」能開出單位選擇，選完回到修改抽�
 
 /* ---------- 走查 C 抓到的：文案樁與假選擇器 ---------- */
 
-test("時間選擇器是真的：列出所有時段，選了才寫回抽屜", async ({ page }) => {
+test("時間選擇器是雙欄滾輪，且要按 OK 才寫回", async ({ page }) => {
   await page.goto("/sections/timeline-new.html");
   await ready(page);
   await expect(page.locator(C.NEW_BOOKING.time)).toHaveText("-- : --");
 
-  /* 原本點一下就把文字寫死成 12:00，沒有選擇器 */
   await page.click(C.NEW_BOOKING.time);
   await expect(page.locator(C.NEW_BOOKING.timePicker)).toBeVisible();
-  await expect(page.locator("#nb-timegrid button")).toHaveCount(30);
+  /* 定稿是時／分兩欄，不是攤平的按鈕格 */
+  await expect(page.locator("#nb-wheel-h button")).toHaveCount(24);
+  await expect(page.locator("#nb-wheel-m button")).toHaveCount(12);
 
-  await page.locator("#nb-timegrid button", { hasText: "13:00" }).first().click();
+  await page.locator("#nb-wheel-h button", { hasText: /^13$/ }).click();
+  await page.locator("#nb-wheel-m button", { hasText: /^30$/ }).click();
+  /* 只選還沒按 OK：抽屜不該被寫回 */
+  await expect(page.locator(C.NEW_BOOKING.time)).toHaveText("-- : --");
+
+  await page.click("#nb-wheel-ok");
   await expect(page.locator(C.NEW_BOOKING.timePicker)).toBeHidden();
-  await expect(page.locator(C.NEW_BOOKING.time)).toHaveText("13 : 00");
+  await expect(page.locator(C.NEW_BOOKING.time)).toHaveText("13 : 30");
+});
+
+test("服務時長選擇器有接上（原本是死樁）", async ({ page }) => {
+  await page.goto("/sections/timeline-new.html");
+  await ready(page);
+  await expect(page.locator("#nb-duration-value")).toHaveText("請選擇服務時間長度");
+
+  await page.click("#nb-duration");
+  await expect(page.locator(C.NEW_BOOKING.timePicker)).toBeVisible();
+  await page.locator("#nb-wheel-h button", { hasText: /^02$/ }).click();
+  await page.locator("#nb-wheel-m button", { hasText: /^30$/ }).click();
+  await page.click("#nb-wheel-ok");
+  await expect(page.locator("#nb-duration-value")).toHaveText("2小時30分");
+});
+
+test("預約項目選單預設收合，點父層才展開", async ({ page }) => {
+  await page.goto(url(TL.file) + "?bmode=hier");
+  await ready(page);
+  await page.click(C.NEW_BOOKING.open);
+  await page.click(C.NEW_BOOKING.item);
+  await expect(page.locator("#nb-items")).toBeVisible();
+
+  /* 定稿「預約項目選單_收合」：父層先收合，子項目不該一次全露出來 */
+  await expect(page.locator("#nb-item-list .nb-item-sub:visible")).toHaveCount(0);
+  await page.locator(".nb-item-head").first().click();
+  await expect(page.locator("#nb-item-list .nb-item-sub:visible")).not.toHaveCount(0);
 });
 
 test("日期選擇器是真的：月曆可翻月、可選日", async ({ page }) => {
@@ -513,8 +546,13 @@ test("日期選擇器是真的：月曆可翻月、可選日", async ({ page }) 
   const title = await page.locator("#nb-cal-title").textContent();
   await page.click("#nb-cal-next");
   expect(await page.locator("#nb-cal-title").textContent()).not.toBe(title);
-
   await page.click("#nb-cal-prev");
+
+  /* 定稿標題列有跳年按鈕，原本只有翻月 */
+  const y = await page.locator("#nb-cal-title").textContent();
+  await page.click("#nb-cal-next-y");
+  expect((await page.locator("#nb-cal-title").textContent()).slice(0, 4)).not.toBe(y.slice(0, 4));
+  await page.click("#nb-cal-prev-y");
   await page.locator("#nb-cal-grid button").nth(9).click();
   await expect(page.locator(C.NEW_BOOKING.datePicker)).toBeHidden();
 });
@@ -532,8 +570,80 @@ test("非滿位時段不會誤報時段已滿", async ({ page }) => {
   await page.goto("/sections/timeline-new.html");
   await ready(page);
   await page.click(C.NEW_BOOKING.time);
-  await page.locator("#nb-timegrid button", { hasText: "13:00" }).first().click();
+  await page.locator("#nb-wheel-h button", { hasText: /^13$/ }).click();
+  await page.click("#nb-wheel-ok");
   await page.click("#nb-pick-unit");
   await expect(page.locator(C.NEW_BOOKING.unitsFull)).toBeHidden();
   await expect(page.locator(C.NEW_BOOKING.unitsOk)).toBeEnabled();
+});
+
+
+/* ---------- 空間圖 popover 是獨立元件（窄範圍走查抓到） ---------- */
+
+test("空間圖 popover 用的是專屬卡片，不是時間軸那張", async ({ page }) => {
+  await page.goto(url(SP.file));
+  await ready(page);
+  await page.locator(C.SPACE.table).first().click();
+  await expect(page.locator(C.POPOVER)).toBeVisible();
+
+  /* 定稿 Card / Table Info-new：頂部是綠色時間條，且沒有 Units chips */
+  await expect(page.locator(C.TABLE_CARD.root)).toHaveCount(1);
+  await expect(page.locator(C.TABLE_CARD.state)).toBeVisible();
+  await expect(page.locator(`${C.POPOVER} ${C.TABLE_CARD.units}`)).toHaveCount(0);
+
+  /* 交換／選位與狀態動作在同一列，而不是另外疊一排 */
+  const move = await page.locator(C.TABLE_CARD.swap).boundingBox();
+  const act = await page.locator(".tcard-solid").boundingBox();
+  expect(Math.abs(move.y - act.y)).toBeLessThan(24);
+});
+
+test("時間軸 popover 不會用到空間圖的專屬卡片", async ({ page }) => {
+  await page.goto("/sections/timeline-popover.html");
+  await ready(page);
+  await expect(page.locator(C.POPOVER)).toBeVisible();
+  await expect(page.locator(C.TABLE_CARD.root)).toHaveCount(0);
+  /* 時間軸的卡有 Units chips，定稿如此 */
+  await expect(page.locator(`${C.POPOVER} ${C.TABLE_CARD.units}`)).not.toHaveCount(0);
+});
+
+
+/* ---------- 時間軸列可捲動、箭頭有作用（走查 B 抓到原本是裝飾） ---------- */
+
+test("空間圖時間軸列可橫向捲動，箭頭真的會翻頁", async ({ page }) => {
+  await page.goto(url(SP.file));
+  await ready(page);
+  const track = page.locator(C.TIMEBAR.track);
+
+  /* 原本 .tb-track 是 overflow:hidden，內容超出就看不到也滑不到 */
+  const scrollable = await track.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+  expect(scrollable).toBe(true);
+
+  const before = await track.evaluate((el) => el.scrollLeft);
+  await page.click(C.TIMEBAR.next);
+  await expect.poll(() => track.evaluate((el) => el.scrollLeft)).toBeGreaterThan(before);
+
+  await page.click(C.TIMEBAR.prev);
+  await expect.poll(() => track.evaluate((el) => el.scrollLeft)).toBeLessThan(
+    await track.evaluate((el) => el.scrollWidth));
+});
+
+test("「現在」那一格會被捲進視野，不會停在視窗外", async ({ page }) => {
+  await page.goto(url(SP.file));
+  await ready(page);
+  const visible = await page.locator(C.TIMEBAR.now).evaluate((el) => {
+    const t = el.closest(".tb-track").getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    return r.left >= t.left - 1 && r.right <= t.right + 1;
+  });
+  expect(visible).toBe(true);
+});
+
+
+test("清單的終止狀態分頁不是永遠 0（否則那幾張定稿等於沒驗過）", async ({ page }) => {
+  await page.goto(url(LS.file));
+  await ready(page);
+  for (const label of ["待付款/綁卡", "未到店", "取消預約"]) {
+    const tab = page.locator(C.LIST.tab, { hasText: label });
+    await expect(tab).not.toHaveText(new RegExp(`${label.replace("/", "\\/")}\\s*0$`));
+  }
 });

@@ -488,7 +488,13 @@
     <button class="nb-close" type="button" data-nb-back aria-label="關閉">
       <img src="../assets/nb-close.svg" alt=""></button>
   </div>
-  <div class="nb-content"><div class="nb-timegrid" id="nb-timegrid"></div></div>
+  <div class="nb-content">
+    <div class="nb-wheel">
+      <div class="nb-wheel-col" id="nb-wheel-h" role="listbox" aria-label="時"></div>
+      <div class="nb-wheel-col" id="nb-wheel-m" role="listbox" aria-label="分"></div>
+    </div>
+    <button class="nb-wheel-ok" type="button" id="nb-wheel-ok">OK</button>
+  </div>
 </aside>
 
 <aside class="drawer nb-drawer" id="nb-datepicker" aria-label="選擇日期" hidden>
@@ -500,9 +506,11 @@
   </div>
   <div class="nb-content">
     <div class="nb-cal-head">
-      <button type="button" id="nb-cal-prev" aria-label="上個月">◀</button>
+      <button type="button" id="nb-cal-prev-y" aria-label="上一年">《</button>
+      <button type="button" id="nb-cal-prev" aria-label="上個月">‹</button>
       <p id="nb-cal-title"></p>
-      <button type="button" id="nb-cal-next" aria-label="下個月">▶</button>
+      <button type="button" id="nb-cal-next" aria-label="下個月">›</button>
+      <button type="button" id="nb-cal-next-y" aria-label="下一年">》</button>
     </div>
     <div class="nb-cal-grid" id="nb-cal-grid"></div>
   </div>
