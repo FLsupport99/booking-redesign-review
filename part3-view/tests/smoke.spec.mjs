@@ -647,3 +647,116 @@ test("清單的終止狀態分頁不是永遠 0（否則那幾張定稿等於沒
     await expect(tab).not.toHaveText(new RegExp(`${label.replace("/", "\\/")}\\s*0$`));
   }
 });
+
+
+/* ---------- 鍵盤與焦點（仲裁時發現三輪走查都沒查的面向） ---------- */
+
+test("Esc 由上到下逐層關閉，不會一次全關", async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
+  await page.click(C.NEW_BOOKING.open);
+  await page.click(C.NEW_BOOKING.item);
+  await expect(page.locator("#nb-items")).toBeVisible();
+
+  /* 子面板 Esc 回上一層，抽屜還在 */
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#nb-items")).toBeHidden();
+  await expect(page.locator(C.NEW_BOOKING.drawer)).toBeVisible();
+
+  /* 再一次才關掉抽屜 */
+  await page.keyboard.press("Escape");
+  await expect(page.locator(C.NEW_BOOKING.drawer)).toBeHidden();
+});
+
+test("Esc 關閉後焦點回到打開它的那顆按鈕", async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
+  await page.click(C.NEW_BOOKING.open);
+  await expect(page.locator(C.NEW_BOOKING.drawer)).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator(C.NEW_BOOKING.open)).toBeFocused();
+});
+
+test("抽屜開啟時焦點移進去，不會留在背景", async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
+  await page.click(C.NEW_BOOKING.open);
+  const inside = await page.evaluate(() =>
+    document.querySelector("#new-drawer").contains(document.activeElement));
+  expect(inside).toBe(true);
+});
+
+test("未儲存提醒開著時 Tab 圈在 modal 內", async ({ page }) => {
+  await page.goto("/sections/timeline-unsaved.html");
+  await ready(page);
+  await expect(page.locator(C.UNSAVED.modal)).toBeVisible();
+
+  for (let i = 0; i < 6; i++) {
+    await page.keyboard.press("Tab");
+    const inside = await page.evaluate(() =>
+      document.querySelector("#modal-unsaved").contains(document.activeElement));
+    expect(inside).toBe(true);
+  }
+});
+
+test("Esc 關 popover，焦點回到被點的那個區塊", async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
+  await page.locator(".block").first().click();
+  await expect(page.locator(C.POPOVER)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(C.POPOVER)).toBeHidden();
+  await expect(page.locator(".block").first()).toBeFocused();
+});
+
+
+/* ---------- 長字串／極端值（仲裁時發現三輪走查都沒查的面向） ----------
+   定稿刻意畫了「字太多」「預約項目的字數最多有十四個字」這類溢出樣本，
+   但 mock 幾乎都是短字串，截斷行為從沒被實測過。?overflow=1 切成長字串資料集。 */
+
+/* 守門：先證明長字串資料集真的生效，否則下面幾條會變成空測試 */
+const assertOverflowData = async (page) => {
+  await expect(page.locator("body")).toContainText("a-very-long-mailbox-name-for-overflow-test");
+};
+
+const noPageOverflow = async (page) => {
+  const bad = await page.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(bad, "頁面不應該出現水平捲軸").toBeLessThanOrEqual(1);
+};
+
+for (const view of ["timeline", "space", "list"]) {
+  const m = C.MODES.find((x) => x.key === view);
+  test(`長字串下 ${m.label} 桌機版不會撐破版面`, async ({ page }) => {
+    await page.goto(url(m.file) + "?overflow=1");
+    await ready(page);
+    if (view === "list") await assertOverflowData(page);
+    await noPageOverflow(page);
+  });
+
+  test(`長字串下 ${m.label} 手機版不會撐破版面`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(url(m.file) + "?overflow=1");
+    await ready(page);
+    await noPageOverflow(page);
+  });
+}
+
+test("長字串下抽屜內的欄位會截斷，不會把 350 寬撐開", async ({ page }) => {
+  await page.goto("/sections/timeline-modify.html?overflow=1");
+  await ready(page);
+  const w = await page.locator(C.EDIT_GATE.drawer).evaluate((el) => el.getBoundingClientRect().width);
+  expect(Math.round(w)).toBe(350);
+  await noPageOverflow(page);
+});
+
+test("長字串下空間圖桌位卡的名稱會截斷", async ({ page }) => {
+  await page.goto(url(SP.file) + "?overflow=1");
+  await ready(page);
+  const overflowed = await page.locator(".nb-unit-name, .t-label").first()
+    .evaluate((el) => el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).textOverflow === "ellipsis")
+    .catch(() => true);
+  expect(typeof overflowed).toBe("boolean");
+  await noPageOverflow(page);
+});

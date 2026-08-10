@@ -73,6 +73,23 @@ const api = (() => {
     B("b16", "B3", "16:00", 120, "陳樂", "0912345678", 2, 0, "cancelled"),
   ];
 
+  /* 極端值樣本：定稿刻意畫了「字太多」「預約項目的字數最多有十四個字」這類溢出情境，
+     但 mock 幾乎都是短字串，截斷行為從沒被實測過（仲裁時發現三輪走查都沒查這個面向）。
+     用 ?overflow=1 切換成長字串資料集。 */
+  const OVERFLOW = new URLSearchParams(location.search).get("overflow") === "1";
+  if (OVERFLOW) {
+    BOOKINGS.forEach((b, i) => Object.assign(b, {
+      name: i % 2 ? "這是一個非常長的顧客姓名用來測試截斷行為" : b.name,
+      email: "a-very-long-mailbox-name-for-overflow-test@findlife.com.tw",
+      item: "預約項目的字數最多有十四個字",
+      subItem: "子項目名稱也可能很長很長很長",
+      unitGroup: "字太多群組名稱測試",
+      units: ["桌次1", "Unit 2", "Unit 3", "Unit 4", "非常長的單位名稱"],
+      custNote: "顧客備註也可能很長很長很長很長很長很長很長很長很長很長很長很長",
+      shopNote: "店家備註也可能很長很長很長很長很長很長很長很長很長很長很長很長",
+    }));
+  }
+
   /* 定稿清單的兩種變體：線上來源、尚未存成顧客、超長項目名 */
   Object.assign(BOOKINGS[5], {
     source: "線上", email: "support9999@findlife.com.tw",
