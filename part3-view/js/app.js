@@ -112,6 +112,7 @@ function statusActions(b) {
   }
   if (MODE !== "list") { renderStatusTabs(); renderCustList(); }
   bindEvents();
+  bindKeyboard();
 
   if (window.SECTION) await applySectionPreset(window.SECTION);
 
@@ -541,6 +542,7 @@ function tableCardHtml(b) {
 function openPopover(id, anchor) {
   const b = state.bookings.find((x) => x.id === id);
   if (!b) return;
+  rememberOpener("#booking-popover");
   const p = $("#booking-popover");
   /* 兩種視圖在定稿是兩個不同的 component，不共用 */
   p.innerHTML = MODE === "space" ? tableCardHtml(b) : cardHtml(b);
@@ -559,6 +561,7 @@ const closePopover = () => { $("#booking-popover").hidden = true; };
 function openEdit(id) {
   const b = state.bookings.find((x) => x.id === id);
   if (!b) return;
+  rememberOpener("#edit-drawer");
   closePopover();
   state.focusId = id;
   state.draft = { ...b };
@@ -594,9 +597,11 @@ function openEdit(id) {
   clearErrors();
   $("#edit-drawer").hidden = false;
   renderCustList();
+  focusInto("#edit-drawer");
 }
 
 function closeEdit() {
+  restoreFocus("#edit-drawer");
   $("#edit-drawer").hidden = true;
   $("#modal-unsaved").hidden = true;
   state.focusId = null;
@@ -609,7 +614,11 @@ const markDirty = () => { state.dirty = true; };
 
 /* 有變更才跳未儲存提醒，沒變更直接關（定稿 3-1-2 未儲存提醒） */
 function requestClose() {
-  if (state.dirty) { $("#modal-unsaved").hidden = false; return; }
+  if (state.dirty) {
+    $("#modal-unsaved").hidden = false;
+    focusInto("#modal-unsaved");     /* 不先把焦點移進去，Tab 圈不住 */
+    return;
+  }
   closeEdit();
 }
 
@@ -687,11 +696,13 @@ function applyBookingMode() {
 }
 
 function openNew() {
+  rememberOpener("#new-drawer");
   applyBookingMode();
   closePopover();
   $("#edit-drawer").hidden = true;      // 兩個抽屜共用同一個槽位，不能同時開
   $("#new-drawer").hidden = false;
   updateNewCta();
+  focusInto("#new-drawer");
 }
 function closeNew() { NEW_PANELS.forEach((s) => { $(s).hidden = true; }); }
 
@@ -885,6 +896,66 @@ function swapNewPanel(sel) {
   NEW_PANELS.forEach((s) => { $(s).hidden = s !== sel; });
   /* 單位選擇是從修改抽屜叫出來時，要把修改抽屜先讓開（共用同一個槽位） */
   if (sel === "#nb-units" && state.unitReturnTo === "#edit-drawer") $("#edit-drawer").hidden = true;
+}
+
+/* ---------- 鍵盤與焦點 ----------
+   三輪走查都只看滑鼠互動，鍵盤完全沒人驗過；定稿也沒畫，
+   但可上線型 HTML 該有 Esc 關閉與焦點歸位。 */
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
+
+/* 記住是誰打開的，關閉後把焦點還回去——不然焦點會掉回 <body>，鍵盤使用者迷路 */
+function openerFor(sel) { return state.openers?.[sel]; }
+function rememberOpener(sel) {
+  state.openers = state.openers || {};
+  state.openers[sel] = document.activeElement;
+}
+function focusInto(sel) {
+  const panel = $(sel);
+  if (!panel || panel.hidden) return;
+  (panel.querySelector(FOCUSABLE) || panel).focus({ preventScroll: true });
+}
+function restoreFocus(sel) {
+  const el = openerFor(sel);
+  if (el && document.contains(el)) el.focus({ preventScroll: true });
+}
+
+/* 目前最上層、可以被 Esc 關掉的東西（由上到下） */
+function topLayer() {
+  if (!$("#modal-unsaved").hidden) return "modal";
+  for (const sel of ["#nb-timepicker", "#nb-datepicker", "#nb-items", "#nb-units", "#nb-done"]) {
+    if (!$(sel).hidden) return sel;
+  }
+  if (!$("#new-drawer").hidden) return "#new-drawer";
+  if (!$("#edit-drawer").hidden) return "#edit-drawer";
+  if (!$("#booking-popover").hidden) return "#booking-popover";
+  return null;
+}
+
+function bindKeyboard() {
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const top = topLayer();
+    if (!top) return;
+    e.preventDefault();
+    if (top === "modal") { $("#modal-unsaved").hidden = true; focusInto("#edit-drawer"); return; }
+    if (top === "#booking-popover") { closePopover(); restoreFocus("#booking-popover"); return; }
+    if (top === "#edit-drawer") { requestClose(); return; }
+    if (top === "#new-drawer") { closeNew(); restoreFocus("#new-drawer"); return; }
+    /* 子面板（picker／項目／單位／完成）Esc 回上一層，不是整個關掉 */
+    if (top === "#nb-units") return $("[data-nb-back]", $("#nb-units")).click();
+    swapNewPanel(state.unitReturnTo === "#edit-drawer" ? "#edit-drawer" : "#new-drawer");
+    focusInto("#new-drawer");
+  });
+
+  /* modal 開著時把 Tab 圈在裡面 */
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab" || $("#modal-unsaved").hidden) return;
+    const items = $$(FOCUSABLE, $("#modal-unsaved"));
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
 }
 
 /* ---------- 事件 ---------- */

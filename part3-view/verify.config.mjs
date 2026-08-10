@@ -93,6 +93,11 @@ export const NEW_BOOKING = {
 export const EDIT_DRAWER_ORDER = [".unit-card", "#survey-sect", "#deposit-sect"];
 export const EDIT_UNIT_CHANGE = "#f-unit-change";
 
+/* 鍵盤與焦點：三輪走查都只看滑鼠，定稿也沒畫，但可上線型 HTML 該有 */
+export const A11Y = {
+  focusable: 'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
+};
+
 export const TOAST = "#toast";
 export const POPOVER = "#booking-popover";
 /* 空間圖的 popover 在定稿是獨立元件 Card / Table Info-new，與時間軸的不同 */
