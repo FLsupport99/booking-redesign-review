@@ -475,6 +475,62 @@
   </div>
 </aside>
 
+<!-- 預約項目選單（2-1-2）／選擇預約單位（2-1-3）／完成新增（2-1-4）
+     都是新增抽屜的替換內容，共用同一個 350 槽位 -->
+<aside class="drawer nb-drawer" id="nb-items" aria-label="選擇預約項目" hidden>
+  <div class="nb-top">
+    <span class="nb-top-spacer" aria-hidden="true"></span>
+    <p class="nb-title2">選擇預約項目</p>
+    <button class="nb-close" type="button" data-nb-back aria-label="關閉">
+      <img src="assets/nb-close.svg" alt=""></button>
+  </div>
+  <div class="nb-content" id="nb-item-list"></div>
+</aside>
+
+<aside class="drawer nb-drawer" id="nb-units" aria-label="選擇預約單位" hidden>
+  <div class="nb-top"><p class="nb-title2">選擇預約單位</p></div>
+  <div class="nb-content">
+    <div class="nb-count">
+      <p><span>預約人數</span><b class="is-primary" id="nb-count-need">10</b><span>人</span></p>
+      <p><span>已選預約單位</span><b id="nb-count-picked">0</b><span>個</span></p>
+      <p><span>共可容納</span><b id="nb-count-cap">0</b><span>人</span></p>
+      <p><span>尚不足</span><b class="is-alert" id="nb-count-short">10</b><span>人</span></p>
+    </div>
+    <p class="nb-units-full" id="nb-units-full" hidden>所選人數於此時段預約已滿</p>
+    <p class="nb-units-full" id="nb-units-none" hidden>此時段已無符合預約人數的預約單位</p>
+    <hr class="nb-divider">
+    <div class="nb-units-bar">
+      <button class="nb-btn-outline-primary" type="button" id="nb-select-all">選擇全部</button>
+      <button class="nb-btn-outline" type="button" id="nb-filter-group">
+        <img class="nb-ic18" src="assets/nb-filter.svg" alt="">所有群組</button>
+    </div>
+    <div id="nb-unit-groups"></div>
+    <p class="nb-units-warn" id="nb-units-warn" hidden></p>
+  </div>
+  <div class="nb-bottom nb-bottom-2">
+    <button class="nb-btn-secondary" type="button" data-nb-back>返回</button>
+    <button class="nb-submit" type="button" id="nb-units-ok">確定</button>
+  </div>
+</aside>
+
+<aside class="drawer nb-drawer" id="nb-done" aria-label="預約已建立" hidden>
+  <div class="nb-top">
+    <span class="nb-top-spacer" aria-hidden="true"></span>
+    <p class="nb-title2">預約已建立</p>
+    <button class="nb-close" type="button" data-nb-back aria-label="關閉">
+      <img src="assets/nb-close.svg" alt=""></button>
+  </div>
+  <div class="nb-content">
+    <p class="nb-done-date" id="nb-done-date"></p>
+    <p class="nb-done-who" id="nb-done-who"></p>
+    <p class="nb-done-pay" id="nb-done-pay" hidden></p>
+  </div>
+  <div class="nb-bottom nb-bottom-2">
+    <button class="nb-btn-secondary" type="button" id="nb-done-again">再建一筆</button>
+    <button class="nb-submit" type="button" data-nb-back>完成</button>
+  </div>
+</aside>
+
 <!-- 選擇預約單位（修改抽屜的「變更」） -->
 <div class="modal-mask" id="modal-units" hidden>
   <div class="modal" role="dialog" aria-labelledby="units-title">

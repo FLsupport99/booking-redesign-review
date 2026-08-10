@@ -2,7 +2,7 @@
    這關的風險不是漏抓，是為了讓它變綠而一步步放寬，最後變成放水。
    任何放寬都必須讓 match.test.mjs 的「必須抓到」那一組仍然是紅的。 */
 
-const VALUE_SET = "\\d\\s:/｜／年月日()~－–—.,-";
+const VALUE_SET = "\\d\\s:/｜／、，；年月日()~－–—.,-";   // 數字、時間與純分隔符號
 const VALUE_ONLY = new RegExp(`^[${VALUE_SET}]+$`);
 const VALUE_CHARS_G = new RegExp(`[${VALUE_SET}]`, "g");
 
@@ -30,10 +30,18 @@ export function stripInterp(src) {
 
 const content = (s) => s.replace(VALUE_CHARS_G, "");
 
-export function createMatcher(sourceText) {
-  const raw = sourceText;
-  const stripped = raw.replace(/<[^>]+>/g, "").replace(/\s+/g, "");
-  const srcSkeleton = content(stripInterp(raw.replace(/<[^>]+>/g, "")));
+/* sources: [{ path, text }]。
+   ⚠️ 去標籤（<[^>]+>）只能對 HTML 做。對 JS 做會出事——`names.length < 2 … =>` 之間
+   會被當成一個標籤整段吃掉，夾在中間的文案就從語料裡消失了（「已選取」就是這樣不見的）。 */
+const stripTags = (t) => t.replace(/<[^>]+>/g, " ");
+const isHtml = (p) => /\.html?$/i.test(p);
+
+export function createMatcher(sources) {
+  const list = Array.isArray(sources) ? sources : [{ path: "inline.html", text: sources }];
+  const raw = list.map((s) => s.text).join("\n");
+  const forCorpus = list.map((s) => (isHtml(s.path) ? stripTags(s.text) : s.text)).join("\n");
+  const stripped = forCorpus.replace(/\s+/g, "");
+  const srcSkeleton = content(stripInterp(forCorpus));
 
   /* 從 i 起算，實作裡找得到的最長片段（純數字/標點不算證據） */
   const chunkAt = (t, i) => {
@@ -65,7 +73,28 @@ export function createMatcher(sourceText) {
     const got = chunks.reduce((n, c) => n + content(c).length, 0);
     if (need && got / need < MIN_COVERAGE) return false;
 
-    return gaps.every((g) => VALUE_ONLY.test(g) || (g.length >= 2 && stripped.includes(g)));
+    /* 空隙也必須有證據：整段能從「實作裡出現過的片段（≥2 字）＋純值字元」組裝出來。
+       這樣「已選取 單位D4、E2 尚有…」中段的單位清單放得過，
+       而「單位X9、Z1」這種實作裡不存在的元素放不過。
+       每片至少 2 字，是為了不讓單字錯字（「段」）從空隙溜走。 */
+    const GAP_MAX_LEN = 24, GAP_MAX_PIECES = 4;
+    const gapOk = (g) => {
+      if (VALUE_ONLY.test(g)) return true;
+      if (g.length >= 2 && stripped.includes(g)) return true;
+      if (g.length > GAP_MAX_LEN) return false;
+      let i = 0, pieces = 0;
+      while (i < g.length) {
+        if (VALUE_ONLY.test(g[i])) { i++; continue; }
+        let best = 0;
+        for (let j = g.length; j - i >= 2; j--) {
+          if (stripped.includes(g.slice(i, j))) { best = j - i; break; }
+        }
+        if (!best || ++pieces > GAP_MAX_PIECES) return false;
+        i += best;
+      }
+      return true;
+    };
+    return gaps.every(gapOk);
   };
 
   return function implHas(s) {

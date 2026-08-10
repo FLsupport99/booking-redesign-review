@@ -125,6 +125,39 @@ const api = (() => {
       ].filter((g) => g.slots.length);
     },
 
+    /* 預約項目（2-1-2 選單）與預約單位群組（2-1-3）。名稱取自定稿的示意資料。 */
+    async getBookingItems() {
+      await delay(60);
+      return [
+        { name: "精緻主廚特餐", subs: ["早午時光", "精緻午茶", "晚安佳餚"] },
+        { name: "自助吧吃到飽", subs: ["點心自助吧", "499超值吃到飽", "699海陸尊榮雙響"] },
+        { name: "星空酒吧", subs: ["舞池暢飲", "獨立包廂"] },
+        { name: "如果項目字數太多太長就用點點點點點點顯示", subs: [] },
+      ];
+    },
+
+    async getUnitGroups() {
+      await delay(60);
+      return [
+        { name: "群組G1", units: [
+          { name: "單位A2", cap: "1-2" }, { name: "單位B2", cap: "1-2" },
+          { name: "單位A2", cap: "1-4" }, { name: "單位B2", cap: "1-4" },
+          { name: "如果字數太多了", cap: "5-6" },
+        ]},
+        { name: "預設群組", units: [
+          { name: "單位A2", cap: "1-4" }, { name: "單位B2", cap: "1-4" },
+          { name: "單位C2", cap: "1-2" }, { name: "單位D3", cap: "1-2" },
+          { name: "單位E2", cap: "5-6" }, { name: "單位D4", cap: "1-2" },
+          { name: "單位D2", cap: "1-2" },
+        ]},
+        { name: "字太多群組", units: [
+          { name: "字太多的話", cap: "1-2" }, { name: "單位D2", cap: "1-2" },
+          { name: "單位D3", cap: "1-2" }, { name: "單位D4", cap: "1-2" },
+          { name: "單位E2", cap: "5-6" },
+        ]},
+      ];
+    },
+
     async getFloors() {
       await delay(80);
       return JSON.parse(JSON.stringify(FLOORS));
