@@ -34,6 +34,13 @@ src = inject(src, "</style>", """
   margin:10px 12px 0;font-size:13px}
 .p4-bar .btn-md{height:30px}
 .bk-chip.p4{background:#e3eef6;color:#2d6a91;cursor:pointer}
+.p4-modebar{display:flex;align-items:center;gap:10px;margin:0 0 10px;padding:10px 14px;border-radius:var(--r-input);
+  background:#2d6a91;color:#fff;font-size:13px;line-height:19px}
+.p4-modebar b{color:#fff}
+.p4-modebar .btn-md{height:30px}
+.tl-row{cursor:default}
+.p4-mode .tl-row{cursor:crosshair}
+.p4-mode .tl-chip{opacity:.55}
 .bk-chip.p4 svg{stroke:currentColor}
 .p4-note{margin:0 0 10px;padding:8px 12px;border-radius:var(--r-input);
   background:#e3eef6;color:#2d6a91;font-size:13px;line-height:19px}
@@ -83,6 +90,16 @@ function p4RangesOf(date, unitId) {
   return p4Of(date).filter(c => c.unitIds.includes(unitId)).map(c => [toMin(c.start), toMin(c.end)]);
 }
 let p4Sel = null, p4Drag = false;
+/* ⚠️ 時間軸的空白區在定稿裡已經是「點擊＝在該時間與桌位快速新增預約」
+   （Figma 2-1-1 有 時間軸/清單/空間圖 三個新增預約變體）。同一個位置不能有兩種行為，
+   所以臨時關閉改成「模式切換」：預設完全不攔截，進入關閉模式後才啟用框選。 */
+let p4Mode = false;
+/* ⚠️ window 監聽器只能綁一次。p4Timeline 每次重繪都呼叫，若每次 addEventListener，
+   監聽器會越疊越多：舊的（持有失效 DOM 參照）先更新 p4Sel，新的再進來就以為
+   「位置沒變」而提早 return，結果框選永遠只有一格。改為綁一次＋共用 p4Ctx。 */
+let p4Bound = false, p4Ctx = null;
+function p4EnterMode(){ p4Mode = true; p4Sel = null; viewBooking(); }
+function p4ExitMode(){ p4Mode = false; p4Sel = null; viewBooking(); }
 
 function p4Timeline(rows) {
   const inner = document.querySelector('.tl-inner');
@@ -106,9 +123,13 @@ function p4Timeline(rows) {
   });
 
   /* 框選 */
+  /* 先看事件目標（拖曳中滑鼠底下的元素會冒泡上來），沒有再用座標反查 */
   const cellOf = (ev) => {
-    const el = document.elementFromPoint(ev.clientX, ev.clientY);
-    const row = el && el.closest ? el.closest('.tl-row') : null;
+    let row = ev.target && ev.target.closest ? ev.target.closest('.tl-row') : null;
+    if (!row) {
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      row = el && el.closest ? el.closest('.tl-row') : null;
+    }
     if (!row) return null;
     const r = rowEls.indexOf(row);
     const rect = inner.getBoundingClientRect();
@@ -118,19 +139,28 @@ function p4Timeline(rows) {
   };
   inner.addEventListener('mousedown', ev => {
     if (ev.target.closest('.tl-chip')) return;   // 點預約卡沿用定稿頁的 popover
+    if (!p4Mode) {
+      // 非關閉模式：此處是定稿的「新增預約」入口，臨時關閉不搶這個手勢
+      if (cellOf(ev)) toast('定稿行為：點空白＝在此時間與桌位快速新增預約。要臨時關閉請按右上「臨時關閉」→ 進入關閉模式');
+      return;
+    }
     const p = cellOf(ev); if (!p) return;
     ev.preventDefault();
     p4Drag = true; p4Sel = { r0: p.r, c0: p.c, r1: p.r, c1: p.c };
     p4Paint(rows, rowEls, inner);
   });
-  window.addEventListener('mousemove', ev => {
-    if (!p4Drag) return;
-    const p = cellOf(ev); if (!p) return;
-    if (p.r === p4Sel.r1 && p.c === p4Sel.c1) return;
-    p4Sel.r1 = p.r; p4Sel.c1 = p.c;
-    p4Paint(rows, rowEls, inner);
-  });
-  window.addEventListener('mouseup', () => { p4Drag = false; });
+  p4Ctx = { rows, rowEls, inner, cellOf };
+  if (!p4Bound) {
+    p4Bound = true;
+    window.addEventListener('mousemove', ev => {
+      if (!p4Drag || !p4Ctx) return;
+      const p = p4Ctx.cellOf(ev); if (!p) return;
+      if (p.r === p4Sel.r1 && p.c === p4Sel.c1) return;
+      p4Sel.r1 = p.r; p4Sel.c1 = p.c;
+      p4Paint(p4Ctx.rows, p4Ctx.rowEls, p4Ctx.inner);
+    });
+    window.addEventListener('mouseup', () => { p4Drag = false; });
+  }
 
   if (p4Sel) p4Paint(rows, rowEls, inner);
 }
@@ -174,7 +204,7 @@ function p4Paint(rows, rowEls, inner) {
       p4Save(p4All().concat({ id: 'p4_' + p4All().length + '_' + start, date: bk.date, start, end, unitIds: ids }));
       toast(`已關閉線上預約：${ids.length} 個單位 ${start}–${end}`);
     }
-    p4Sel = null; viewBooking();
+    p4Sel = null; viewBooking();   // 留在關閉模式，方便連續關好幾張桌
   };
 }
 
@@ -193,6 +223,7 @@ function p4OpenDrawer() {
   const uname = id => (db.units.find(u => u.id === id) || {}).name || id;
   drw.innerHTML = `<h4>臨時關閉中<span style="margin-left:auto"><button class="btn-md ghost" id="p4DrwX">關閉</button></span></h4>
     <div class="bd">
+      <button class="btn-md primary" id="p4Enter" style="width:100%">＋ 進入關閉模式，在時間軸上框選</button>
       <div class="p4-note">時間軸一次只看一天，這裡列出<b>所有日期</b>的關閉設定——避免關了忘記恢復，線上預約被默默擋住。</div>
       ${Object.keys(byDate).sort().map(dt => `<div><div class="dy">${dt}${dt === bk.date ? '（今天檢視中）' : ''}</div>
         ${byDate[dt].map(c => `<div class="it"><div>${c.start}–${c.end}<br>${c.unitIds.map(uname).map(esc).join('、')}</div>
@@ -200,6 +231,7 @@ function p4OpenDrawer() {
     </div>`;
   mask.classList.add('show'); drw.classList.add('show');
   drw.querySelector('#p4DrwX').onclick = () => { mask.classList.remove('show'); drw.classList.remove('show'); };
+  drw.querySelector('#p4Enter').onclick = () => { mask.classList.remove('show'); drw.classList.remove('show'); p4EnterMode(); };
   drw.querySelectorAll('[data-p4x]').forEach(x => x.onclick = () => {
     p4Save(p4All().filter(c => c.id !== x.dataset.p4x));
     viewBooking(); p4OpenDrawer();
@@ -219,16 +251,29 @@ src = inject(src, '    <div class="ls-body">${body}</div>`;',
              "\n  p4Note();", before=False, label="list-note")
 src = inject(src, "function p4OpenDrawer() {",
              """/* 時間軸上方的常駐操作提示：框選是拖曳手勢，沒有提示 reviewer 不會知道要做什麼 */
+function p4ModeBar(){
+  const main = document.getElementById('bkMain');
+  if (!main || !p4Mode || main.querySelector('.p4-modebar')) return;
+  document.body.classList.add('p4-mode');
+  const b = document.createElement('div');
+  b.className = 'p4-modebar';
+  b.innerHTML = `<b>臨時關閉模式</b>　在時間軸上拖曳框選要關閉的「桌 × 時段」（可跨多列），放開後會浮出操作列。此模式下不會建立預約。
+    <span style="margin-left:auto"><button class="btn-md ghost" id="p4Exit">完成</button></span>`;
+  main.insertBefore(b, main.firstChild);
+  b.querySelector('#p4Exit').onclick = p4ExitMode;
+}
 function p4Hint(){
+  p4ModeBar();
+  if (p4Mode) return;                       // 模式中不重複顯示一般提示
+  document.body.classList.remove('p4-mode');
   const main = document.getElementById('bkMain');
   if (!main || main.querySelector('.p4-hint')) return;
   const cs = p4Of(bk.date);
   const uname = id => (db.units.find(u => u.id === id) || {}).name || id;
   const h = document.createElement('div');
   h.className = 'p4-note p4-hint';
-  h.innerHTML = '<b>方案 C・臨時預約關閉</b>：在下方時間軸<b>按住拖曳框選「桌 × 時段」</b>即可關閉線上預約（可跨多列），放開後會浮出操作列。'
-    + (cs.length ? '　本日已關閉：' + cs.map(c => `${c.start}–${c.end} ${c.unitIds.map(uname).map(esc).join('、')}`).join('；') : '')
-    + '　右上角「臨時關閉」可查看所有日期的關閉並解除。';
+  h.innerHTML = '<b>方案 C・臨時預約關閉</b>：時間軸的空白區在定稿裡是<b>「點擊＝快速新增預約」</b>，所以臨時關閉改走<b>模式切換</b>——按右上角「臨時關閉」→ 進入關閉模式後才能框選，退出即恢復。'
+    + (cs.length ? '　本日已關閉：' + cs.map(c => `${c.start}–${c.end} ${c.unitIds.map(uname).map(esc).join('、')}`).join('；') : '');
   main.insertBefore(h, main.firstChild);
 }
 
