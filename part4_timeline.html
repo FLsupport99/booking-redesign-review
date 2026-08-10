@@ -536,6 +536,35 @@ body.area-book .content{padding:0;gap:0}
   font-size:13px;line-height:19px;display:flex;gap:8px;align-items:flex-start}
 .p4-drw .it .x{margin-left:auto;color:var(--alert);cursor:pointer;font-size:12px;white-space:nowrap}
 .p4-drw .dy{font-size:12px;color:var(--text-muted);margin-bottom:6px}
+/* 自動排位規則 */
+.p4-gblock{display:flex;flex-direction:column;gap:6px;border:1px dashed var(--border-field);border-radius:var(--r-card);padding:10px}
+.p4-gblock.dragging{opacity:.4}
+.p4-gblock.over{border-color:var(--border-on)}
+.p4-gbhead{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;cursor:grab;user-select:none}
+.p4-gbhead .ord{font-size:12px;color:var(--text-muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.p4-srow{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--border-card);
+  border-radius:var(--r-input);padding:10px 14px;cursor:grab;user-select:none}
+.p4-srow.dragging{opacity:.4}
+.p4-srow.over{border-color:var(--border-on);background:var(--bg-selected)}
+.p4-grip{width:14px;color:var(--text-disabled);letter-spacing:-2px;line-height:1;font-size:15px}
+.p4-gchip{font-size:12px;line-height:16px;padding:2px 8px;border-radius:var(--r-tag);background:var(--bg-tag-on);color:var(--text-body);white-space:nowrap}
+.p4-sname{flex:1;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p4-scap{font-size:13px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+/* 訂金管理 */
+.p4-depcard{border:1px solid var(--border-card);border-radius:var(--r-card);padding:14px 16px;display:flex;align-items:flex-start;gap:12px}
+.p4-depcard .m{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.p4-depcard .n{font-size:15px;font-weight:500}
+.p4-depcard .d{font-size:13px;line-height:19px;color:var(--text-body)}
+.p4-depcard .u{font-size:12px;color:var(--text-muted)}
+.p4-sw{width:40px;height:22px;border-radius:999px;background:var(--btn-disabled);position:relative;cursor:pointer;flex:none;transition:background .15s}
+.p4-sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}
+.p4-sw.on{background:var(--primary)}
+.p4-sw.on::after{left:20px}
+.p4-inline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
+.p4-inline .input{width:auto}
+.p4-w80{width:80px}.p4-w110{width:110px}
+.p4-radio[data-on]{border-color:var(--primary)}
+.p4-radio[data-on]::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--primary)}
 </style>
 </head>
 <body>
@@ -902,6 +931,8 @@ function renderChrome() {
       location.href = 'part4_exception.html?mode=' + (excMap[db.mode] || 'basic');  /* Part4 整合版 */
     }
     else if (a.dataset.nav === '顧客預約頁') { location.hash = '#/customer'; }
+    else if (a.dataset.nav === '自動排位規則') { location.hash = '#/p4auto'; }
+    else if (a.dataset.nav === '訂金管理') { location.hash = '#/p4deposit'; }
     else toast('此頁面尚未做成互動 Demo');
   }));
 }
@@ -929,13 +960,16 @@ function route() {
   const mBook = h.match(/^#\/book(?:\/(timeline|space|list))?$/);
   if (mBook) { bk.view = mBook[1] || bk.view; return viewBooking(); }
   document.body.classList.remove('area-book');
-  const activeNav = h.startsWith('#/customer') ? '顧客預約頁' : '預約規則';
+  const activeNav = h === '#/p4auto' ? '自動排位規則' : h === '#/p4deposit' ? '訂金管理'
+    : h.startsWith('#/customer') ? '顧客預約頁' : '預約規則';
   document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('active', a.dataset.nav === activeNav));
   const mGroup = h.match(/^#\/unit\/group\/(.+)$/);
   const mItemNew = h.match(/^#\/slots\/item\/([^/]+)\/new$/);
   const mItemEdit = h.match(/^#\/slots\/item\/([^/]+)\/edit\/(.+)$/);
   const mItem = h.match(/^#\/slots\/item\/([^/]+)$/);
   const mEdit = h.match(/^#\/slots\/edit\/(.+)$/);
+  if (h === '#/p4auto') return p4ViewAuto();
+  if (h === '#/p4deposit') return p4ViewDeposit();
   if (h === '#/rules' || h === '') return viewRules();
   if (h === '#/mode') return viewModeChange();
   if (h === '#/customer') return viewCustomer();
@@ -952,7 +986,234 @@ function route() {
 }
 window.addEventListener('hashchange', route);
 
+/* ===== Part4 注入：自動排位規則（US4-1） ===== */
+function p4ViewAuto() {
+  setTitle([['預約設定', '#/rules'], ['自動排位規則', '#/p4auto']], '自動排位規則');
+  $('#content').innerHTML = `
+    <div class="p4-note">此頁的順序<b>只決定「同分時選誰」</b>——系統先求「用最少的預約單位滿足人數」，再看群組順序、再看群組內單位順序。與「後台操作偏好 &gt; 預約單位排序」（扁平、可跨群組）是兩套獨立排序。</div>
+    <div class="card">
+      <div class="card-head"><div class="ch-main">
+        <div class="ch-title">優先排位順序</div>
+        <div class="ch-desc">拖曳以調整順序。群組可整組移動；單位只能在所屬群組內排序，不可跨組。</div>
+      </div></div>
+      <div id="p4AutoList" style="display:flex;flex-direction:column;gap:10px"></div>
+      <div class="btn-row" style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn-md primary" id="p4AutoSave">儲存</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="ch-main">
+        <div class="ch-title">演算法判斷順序</div>
+        <div class="ch-desc">建立／修改線上預約，以及「自動分配預約單位」開啟時的自建預約，皆適用。</div>
+      </div></div>
+      <div style="font-size:14px;line-height:22px;color:var(--text-body)">
+        1. 優先考慮：如何使用<b>最少</b>的預約單位滿足預約人數需求<br>
+        2. 再考慮：群組的排列順序<br>
+        3. 再考慮：群組內單位的排列順序
+      </div>
+    </div>`;
+  p4RenderAuto();
+  $('#p4AutoSave').onclick = () => { persist(); toast('已儲存排位順序'); };
+}
+function p4RenderAuto() {
+  const gs = db.groups.filter(g => db.units.some(u => u.gid === g.id));
+  $('#p4AutoList').innerHTML = gs.map((g, gi) => {
+    const us = db.units.filter(u => u.gid === g.id);
+    return `<div class="p4-gblock" draggable="true" data-gi="${gi}">
+      <div class="p4-gbhead"><span class="p4-grip">⣿</span><span class="p4-gchip">${esc(g.name)}</span>
+        <span class="ord">第 ${gi + 1} 順位・${us.length} 個單位</span></div>
+      ${us.map((u, ui) => `<div class="p4-srow" draggable="true" data-gi="${gi}" data-ui="${ui}">
+          <span class="p4-grip">⣿</span><span class="p4-sname">${esc(u.name)}</span>
+          <span class="p4-scap">${u.min}~${u.max} 人</span></div>`).join('')}
+    </div>`;
+  }).join('');
+  p4WireAuto(gs);
+}
+function p4WireAuto(gs) {
+  let src = null;
+  document.querySelectorAll('#p4AutoList .p4-srow').forEach(el => {
+    el.addEventListener('dragstart', e => { e.stopPropagation(); src = el; el.classList.add('dragging'); });
+    el.addEventListener('dragend', () => { src = null; p4RenderAuto(); });
+    el.addEventListener('dragover', e => {
+      if (!src || !src.classList.contains('p4-srow')) return;
+      e.preventDefault(); e.stopPropagation();
+      if (src.dataset.gi === el.dataset.gi) el.classList.add('over');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault(); e.stopPropagation();
+      if (!src || src.dataset.gi !== el.dataset.gi) { toast('不可跨群組排序'); return; }
+      const gid = gs[+el.dataset.gi].id;
+      const idx = db.units.map((u, i) => u.gid === gid ? i : -1).filter(i => i >= 0);
+      const from = idx[+src.dataset.ui], to = idx[+el.dataset.ui];
+      const [m] = db.units.splice(from, 1);
+      db.units.splice(to, 0, m);
+      persist();
+    });
+  });
+  document.querySelectorAll('#p4AutoList .p4-gblock').forEach(el => {
+    el.addEventListener('dragstart', e => { if (src) return; src = el; el.classList.add('dragging'); });
+    el.addEventListener('dragend', () => { src = null; p4RenderAuto(); });
+    el.addEventListener('dragover', e => { if (src && src.classList.contains('p4-gblock') && src !== el) { e.preventDefault(); el.classList.add('over'); } });
+    el.addEventListener('dragleave', () => el.classList.remove('over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!src || !src.classList.contains('p4-gblock')) return;
+      const a = gs[+src.dataset.gi].id, b = gs[+el.dataset.gi].id;
+      const ia = db.groups.findIndex(g => g.id === a), ib = db.groups.findIndex(g => g.id === b);
+      const [m] = db.groups.splice(ia, 1);
+      db.groups.splice(ib, 0, m);
+      persist();
+    });
+  });
+}
+
+/* ===== Part4 注入：訂金管理（US4-2） =====
+   直接操作 sim.html 既有的 DEPOSITS 陣列——在這裡新增／刪除，時段規則表單的
+   「要求訂金 → 套用規則」選單會同步，正好示範「訂金規則是可複用物件」。 */
+let p4DepOn = true;
+function p4DepDesc(d) {
+  const way = d.way === 'auth' ? '信用卡授權綁定' : '預先收款';
+  const cond = d.cond === 'fixed' ? `固定金額 ${d.fixed} 元/組` : `${d.minPeople} 人以上，每人 ${d.perPerson} 元`;
+  return `${way}：${cond}`;
+}
+function p4NormalizeDeposits() {
+  DEPOSITS.forEach(d => {
+    if (d.way) return;                         // 已正規化過
+    const s = d.desc || '';
+    d.way = /授權|綁卡|綁定/.test(s) ? 'auth' : 'prepay';
+    const mFixed = s.match(/每組\s*(\d+)/);
+    const mPer = s.match(/(\d+)\s*人以上.*?每人\s*(\d+)/);
+    if (mPer) { d.cond = 'people'; d.minPeople = +mPer[1]; d.perPerson = +mPer[2]; d.fixed = 300; }
+    else { d.cond = 'fixed'; d.fixed = mFixed ? +mFixed[1] : 300; d.minPeople = 1; d.perPerson = 100; }
+  });
+}
+function p4UsedBy(id) {
+  const names = [];
+  ['slots', 'svcSlots', 'catSlots', 'capSlots'].forEach(k => (db[k] || []).forEach(s => { if (s.deposit === id) names.push(s.name); }));
+  return names;
+}
+function p4ViewDeposit() {
+  p4NormalizeDeposits();
+  setTitle([['預約設定', '#/rules'], ['訂金管理', '#/p4deposit']], '訂金管理');
+  $('#content').innerHTML = `
+    <div class="p4-note">相對現況的改動：原本這頁只有<b>一組</b>「收款方式＋收款條件」，改成可建立<b>多組具名的訂金規則</b>，供時段規則、例外時段規則與服務選項套用。套用優先序：<b>服務選項 &gt; 時段規則</b>；服務選項未設定訂金即為不收，不回落店家層級。</div>
+    <div class="card">
+      <div class="card-head"><div class="ch-main">
+        <div class="ch-title">訂金預約模式</div>
+        <div class="ch-desc">開啟後，所有符合條件且透過線上預約的顧客都必須在期限內完成付款或授權信用卡。</div>
+      </div><div class="p4-sw${p4DepOn ? ' on' : ''}" id="p4DepSw"></div></div>
+      <div style="font-size:14px;color:var(--text-body)">藍新商店代號　<b>MNU00</b></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="ch-main">
+        <div class="ch-title">訂金規則</div>
+        <div class="ch-desc">建立後可在「預約時段設定」「例外預約日期設定」「服務選項設定」中選用。這裡的異動會同步到時段規則的「要求訂金」選單。</div>
+      </div><button class="btn-md ghost-green" id="p4DepAdd">＋ 新增訂金規則</button></div>
+      <div id="p4DepList" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="ch-main"><div class="ch-title">期限與請款規則（沿用現況、不可調整）</div></div></div>
+      <div style="font-size:14px;line-height:22px;color:var(--text-body)">
+        ・預先收款的付款期限：送出預約申請後至<b>隔日 22:59</b>；若預約時間為送出當日或隔日，期限改為<b>預約時間前 30 分鐘</b><br>
+        ・信用卡授權的操作期限：送出預約申請後 <b>30 分鐘</b>內，逾時未授權自動取消預約<br>
+        ・授權完成後僅保留額度、不自動扣款；<b>「請款」按鈕僅在預約狀態為「未到店」時出現</b><br>
+        ・請款期限：<b>預約日後七日內</b>，逾期授權失效且無法再扣款<br>
+        ・逾時未付款／未授權：預約自動轉入「取消預約」
+      </div>
+    </div>`;
+  p4RenderDepList();
+  $('#p4DepSw').onclick = () => { p4DepOn = !p4DepOn; p4ViewDeposit(); };
+  $('#p4DepAdd').onclick = () => p4DepForm(null);
+}
+function p4RenderDepList() {
+  $('#p4DepList').innerHTML = DEPOSITS.length ? DEPOSITS.map(d => {
+    const used = p4UsedBy(d.id);
+    return `<div class="p4-depcard">
+      <div class="m">
+        <div class="n">${esc(d.name)}</div>
+        <div class="d">${esc(p4DepDesc(d))}</div>
+        <div class="u">${used.length ? '套用中：' + used.map(esc).join('、') : '尚未被任何時段規則套用'}</div>
+      </div>
+      <button class="btn-md ghost" data-p4de="${d.id}">編輯</button>
+      <button class="btn-md ghost-red" data-p4dd="${d.id}">刪除</button>
+    </div>`;
+  }).join('') : `<div class="empty">目前沒有任何訂金規則</div>`;
+  document.querySelectorAll('[data-p4de]').forEach(b => b.onclick = () => p4DepForm(DEPOSITS.find(d => d.id === b.dataset.p4de)));
+  document.querySelectorAll('[data-p4dd]').forEach(b => b.onclick = () => p4DepDelete(DEPOSITS.find(d => d.id === b.dataset.p4dd)));
+}
+function p4DepForm(d) {
+  const f = d ? Object.assign({}, d) : { id: 'd' + (DEPOSITS.length + 1) + '_' + DEPOSITS.length, name: '訂金規則 ' + (DEPOSITS.length + 1), way: 'prepay', cond: 'people', minPeople: 1, perPerson: 100, fixed: 200 };
+  const grab = () => {
+    f.name = $('#p4fName').value;
+    f.minPeople = +$('#p4fMin').value || 1; f.perPerson = +$('#p4fPer').value || 0; f.fixed = +$('#p4fFix').value || 0;
+  };
+  const draw = () => {
+    openModal(`
+      <h3>${d ? '編輯' : '新增'}訂金規則</h3>
+      <div class="m-body">
+        <div class="field"><span class="field-label">訂金規則名稱</span>
+          <input class="input" id="p4fName" value="${esc(f.name)}"><span class="hint">名稱不得重複</span></div>
+        <div class="field"><span class="field-label">收款方式</span>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${[['prepay', '預先收款', '顧客可透過轉帳、信用卡、超商代碼完成訂金支付'],
+               ['auth', '信用卡授權綁定', '顧客需完成信用卡授權，若因故爽約，可於授權期限內請款']]
+              .map(([v, n, sub]) => `<label class="check" data-p4way="${v}"><span class="radio p4-radio"${f.way === v ? ' data-on' : ''}></span>
+                <span><span class="ck-label">${n}</span><div class="ck-desc">${sub}</div></span></label>`).join('')}
+          </div></div>
+        <div class="field"><span class="field-label">收款條件</span>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <label class="check" data-p4cond="people"><span class="radio p4-radio"${f.cond === 'people' ? ' data-on' : ''}></span>
+              <span class="p4-inline">依據預約人數 <input class="input p4-w80" id="p4fMin" value="${f.minPeople}"> 人以上，
+                <input class="input p4-w80" id="p4fPer" value="${f.perPerson}"> 元/人</span></label>
+            <label class="check" data-p4cond="fixed"><span class="radio p4-radio"${f.cond === 'fixed' ? ' data-on' : ''}></span>
+              <span class="p4-inline">固定金額 <input class="input p4-w110" id="p4fFix" value="${f.fixed}"> 元/組</span></label>
+          </div>
+          <span class="hint">人數計算包含大人與小孩。不適用於 Google 預訂；自建預約由店員逐筆輸入金額。</span></div>
+      </div>
+      <div class="btn-row" style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn-md ghost" id="p4fCancel">取消</button>
+        <button class="btn-md primary" id="p4fSave">儲存</button>
+      </div>`);
+    document.querySelectorAll('[data-p4way]').forEach(el => el.onclick = () => { grab(); f.way = el.dataset.p4way; draw(); });
+    document.querySelectorAll('[data-p4cond]').forEach(el => el.onclick = e => {
+      if (e.target.tagName === 'INPUT') return; grab(); f.cond = el.dataset.p4cond; draw();
+    });
+    $('#p4fCancel').onclick = closeModal;
+    $('#p4fSave').onclick = () => {
+      grab();
+      if (!f.name.trim()) return toast('請輸入訂金規則名稱');
+      if (DEPOSITS.some(x => x.name.trim() === f.name.trim() && x.id !== f.id)) return toast('名稱不得重複');
+      f.desc = p4DepDesc(f);
+      const i = DEPOSITS.findIndex(x => x.id === f.id);
+      if (i >= 0) DEPOSITS[i] = f; else DEPOSITS.push(f);
+      closeModal(); p4RenderDepList(); toast('已儲存');
+    };
+  };
+  draw();
+}
+function p4DepDelete(d) {
+  const used = p4UsedBy(d.id);
+  openModal(`
+    <h3>刪除訂金規則</h3>
+    <div class="m-body">確定要刪除「${esc(d.name)}」嗎？
+      ${used.length ? `<div class="p4-note">此規則目前被 <b>${used.length}</b> 條時段規則套用中：${used.map(esc).join('、')}。<br>刪除後這些規則會變成<b>「不需要訂金」</b>。已處於「待付款/綁卡」的既有預約不受影響。</div>` : ''}
+    </div>
+    <div class="btn-row" style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-md ghost" id="p4dCancel">取消</button>
+      <button class="btn-md ghost-red" id="p4dOk">刪除</button>
+    </div>`);
+  $('#p4dCancel').onclick = closeModal;
+  $('#p4dOk').onclick = () => {
+    const i = DEPOSITS.findIndex(x => x.id === d.id);
+    if (i >= 0) DEPOSITS.splice(i, 1);
+    ['slots', 'svcSlots', 'catSlots', 'capSlots'].forEach(k => (db[k] || []).forEach(s => { if (s.deposit === d.id) s.deposit = null; }));
+    persist(); closeModal(); p4RenderDepList(); toast('已刪除');
+  };
+}
+
 /* =====================================================
+   預約規則 landing（入口示意）/* =====================================================
    預約規則 landing（入口示意）
    ===================================================== */
 function viewRules() {
