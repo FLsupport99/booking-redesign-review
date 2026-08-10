@@ -68,9 +68,11 @@ const P4_ICON = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d
 function p4All() { try { return JSON.parse(sessionStorage.getItem(P4_KEY)) || []; } catch (e) { return []; } }
 function p4Save(v) { sessionStorage.setItem(P4_KEY, JSON.stringify(v)); }
 function p4Of(date) { return p4All().filter(c => c.date === date); }
+/* chip 常駐——原本寫成「有資料才顯示」，全新 session 一筆都沒有時，
+   整頁看不出 Part 4 加了什麼，reviewer 只會看到一個普通的定稿時間軸 */
 function p4Chip() {
   const n = p4All().length;
-  return n ? `<span class="bk-chip p4" id="p4Chip">${P4_ICON}臨時關閉 ${n}</span>` : '';
+  return `<span class="bk-chip p4" id="p4Chip">${P4_ICON}臨時關閉 ${n}</span>`;
 }
 function p4BindChip() {
   const c = document.getElementById('p4Chip');
@@ -85,6 +87,7 @@ let p4Sel = null, p4Drag = false;
 function p4Timeline(rows) {
   const inner = document.querySelector('.tl-inner');
   if (!inner) return;
+  p4Hint();
   const rowEls = [...inner.querySelectorAll('.tl-row')];
 
   /* 已關閉區塊 */
@@ -215,7 +218,21 @@ src = inject(src, "  document.querySelectorAll('.sp-u[data-b]').forEach(c => c.o
 src = inject(src, '    <div class="ls-body">${body}</div>`;',
              "\n  p4Note();", before=False, label="list-note")
 src = inject(src, "function p4OpenDrawer() {",
-             """/* 空間圖／清單沒有「單位 × 時間」兩個軸，不做關閉操作，只提示狀態 */
+             """/* 時間軸上方的常駐操作提示：框選是拖曳手勢，沒有提示 reviewer 不會知道要做什麼 */
+function p4Hint(){
+  const main = document.getElementById('bkMain');
+  if (!main || main.querySelector('.p4-hint')) return;
+  const cs = p4Of(bk.date);
+  const uname = id => (db.units.find(u => u.id === id) || {}).name || id;
+  const h = document.createElement('div');
+  h.className = 'p4-note p4-hint';
+  h.innerHTML = '<b>方案 C・臨時預約關閉</b>：在下方時間軸<b>按住拖曳框選「桌 × 時段」</b>即可關閉線上預約（可跨多列），放開後會浮出操作列。'
+    + (cs.length ? '　本日已關閉：' + cs.map(c => `${c.start}–${c.end} ${c.unitIds.map(uname).map(esc).join('、')}`).join('；') : '')
+    + '　右上角「臨時關閉」可查看所有日期的關閉並解除。';
+  main.insertBefore(h, main.firstChild);
+}
+
+/* 空間圖／清單沒有「單位 × 時間」兩個軸，不做關閉操作，只提示狀態 */
 function p4Note() {
   const cs = p4Of(bk.date);
   if (!cs.length) return;
@@ -228,6 +245,13 @@ function p4Note() {
 }
 
 """, label="note-fn")
+
+# 側欄「例外預約規則」原本指向 exception_rules.html（非整合版），
+# 從 C 版點過去會像掉進 B 版；改指向同為 Part4 整合版的 part4_exception.html
+src = inject(src, "      location.href = 'exception_rules.html?mode=' + (excMap[db.mode] || 'basic');",
+             "      location.href = 'part4_exception.html?mode=' + (excMap[db.mode] || 'basic');  /* Part4 整合版 */\n",
+             before=True, label="exc-nav")
+src = src.replace("      location.href = 'exception_rules.html?mode=' + (excMap[db.mode] || 'basic');\n", "", 1)
 
 src = src.replace("<title>MENU店+ 後台模擬器</title>",
                   "<title>Part4 整合版｜MENU店+ 後台模擬器（時間軸臨時關閉）</title>", 1)
