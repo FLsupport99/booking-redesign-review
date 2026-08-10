@@ -15,6 +15,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { homedir } from "node:os";
+import { createMatcher } from "./match.mjs";
 
 const CONFIG = resolve(process.cwd(), process.env.VERIFY_CONFIG || "verify.config.mjs");
 const ROOT = dirname(CONFIG);
@@ -25,19 +26,10 @@ const token = readFileSync(resolve(homedir(), "FL-Agent/FL-Salesapp/.env"), "utf
   .split("\n").find((l) => l.startsWith("FIGMA_TOKEN="))
   .split("=")[1].split("#")[0].trim();
 
-/* 實作端的文案來源。另備一份「去標籤去空白」版本，這樣被 <a>、<br> 切斷的句子也比得到。 */
+/* 實作端的文案來源。比對邏輯在 match.mjs（有 match.test.mjs 當回歸測試，
+   任何放寬都會讓那份的「必須被抓到」那組先紅）。 */
 const raw = SOURCE_FILES.map((f) => readFileSync(resolve(ROOT, f), "utf8")).join("\n");
-const stripped = raw.replace(/<[^>]+>/g, "").replace(/\s+/g, "");
-/* 句中帶動態值（金額、期限、倒數）的比對：兩邊都把數字與 ${...} 拿掉再比骨架。
-   例：定稿「請於2026-06-16 22:59前完成訂金付款，…」對上實作的
-       `請於${b.payment.deadline}前完成訂金付款，…` */
-const skeleton = (s) => s.replace(/\$\{[^}]*\}/g, "").replace(/[\d\s:/年月日.-]/g, "");
-const strippedSkeleton = skeleton(raw.replace(/<[^>]+>/g, ""));
-const implHas = (s) => {
-  const flat = s.replace(/\s+/g, "");
-  if (raw.includes(s) || stripped.includes(flat)) return true;
-  return /\d/.test(s) && strippedSkeleton.includes(skeleton(s));
-};
+const implHas = createMatcher(raw);
 
 const norm = (s) => s.replace(/\s+/g, " ").trim();
 const nodeId = (n) => String(n.id).replace(/-/g, ":");
@@ -58,13 +50,33 @@ function collectScoped(node, out, wanted, seen) {
   (node.children || []).forEach((c) => collectScoped(c, out, wanted, seen));
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* Figma API 打太密會間歇失敗。沒有重試的話，限流那次會被當成「N 條與定稿不符」，
+   看起來像實作壞掉——這種假紅比漏抓更糟，因為會讓人開始不信任這關。 */
+async function fetchNode(id) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (attempt) await sleep(500 * 2 ** attempt);
+    let res;
+    try {
+      res = await fetch(`https://api.figma.com/v1/files/${FILE_KEY}/nodes?ids=${id}`, {
+        headers: { "X-Figma-Token": token },
+      });
+    } catch { continue; }
+    if (res.status === 429 || res.status >= 500) continue;
+    const json = await res.json().catch(() => null);
+    const doc = json?.nodes?.[id]?.document;
+    if (doc) return doc;
+    if (json?.err) continue;
+    return null;                       // 節點真的不存在，重試也沒用
+  }
+  return null;
+}
+
 const results = [];
 for (const t of TARGETS) {
-  const res = await fetch(`https://api.figma.com/v1/files/${FILE_KEY}/nodes?ids=${t.id}`, {
-    headers: { "X-Figma-Token": token },
-  }).then((r) => r.json());
-  const doc = res.nodes?.[t.id]?.document;
-  if (!doc) { results.push({ ...t, error: "節點讀取失敗" }); continue; }
+  const doc = await fetchNode(t.id);
+  if (!doc) { results.push({ ...t, error: "節點讀取失敗（已重試 4 次）" }); continue; }
 
   const texts = new Set();
   let unseen = [];
