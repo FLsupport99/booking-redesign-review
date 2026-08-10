@@ -5,6 +5,13 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const A = () => window.ASSET_BASE || "";
 
 const MODE = window.MODE || "timeline";
+/* 預約模式（與 MODE 是不同的軸：MODE 是視圖，BMODE 是店家的預約模式）。
+   實測定稿 2-1-1/2-2-1/2-3-1/2-4-1 的抽屜文字集合差異：
+     hier     預約項目（兩層）＋預約單位，時間提示「請選擇時間」
+     service  預約項目（單層）＋預約單位，時間提示「選擇時間」
+     basic    沒有預約項目，時間提示「選擇時間」
+     capacity 沒有預約項目、也沒有預約單位，時間提示「選擇時間」 */
+const BMODE = new URLSearchParams(location.search).get("bmode") || window.BMODE || "hier";
 
 const state = {
   shop: null,
@@ -601,7 +608,14 @@ function toggleSidebar(collapsed) {
 /* ---------- 新增預約抽屜（2-1-1） ----------
    ⭐ 顯示時機：定稿 2-1-1_Start 在該列 x=100（最左）＝初始狀態，畫面上沒有抽屜；
    要按工具列的「＋預約」才出現。 */
+function applyBookingMode() {
+  $("#nb-item").hidden = BMODE === "basic" || BMODE === "capacity";
+  $("#nb-unit-panel").hidden = BMODE === "capacity";
+  $("#nb-time-hint").textContent = BMODE === "hier" ? "請選擇時間" : "選擇時間";
+}
+
 function openNew() {
+  applyBookingMode();
   closePopover();
   $("#edit-drawer").hidden = true;      // 兩個抽屜共用同一個槽位，不能同時開
   $("#new-drawer").hidden = false;
@@ -638,11 +652,16 @@ function updateNewCta() {
 /* ---------- 2-1-2 預約項目選單 ---------- */
 async function openItemMenu() {
   const items = await api.getBookingItems();
-  $("#nb-item-list").innerHTML = items.map((it) => `
+  /* 服務項目模式只有一層：項目本身就是可選項，沒有子項目 */
+  const flat = BMODE === "service";
+  $("#nb-item-list").innerHTML = items.map((it) => (flat ? `
+    <div class="nb-item-group">
+      <button class="nb-item-sub" type="button" data-sub="${it.name}">${it.name}</button>
+    </div>` : `
     <div class="nb-item-group">
       <p>${it.name}</p>
       ${it.subs.map((sub) => `<button class="nb-item-sub" type="button" data-sub="${it.name}－${sub}">${sub}</button>`).join("")}
-    </div>`).join("");
+    </div>`)).join("");
   swapNewPanel("#nb-items");
 }
 
