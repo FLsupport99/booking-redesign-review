@@ -141,12 +141,17 @@ async function applySectionPreset(section) {
     case "new": openNew(); break;
     case "new-items": openNew(); await openItemMenu(); break;
     case "new-units": openNew(); await openUnitPicker(); break;
-    case "new-done": openNew(); $("#nb-time").click(); openDone(); break;
+    case "new-done": openNew(); pickNewTime("12:00"); openDone(); break;
     case "new-filled":
       openNew();
-      $("#nb-time").click();
+      pickNewTime("12:00");
       $("#nb-phone").value = "0988123123";
       updateNewCta();
+      break;
+    case "new-full":
+      openNew();
+      pickNewTime("18:30");
+      await openUnitPicker();
       break;
     case "done":
       openEdit(first.id);
@@ -665,6 +670,48 @@ async function openItemMenu() {
   swapNewPanel("#nb-items");
 }
 
+/* ---------- 2-1-2 時間／日期選擇器 ----------
+   原本 #nb-time 點一下就把文字寫死成 12:00，不是真的選擇器（走查 C 抓到）。 */
+/* 直接指定時間（段落快轉與測試用），走與真人點選同一條路徑 */
+function pickNewTime(t) {
+  state.newTime = t;
+  $("#nb-time").textContent = t.replace(":", " : ");
+  updateNewCta();
+}
+
+function openTimePicker() {
+  const open = toMin(api.OPEN);
+  const cells = [];
+  for (let i = 0; i < api.SLOT_COUNT; i++) {
+    const t = fromMin(open + i * api.SLOT_MIN);
+    /* demo 劇本：18:30 是滿位時段，選了會在單位選擇顯示「所選人數於此時段預約已滿」 */
+    cells.push(`<button type="button" data-time="${t}"${t === state.newTime ? ' class="is-selected"' : ""}>${t}</button>`);
+  }
+  $("#nb-timegrid").innerHTML = cells.join("");
+  swapNewPanel("#nb-timepicker");
+}
+
+function openDatePicker() {
+  state.calMonth = state.calMonth || new Date(state.date.getFullYear(), state.date.getMonth(), 1);
+  renderCalendar();
+  swapNewPanel("#nb-datepicker");
+}
+
+function renderCalendar() {
+  const first = state.calMonth;
+  $("#nb-cal-title").textContent = `${first.getFullYear()}-${pad(first.getMonth() + 1)}`;
+  const days = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  const lead = first.getDay();
+  const head = ["日", "一", "二", "三", "四", "五", "六"].map((d) => `<span>${d}</span>`).join("");
+  const blanks = Array.from({ length: lead }, () => "<span></span>").join("");
+  const cells = Array.from({ length: days }, (_, i) => {
+    const d = new Date(first.getFullYear(), first.getMonth(), i + 1);
+    const on = fmtDate(d) === fmtDate(state.date);
+    return `<button type="button" data-day="${i + 1}"${on ? ' class="is-selected"' : ""}>${i + 1}</button>`;
+  }).join("");
+  $("#nb-cal-grid").innerHTML = head + blanks + cells;
+}
+
 /* ---------- 2-1-3 選擇預約單位 ---------- */
 async function openUnitPicker(returnTo = "#new-drawer") {
   state.unitReturnTo = returnTo;
@@ -686,7 +733,22 @@ async function openUnitPicker(returnTo = "#new-drawer") {
       </div>
     </div>`).join("");
   renderUnitCount();
+  applySlotAvailability();
   swapNewPanel("#nb-units");
+}
+
+/* 定稿 2-1-3 的兩個擋下狀態。原本這兩行只是 hidden 的文字樁——文字在、
+   但沒有任何程式碼會把它顯示出來，等於用假文字讓第 2 關過（走查 C 抓到）。 */
+function applySlotAvailability() {
+  const need = Number($("#nb-adults").textContent) + Number($("#nb-children").textContent);
+  const total = state.unitGroups.reduce((n, g) =>
+    n + g.units.reduce((m, u) => m + Number(u.cap.split("-")[1]), 0), 0);
+  const slotFull = state.newTime === "18:30";
+  const noneFit = need > total;
+  $("#nb-units-full").hidden = !slotFull;
+  $("#nb-units-none").hidden = slotFull || !noneFit;
+  $("#nb-units-ok").disabled = slotFull || noneFit;
+  $("#nb-unit-groups").hidden = slotFull;
 }
 
 /* 定稿的人數計算：預約人數 / 已選預約單位 / 尚不足，尚不足歸零前主鈕不可按。 */
@@ -726,7 +788,7 @@ function openDone() {
 }
 
 /* 這幾個面板與新增抽屜共用同一個 350 槽位，一次只開一個 */
-const NEW_PANELS = ["#new-drawer", "#nb-items", "#nb-units", "#nb-done"];
+const NEW_PANELS = ["#new-drawer", "#nb-items", "#nb-units", "#nb-done", "#nb-timepicker", "#nb-datepicker"];
 function swapNewPanel(sel) {
   NEW_PANELS.forEach((s) => { $(s).hidden = s !== sel; });
   /* 單位選擇是從修改抽屜叫出來時，要把修改抽屜先讓開（共用同一個槽位） */
@@ -816,10 +878,32 @@ function bindEvents() {
     $("#nb-email").closest(".nb-field-block").classList.toggle("has-error", bad);
     $("#nb-email-error").hidden = !bad;
   });
-  $("#nb-time").addEventListener("click", () => {
-    /* demo：點一次就選定一個時間，讓「請選擇時間」提示與主鈕狀態可驗證 */
-    $("#nb-time").textContent = "12 : 00";
+  $("#nb-time").addEventListener("click", openTimePicker);
+  $("#nb-date").addEventListener("click", openDatePicker);
+  $("#nb-timegrid").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-time]");
+    if (!b) return;
+    state.newTime = b.dataset.time;
+    $("#nb-time").textContent = state.newTime.replace(":", " : ");
+    swapNewPanel("#new-drawer");
     updateNewCta();
+  });
+  $("#nb-cal-grid").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-day]");
+    if (!b) return;
+    state.date = new Date(state.calMonth.getFullYear(), state.calMonth.getMonth(), Number(b.dataset.day));
+    $("#nb-date-value").textContent = fmtDate(state.date);
+    $("#nb-date-week").textContent = WEEK[state.date.getDay()];
+    swapNewPanel("#new-drawer");
+    updateNewCta();
+  });
+  $("#nb-cal-prev").addEventListener("click", () => {
+    state.calMonth = new Date(state.calMonth.getFullYear(), state.calMonth.getMonth() - 1, 1);
+    renderCalendar();
+  });
+  $("#nb-cal-next").addEventListener("click", () => {
+    state.calMonth = new Date(state.calMonth.getFullYear(), state.calMonth.getMonth() + 1, 1);
+    renderCalendar();
   });
   $$("[data-nb-step]").forEach((b) => b.addEventListener("click", () => {
     const el = $(b.dataset.nbStep === "adults" ? "#nb-adults" : "#nb-children");

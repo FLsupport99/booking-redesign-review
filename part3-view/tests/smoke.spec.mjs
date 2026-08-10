@@ -485,3 +485,55 @@ test("修改抽屜的「變更」能開出單位選擇，選完回到修改抽�
   await expect(page.locator(C.EDIT_GATE.drawer)).toBeVisible();
   await expect(page.locator("#f-unit-list")).not.toBeEmpty();
 });
+
+
+/* ---------- 走查 C 抓到的：文案樁與假選擇器 ---------- */
+
+test("時間選擇器是真的：列出所有時段，選了才寫回抽屜", async ({ page }) => {
+  await page.goto("/sections/timeline-new.html");
+  await ready(page);
+  await expect(page.locator(C.NEW_BOOKING.time)).toHaveText("-- : --");
+
+  /* 原本點一下就把文字寫死成 12:00，沒有選擇器 */
+  await page.click(C.NEW_BOOKING.time);
+  await expect(page.locator(C.NEW_BOOKING.timePicker)).toBeVisible();
+  await expect(page.locator("#nb-timegrid button")).toHaveCount(30);
+
+  await page.locator("#nb-timegrid button", { hasText: "13:00" }).first().click();
+  await expect(page.locator(C.NEW_BOOKING.timePicker)).toBeHidden();
+  await expect(page.locator(C.NEW_BOOKING.time)).toHaveText("13 : 00");
+});
+
+test("日期選擇器是真的：月曆可翻月、可選日", async ({ page }) => {
+  await page.goto("/sections/timeline-new.html");
+  await ready(page);
+  await page.click("#nb-date");
+  await expect(page.locator(C.NEW_BOOKING.datePicker)).toBeVisible();
+
+  const title = await page.locator("#nb-cal-title").textContent();
+  await page.click("#nb-cal-next");
+  expect(await page.locator("#nb-cal-title").textContent()).not.toBe(title);
+
+  await page.click("#nb-cal-prev");
+  await page.locator("#nb-cal-grid button").nth(9).click();
+  await expect(page.locator(C.NEW_BOOKING.datePicker)).toBeHidden();
+});
+
+test("時段已滿：提示會真的出現，且擋住「確定」", async ({ page }) => {
+  await page.goto("/sections/timeline-new-full.html");
+  await ready(page);
+  /* 這兩行原本只是永遠 hidden 的文字樁，沒有任何程式碼會顯示它們 */
+  await expect(page.locator(C.NEW_BOOKING.unitsFull)).toBeVisible();
+  await expect(page.locator(C.NEW_BOOKING.unitsOk)).toBeDisabled();
+  await expect(page.locator("#nb-unit-groups")).toBeHidden();
+});
+
+test("非滿位時段不會誤報時段已滿", async ({ page }) => {
+  await page.goto("/sections/timeline-new.html");
+  await ready(page);
+  await page.click(C.NEW_BOOKING.time);
+  await page.locator("#nb-timegrid button", { hasText: "13:00" }).first().click();
+  await page.click("#nb-pick-unit");
+  await expect(page.locator(C.NEW_BOOKING.unitsFull)).toBeHidden();
+  await expect(page.locator(C.NEW_BOOKING.unitsOk)).toBeEnabled();
+});

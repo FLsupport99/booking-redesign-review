@@ -5,6 +5,9 @@ import json, re, sys, collections
 SRC = sys.argv[1]
 OUT = "manifest_p3.json"
 FILE_KEY = "XphLPcM7qUdcVO6EwjYJy9"
+# 尺寸門檻：原本 200×200 會把 Picker 的 Hover/Pressed（112×292）與
+# 「預約項目選單_收合」（318×126）這類窄或矮的狀態圖濾掉，導致稽核靜默漏掃。
+MIN_W, MIN_H = 100, 100
 
 txt = "".join(x["text"] for x in json.load(open(SRC)))
 NODE = re.compile(r'^(\s*)<(\w+) id="([^"]+)" name="([^"]+)" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"')
@@ -23,10 +26,10 @@ for ln in txt.split("\n"):
             sections.append(cur)
         else:
             cur = None
-            if kind == "frame" and w >= 200 and h >= 200:
+            if kind == "frame" and w >= MIN_W and h >= MIN_H:
                 loose.append([nid, name, w, h])
     elif ind == 4 and cur is not None:
-        if kind in ("frame", "instance", "component") and w >= 200 and h >= 200:
+        if kind in ("frame", "instance", "component") and w >= MIN_W and h >= MIN_H:
             cur["fr"].append([nid, name, x, y, w, h])
 
 # group by the leading "N-" of the section name; 說明 frames go to their own group
