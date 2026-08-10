@@ -361,3 +361,52 @@ test("桌機版不出現手機專屬節點", async ({ page }) => {
   await expect(page.locator(".m-bottom")).toBeHidden();
   await expect(page.locator(`${C.LIST.tab}:visible`)).toHaveCount(8);
 });
+
+
+/* ---------- 新增預約抽屜（2-1-1） ---------- */
+
+test("⭐ 新增抽屜未按「＋預約」前不存在，按了才出現", async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
+  await expect(page.locator(C.NEW_BOOKING.drawer)).toBeHidden();
+
+  await page.click(C.NEW_BOOKING.open);
+  await expect(page.locator(C.NEW_BOOKING.drawer)).toBeVisible();
+
+  await page.click(C.NEW_BOOKING.close);
+  await expect(page.locator(C.NEW_BOOKING.drawer)).toBeHidden();
+});
+
+test("新增與修改兩個抽屜共用同一個槽位，不會同時開", async ({ page }) => {
+  await page.goto("/sections/timeline-modify.html");
+  await ready(page);
+  await expect(page.locator(C.EDIT_GATE.drawer)).toBeVisible();
+
+  await page.click(C.NEW_BOOKING.open);
+  await expect(page.locator(C.NEW_BOOKING.drawer)).toBeVisible();
+  await expect(page.locator(C.EDIT_GATE.drawer)).toBeHidden();
+});
+
+test("未選時間時主鈕不可按，並顯示「請選擇時間」", async ({ page }) => {
+  await page.goto("/sections/timeline-new.html");
+  await ready(page);
+  await expect(page.locator(C.NEW_BOOKING.drawer)).toBeVisible();
+  await expect(page.locator(C.NEW_BOOKING.time)).toHaveText("-- : --");
+  await expect(page.locator(C.NEW_BOOKING.timeHint)).toBeVisible();
+  await expect(page.locator(C.NEW_BOOKING.submit)).toBeDisabled();
+});
+
+test("選了時間並填手機後主鈕可按", async ({ page }) => {
+  await page.goto("/sections/timeline-new-filled.html");
+  await ready(page);
+  await expect(page.locator(C.NEW_BOOKING.timeHint)).toBeHidden();
+  await expect(page.locator(C.NEW_BOOKING.submit)).toBeEnabled();
+});
+
+test("勾選現場顧客後，顧客資訊整塊收起", async ({ page }) => {
+  await page.goto("/sections/timeline-new.html");
+  await ready(page);
+  await expect(page.locator(C.NEW_BOOKING.customer)).toBeVisible();
+  await page.check(C.NEW_BOOKING.walkin);
+  await expect(page.locator(C.NEW_BOOKING.customer)).toBeHidden();
+});
