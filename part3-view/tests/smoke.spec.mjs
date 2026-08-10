@@ -410,3 +410,46 @@ test("勾選現場顧客後，顧客資訊整塊收起", async ({ page }) => {
   await page.check(C.NEW_BOOKING.walkin);
   await expect(page.locator(C.NEW_BOOKING.customer)).toBeHidden();
 });
+
+
+/* ---------- 預約模式對新增抽屜結構的影響（2-2-x／2-3-x／2-4-x） ----------
+   實測定稿四種模式的抽屜文字集合差異得出：
+   basic 沒有預約項目、capacity 連預約單位也沒有、只有 hier 的時間提示是「請選擇時間」。
+   這類差異文案稽核抓不到（「選擇時間」是「請選擇時間」的子字串），只能靠斷言。 */
+
+for (const m of C.BOOKING_MODES) {
+  test(`預約模式 ${m.key}：項目${m.item ? "有" : "無"}／單位${m.unit ? "有" : "無"}／提示「${m.hint}」`,
+    async ({ page }) => {
+      await page.goto(url(TL.file) + `?bmode=${m.key}`);
+      await ready(page);
+      await page.click(C.NEW_BOOKING.open);
+      await expect(page.locator(C.NEW_BOOKING.drawer)).toBeVisible();
+
+      await (m.item
+        ? expect(page.locator(C.NEW_BOOKING.item)).toBeVisible()
+        : expect(page.locator(C.NEW_BOOKING.item)).toBeHidden());
+      await (m.unit
+        ? expect(page.locator(C.NEW_BOOKING.unitPanel)).toBeVisible()
+        : expect(page.locator(C.NEW_BOOKING.unitPanel)).toBeHidden());
+      await expect(page.locator(C.NEW_BOOKING.timeHint)).toHaveText(m.hint);
+    });
+}
+
+test("服務項目模式的項目選單只有一層，沒有子項目", async ({ page }) => {
+  await page.goto(url(TL.file) + "?bmode=service");
+  await ready(page);
+  await page.click(C.NEW_BOOKING.open);
+  await page.click(C.NEW_BOOKING.item);
+  await expect(page.locator("#nb-items")).toBeVisible();
+  /* 單層：每個 group 只有一個可選按鈕，且沒有群組標題 */
+  await expect(page.locator("#nb-item-list .nb-item-group > p")).toHaveCount(0);
+});
+
+test("階層模式的項目選單有群組標題與子項目", async ({ page }) => {
+  await page.goto(url(TL.file) + "?bmode=hier");
+  await ready(page);
+  await page.click(C.NEW_BOOKING.open);
+  await page.click(C.NEW_BOOKING.item);
+  await expect(page.locator("#nb-item-list .nb-item-group > p")).not.toHaveCount(0);
+  await expect(page.locator("#nb-item-list .nb-item-sub")).not.toHaveCount(0);
+});
