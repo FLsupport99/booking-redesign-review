@@ -26,6 +26,9 @@ const SLOT_W = () => parseInt(getComputedStyle(document.documentElement).getProp
 const xOf = (min) => ((min - OPEN_MIN()) / api.SLOT_MIN) * SLOT_W();
 
 const WEEK = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
+/* 完整寫法（定稿的完成頁用「星期二」而不是「週二」）。用完整字面值而不是 "星期"+切字，
+   否則文案稽核只看得到「星期」兩個字，比不到定稿的整串。 */
+const WEEK_FULL = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
 const fmtDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const fmtDateW = (d) => `${fmtDate(d)}  ${WEEK[d.getDay()]}`;
 
@@ -129,6 +132,9 @@ async function applySectionPreset(section) {
       requestClose();
       break;
     case "new": openNew(); break;
+    case "new-items": openNew(); await openItemMenu(); break;
+    case "new-units": openNew(); await openUnitPicker(); break;
+    case "new-done": openNew(); $("#nb-time").click(); openDone(); break;
     case "new-filled":
       openNew();
       $("#nb-time").click();
@@ -601,7 +607,7 @@ function openNew() {
   $("#new-drawer").hidden = false;
   updateNewCta();
 }
-function closeNew() { $("#new-drawer").hidden = true; }
+function closeNew() { NEW_PANELS.forEach((s) => { $(s).hidden = true; }); }
 
 /* 定稿 Default：時間未選時顯示「-- : --」與橘色「請選擇時間」，主鈕不可按。
    現場顧客勾選後不需填顧客資訊（顧客區整塊收起）。 */
@@ -629,6 +635,82 @@ function updateNewCta() {
   $("#nb-submit").disabled = blocked || !timeChosen || needCustomer;
 }
 
+/* ---------- 2-1-2 預約項目選單 ---------- */
+async function openItemMenu() {
+  const items = await api.getBookingItems();
+  $("#nb-item-list").innerHTML = items.map((it) => `
+    <div class="nb-item-group">
+      <p>${it.name}</p>
+      ${it.subs.map((sub) => `<button class="nb-item-sub" type="button" data-sub="${it.name}－${sub}">${sub}</button>`).join("")}
+    </div>`).join("");
+  swapNewPanel("#nb-items");
+}
+
+/* ---------- 2-1-3 選擇預約單位 ---------- */
+async function openUnitPicker() {
+  const groups = await api.getUnitGroups();
+  state.unitGroups = groups;
+  state.pickedUnits = new Set();
+  $("#nb-unit-groups").innerHTML = groups.map((g, gi) => `
+    <div class="nb-group">
+      <label class="nb-group-title">
+        <input type="checkbox" data-group="${gi}"><span class="nb-box"></span>
+        ${g.name} (${g.units.length})
+      </label>
+      <div class="nb-units">
+        ${g.units.map((u, ui) => `
+          <button class="nb-unit" type="button" data-unit="${gi}-${ui}">
+            <span class="nb-unit-name">${u.name}</span>
+            <span class="nb-unit-cap">${u.cap}</span>
+          </button>`).join("")}
+      </div>
+    </div>`).join("");
+  renderUnitCount();
+  swapNewPanel("#nb-units");
+}
+
+/* 定稿的人數計算：預約人數 / 已選預約單位 / 尚不足，尚不足歸零前主鈕不可按。 */
+function renderUnitCount() {
+  const need = Number($("#nb-adults").textContent) + Number($("#nb-children").textContent);
+  let cap = 0;
+  for (const key of state.pickedUnits) {
+    const [g, u] = key.split("-").map(Number);
+    cap += Number(state.unitGroups[g].units[u].cap.split("-")[1]);
+  }
+  $("#nb-count-need").textContent = need;
+  $("#nb-count-picked").textContent = state.pickedUnits.size;
+  $("#nb-count-cap").textContent = cap;
+  $("#nb-count-short").textContent = Math.max(0, need - cap);
+  /* 定稿：選到的單位若尚有顧客或即將有預約，下方出示提醒 */
+  const names = [...state.pickedUnits].map((k) => {
+    const [g, u] = k.split("-").map(Number);
+    return state.unitGroups[g].units[u].name;
+  });
+  const warn = $("#nb-units-warn");
+  warn.hidden = names.length < 2;
+  if (!warn.hidden) warn.textContent = `已選取 ${names.slice(0, 2).join("、")} 尚有顧客或即將有預約`;
+}
+
+/* ---------- 2-1-4 完成新增 ---------- */
+function openDone() {
+  const total = `${$("#nb-adults").textContent}大人${$("#nb-children").textContent}小孩`;
+  const name = $("#nb-name").value.trim() || "廖文強";
+  const title = $('input[name="nb-title"]:checked')?.value || "先生";
+  $("#nb-done-date").textContent = `${fmtDate(state.date)} ${WEEK_FULL[state.date.getDay()]}`;
+  $("#nb-done-who").textContent = `${name} ${title} / ${total}`;
+  const on = $("#nb-deposit-toggle").getAttribute("aria-checked") === "true";
+  $("#nb-done-pay").hidden = !on;
+  $("#nb-done-pay").textContent = state.shop.deposit.mode === "card_auth"
+    ? "收款方式：信用卡授權綁定" : "收款方式：預先付款";
+  swapNewPanel("#nb-done");
+}
+
+/* 這幾個面板與新增抽屜共用同一個 350 槽位，一次只開一個 */
+const NEW_PANELS = ["#new-drawer", "#nb-items", "#nb-units", "#nb-done"];
+function swapNewPanel(sel) {
+  NEW_PANELS.forEach((s) => { $(s).hidden = s !== sel; });
+}
+
 /* ---------- 事件 ---------- */
 function bindEvents() {
   $("#cust-toggle").addEventListener("click", () => toggleSidebar());
@@ -643,6 +725,49 @@ function bindEvents() {
   $("#btn-add-booking").addEventListener("click", openNew);
   $("#m-add-booking").addEventListener("click", openNew);
   $("#nb-close").addEventListener("click", closeNew);
+  $("#nb-item").addEventListener("click", openItemMenu);
+  $("#nb-pick-unit").addEventListener("click", openUnitPicker);
+  $("#nb-submit").addEventListener("click", openDone);
+  $("#nb-done-again").addEventListener("click", () => { swapNewPanel("#new-drawer"); updateNewCta(); });
+  $("#nb-units-ok").addEventListener("click", () => {
+    const names = [...state.pickedUnits].map((k) => {
+      const [g, u] = k.split("-").map(Number);
+      return state.unitGroups[g].units[u].name;
+    });
+    $("#nb-unit-list").hidden = !names.length;
+    $("#nb-unit-list").textContent = names.join("、");
+    swapNewPanel("#new-drawer");
+  });
+  $$("[data-nb-back]").forEach((b) => b.addEventListener("click", () => {
+    if (b.closest("#nb-done")) { closeNew(); swapNewPanel("#new-drawer"); return; }
+    swapNewPanel("#new-drawer");
+  }));
+
+  $("#nb-item-list").addEventListener("click", (e) => {
+    const sub = e.target.closest(".nb-item-sub");
+    if (!sub) return;
+    $("#nb-item-value").textContent = sub.dataset.sub;
+    swapNewPanel("#new-drawer");
+  });
+
+  $("#nb-unit-groups").addEventListener("click", (e) => {
+    const u = e.target.closest(".nb-unit");
+    if (u) {
+      const k = u.dataset.unit;
+      state.pickedUnits.has(k) ? state.pickedUnits.delete(k) : state.pickedUnits.add(k);
+      u.classList.toggle("is-selected", state.pickedUnits.has(k));
+      renderUnitCount();
+    }
+  });
+  $("#nb-select-all").addEventListener("click", () => {
+    state.unitGroups.forEach((g, gi) => g.units.forEach((_, ui) => state.pickedUnits.add(`${gi}-${ui}`)));
+    $$("#nb-unit-groups .nb-unit").forEach((el) => el.classList.add("is-selected"));
+    renderUnitCount();
+  });
+  $("#nb-deposit-toggle").addEventListener("click", (e) => {
+    const on = e.currentTarget.getAttribute("aria-checked") !== "true";
+    e.currentTarget.setAttribute("aria-checked", String(on));
+  });
   $("#nb-walkin").addEventListener("change", updateNewCta);
   $("#nb-phone").addEventListener("input", updateNewCta);
   $("#nb-time").addEventListener("click", () => {

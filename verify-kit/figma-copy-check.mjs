@@ -28,8 +28,8 @@ const token = readFileSync(resolve(homedir(), "FL-Agent/FL-Salesapp/.env"), "utf
 
 /* 實作端的文案來源。比對邏輯在 match.mjs（有 match.test.mjs 當回歸測試，
    任何放寬都會讓那份的「必須被抓到」那組先紅）。 */
-const raw = SOURCE_FILES.map((f) => readFileSync(resolve(ROOT, f), "utf8")).join("\n");
-const implHas = createMatcher(raw);
+const sources = SOURCE_FILES.map((f) => ({ path: f, text: readFileSync(resolve(ROOT, f), "utf8") }));
+const implHas = createMatcher(sources);
 
 const norm = (s) => s.replace(/\s+/g, " ").trim();
 const nodeId = (n) => String(n.id).replace(/-/g, ":");
