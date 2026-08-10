@@ -511,17 +511,21 @@ test("時間選擇器是雙欄滾輪，且要按 OK 才寫回", async ({ page })
   await expect(page.locator(C.NEW_BOOKING.time)).toHaveText("13 : 30");
 });
 
-test("服務時長選擇器有接上（原本是死樁）", async ({ page }) => {
+test("服務時長選擇器有接上，且與預約時間是同一組數值", async ({ page }) => {
   await page.goto("/sections/timeline-new.html");
   await ready(page);
   await expect(page.locator("#nb-duration-value")).toHaveText("請選擇服務時間長度");
 
   await page.click("#nb-duration");
   await expect(page.locator(C.NEW_BOOKING.timePicker)).toBeVisible();
+  /* 定稿：分同樣每 5 分（原本實作成每 15 分），預設 0:00（原本是 2:00） */
+  await expect(page.locator("#nb-wheel-m button")).toHaveCount(12);
+  await expect(page.locator("#nb-wheel-h .is-selected")).toHaveText("00");
+
   await page.locator("#nb-wheel-h button", { hasText: /^02$/ }).click();
-  await page.locator("#nb-wheel-m button", { hasText: /^30$/ }).click();
+  await page.locator("#nb-wheel-m button", { hasText: /^35$/ }).click();
   await page.click("#nb-wheel-ok");
-  await expect(page.locator("#nb-duration-value")).toHaveText("2小時30分");
+  await expect(page.locator("#nb-duration-value")).toHaveText("2小時35分");
 });
 
 test("預約項目選單預設收合，點父層才展開", async ({ page }) => {
@@ -618,13 +622,15 @@ test("空間圖時間軸列可橫向捲動，箭頭真的會翻頁", async ({ pa
   const scrollable = await track.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
   expect(scrollable).toBe(true);
 
-  const before = await track.evaluate((el) => el.scrollLeft);
+  /* 先歸零再驗——初始位置會把「現在」捲到中間，跑測試的時間點不同會落在不同位置，
+     若剛好靠近尾端就沒有右側空間可翻。這條測試不該依賴當下時間。 */
+  await track.evaluate((el) => { el.style.scrollBehavior = "auto"; el.scrollLeft = 0; });
   await page.click(C.TIMEBAR.next);
-  await expect.poll(() => track.evaluate((el) => el.scrollLeft)).toBeGreaterThan(before);
+  await expect.poll(() => track.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
 
+  const mid = await track.evaluate((el) => el.scrollLeft);
   await page.click(C.TIMEBAR.prev);
-  await expect.poll(() => track.evaluate((el) => el.scrollLeft)).toBeLessThan(
-    await track.evaluate((el) => el.scrollWidth));
+  await expect.poll(() => track.evaluate((el) => el.scrollLeft)).toBeLessThan(mid);
 });
 
 test("「現在」那一格會被捲進視野，不會停在視窗外", async ({ page }) => {
@@ -759,4 +765,36 @@ test("長字串下空間圖桌位卡的名稱會截斷", async ({ page }) => {
     .catch(() => true);
   expect(typeof overflowed).toBe("boolean");
   await noPageOverflow(page);
+});
+
+
+/* ---------- 互動回饋 ---------- */
+
+test("月曆格用定稿的 Complementary/Hover，不是通用灰", async ({ page }) => {
+  await page.goto("/sections/timeline-new.html");
+  await ready(page);
+  await page.click("#nb-date");
+  const cell = page.locator("#nb-cal-grid button").nth(9);
+  await cell.hover();
+  /* 時間輪與月曆格是同一 Picker 元件族，兩者的 hover 應該一致 */
+  const bg = await cell.evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(bg).toBe("rgba(236, 248, 243, 0.25)");
+});
+
+test("可點元素都有按壓回饋（沒有一顆是按了沒反應的）", async ({ page }) => {
+  await page.goto(url(TL.file));
+  await ready(page);
+  const missing = await page.evaluate(() => {
+    const sels = [".date-arrow", ".ic-btn", ".btn-pill", ".viewtab", ".ttab", ".btn-primary"];
+    return sels.filter((s) => {
+      const el = document.querySelector(s);
+      if (!el) return false;
+      /* 有沒有任何一條 :active 規則涵蓋它 */
+      return ![...document.styleSheets].flatMap((ss) => {
+        try { return [...ss.cssRules]; } catch { return []; }
+      }).some((r) => r.selectorText?.includes(":active") && r.selectorText.split(",")
+        .some((p) => { try { return el.matches(p.trim().replace(":active", "")); } catch { return false; } }));
+    });
+  });
+  expect(missing).toEqual([]);
 });
