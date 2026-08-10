@@ -6,6 +6,12 @@ export const TITLE_PREFIX = "預約管理";
 /* 本專案的「MODES」是三個視圖。每個視圖有自己的狀態清單（不是 customer-booking 那種共用矩陣）。 */
 export const MODES = [
   {
+    key: "list",
+    file: "3-清單.html",
+    label: "③ 清單",
+    sections: [{ id: "modify", name: "清單_修改預約" }],
+  },
+  {
     key: "space",
     file: "2-空間圖.html",
     label: "② 空間圖",
@@ -28,7 +34,7 @@ export const MODES = [
 
 /* ---------- 第 3 關：行為斷言 ---------- */
 
-export const ALL_VIEWS = ["view-timeline", "view-space"];
+export const ALL_VIEWS = ["view-timeline", "view-space", "view-list"];
 
 /* ⭐ 顯示時機：3-1-2 的 base state 就是一般時間軸，修改抽屜要點編輯才出現。
    （定稿 3-1-2_Start 在該列 x=100 最左＝初始狀態，與 3-1-1 時間軸同畫面。） */
@@ -53,6 +59,17 @@ export const UNSAVED = {
 export const TOAST = "#toast";
 export const POPOVER = "#booking-popover";
 export const NOW_LINE = "#now-line";
+
+/* 清單（3-3-1／3-3-2） */
+export const LIST = {
+  view: "#view-list",
+  tabs: "#list-tabs",
+  tab: ".ltab",
+  body: "#list-body",
+  row: ".lrow",
+  slotHead: ".slot-head",
+  edit: ".lm-edit",
+};
 
 /* 空間圖（3-2） */
 export const SPACE = {
@@ -85,6 +102,15 @@ export const figma = {
       id: "506:90182", name: "3-2 空間圖",
       frames: ["500:50579", "500:51442"],
     },
+    {
+      id: "506:90183", name: "3-3-1 清單",
+      frames: ["472:56764", "496:43355", "506:53956", "506:54444",
+               "506:54932", "506:55420", "506:55908", "506:56396"],
+    },
+    {
+      id: "526:94768", name: "3-3-2 清單_修改預約",
+      frames: ["526:65145", "526:71171", "526:92447"],
+    },
   ],
 
   SOURCE_FILES: ["src/template.html", "js/app.js", "js/api.js"],
@@ -103,7 +129,7 @@ export const figma = {
     /^[\d\s:/年月日()~－–—.-]+$/,                 // 純數字／時間／日期
     /^NT\$/, /^\$/,
     /lorem ipsum/i,
-    /^[A-Za-z@._-]+$/,                            // email／英數 id
+    /^[A-Za-z0-9@._-]+$/,                         // email／英數 id（含帶數字的假信箱）
     /^(鄂瑜|蔡|暮|吳恩氣|熊|陳樂|孫小美|河智昊|鹿|廖文強|楊|邱|程樂樂)$/,  // 假顧客名
     /^Allison Ekstrom Bothman$/,                   // 假顧客名（長名字換行示意）
     /^[FOB]\d?$/, /^[FOB] 區$/, /^群組[A-Z]$/, /^桌次\d/, /^Unit \d/,     // 桌次／組別假資料
@@ -118,6 +144,13 @@ export const figma = {
      卡片樣式」那張規格板內，所以 frame 白名單擋不掉。
      ✅ 2026-08-09 Ian 確認：就是註記，不需處理，實作照定稿現況即可。 */
   ACCEPTED: {
+    /* ⬇ 這兩條是**稽核工具的限制**，不是實作缺漏：定稿是單一 text node，
+       實作是由多個欄位組合出來的（`${item}/${subItem}`、`${source} ｜ 最後更新: …`）。
+       骨架比對會把 ${...} 連同前綴一起當動態值刪掉，所以配不上。
+       組成的各部分本身都有被稽核到（item、subItem、「最後更新:」等字串都在 SOURCE_FILES 裡）。 */
+    "預約項目的字數最多有十四個字/子項目名稱": "由 item + subItem 組合；兩段各自都有被稽核到",
+    "線上｜最後更新: 2019-06-21 12:18 ｜": "由 source + updatedAt 組合；「線上」與「最後更新:」各自都在",
+
     "預約狀態卡片樣式": "規格板的標題，不是畫面上的字",
     "字太多": "設計註記（待設計確認）",
     "把「秒」拿掉": "設計註記（待設計確認）——實作已不顯示秒",

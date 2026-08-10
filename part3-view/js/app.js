@@ -71,15 +71,23 @@ function statusActions(b) {
   /* 三個視圖共用同一份 template，靠 window.MODE 決定顯示哪一個 */
   $("#view-timeline").hidden = MODE !== "timeline";
   $("#view-space").hidden = MODE !== "space";
+  $("#view-list").hidden = MODE !== "list";
+  /* 定稿的清單視圖沒有右側顧客清單，工具列也只有一顆「＋預約」 */
+  $("#cust-panel").hidden = MODE === "list";
+  $("#btn-add-wait").hidden = MODE === "list";
   $$(".viewtab").forEach((t) => {
     const on = (MODE === "space" && t.textContent === "空間圖")
+      || (MODE === "list" && t.textContent === "清單")
       || (MODE === "timeline" && t.textContent === "時間軸");
     t.classList.toggle("is-active", on);
     t.setAttribute("aria-selected", String(on));
   });
 
   renderHeader();
-  if (MODE === "space") {
+  if (MODE === "list") {
+    await renderListTabs();
+    await renderList();
+  } else if (MODE === "space") {
     state.floors = await api.getFloors();
     renderTimebar();
     renderFloorTabs();
@@ -90,11 +98,14 @@ function statusActions(b) {
     renderLanes();
     renderNowLine();
   }
-  renderStatusTabs();
-  renderCustList();
+  if (MODE !== "list") { renderStatusTabs(); renderCustList(); }
   bindEvents();
 
   if (window.SECTION) await applySectionPreset(window.SECTION);
+
+  /* 就緒訊號：init 是 async，測試若在 bindEvents() 之前就點會什麼都不會發生。
+     有這個標記才能穩定地等到「畫面畫好且事件綁好」。 */
+  document.body.dataset.ready = "1";
 })();
 
 /* ---------- 段落快轉（sections/*.html 用 window.SECTION 指定） ---------- */
@@ -185,6 +196,122 @@ function renderLanes() {
       ${b.flag ? `<span class="b-badge is-${b.flag}">!</span>` : ""}`;
     $("#lanes").appendChild(el);
   }
+}
+
+/* ---------- 清單（3-3-1／3-3-2） ---------- */
+
+function listTabsHtml(counts) {
+  /* 定稿在第 6 與第 7 個之間有一條分隔線：前六個是進行中，後兩個是終止狀態 */
+  return counts.map((s, i) => `
+    ${i === 6 ? '<span class="ltab-sep" aria-hidden="true"></span>' : ""}
+    <button class="ltab${i === 0 ? " is-active" : ""}" type="button" role="tab"
+            aria-selected="${i === 0}" data-status="${s.key}">${s.label} ${s.count}</button>`).join("");
+}
+
+async function renderListTabs() {
+  const counts = await api.getStatusCounts(fmtDate(state.date));
+  $("#list-tabs").innerHTML = listTabsHtml(counts);
+}
+
+function listRowHtml(b) {
+  const dur = `${Math.floor(b.mins / 60)}小時${b.mins % 60}分`;
+  return `
+  <article class="lrow" data-id="${b.id}">
+    <div class="lrow-main">
+      <div class="lrow-info">
+        <div class="lrow-basic">
+          <div class="lc-time">
+            <span class="lc-time-row">
+              <span class="lc-hhmm">${b.start}</span>
+              <span class="lc-forward" aria-hidden="true">
+                <img style="inset:8.33%" src="${A()}assets/ls-forward-ring.svg" alt="">
+                <img style="inset:15% 20.1% 19.16% 20.63%" src="${A()}assets/ls-forward.svg" alt="">
+              </span>
+            </span>
+            <span class="lc-dur">${dur}</span>
+          </div>
+
+          <div class="lc-cust">
+            <div>
+              <div class="lc-name-row">
+                <span class="lc-name">${b.name}</span><span class="lc-gender">${b.title}</span>
+              </div>
+              <p class="lc-phone">${b.phone}</p>
+            </div>
+            <p class="lc-email">${b.email}</p>
+            <div class="lc-tags">
+              <span class="lc-tag">有效預約 5</span>
+              ${b.savedCustomer ? "" : `<button class="btn-save-cust" type="button">＋ 儲存顧客</button>`}
+            </div>
+            ${stampRow(b)}
+          </div>
+
+          <div class="lc-party">
+            <span class="lc-party-item"><span class="lc-num">${b.adults}</span><span class="lc-unit-label">大人</span></span>
+            <span class="lc-party-item"><span class="lc-num">${b.children}</span><span class="lc-unit-label">小孩</span></span>
+          </div>
+
+          <div class="lc-item">
+            <p class="lc-item-name">${b.item}/${b.subItem}</p>
+            <div class="lc-units">${b.units.map((u) => `<span class="lc-unit">${u}</span>`).join("")}</div>
+          </div>
+        </div>
+
+        <div class="lc-remark">
+          <div class="lc-choices">${b.surveyChoices.map((t) => `<span class="lc-choice">${t}</span>`).join("")}</div>
+          <p class="lc-answer">${b.question}</p>
+          <p class="lc-note lc-note-cust">${b.custNote}</p>
+          <p class="lc-note lc-note-shop">${b.shopNote}</p>
+        </div>
+      </div>
+
+      <div class="lrow-btns">
+        ${statusActions(b).map(([label, cls]) =>
+          `<button class="btn-round-md ${cls === "act-arrive" ? "btn-arrive" : "btn-seat"}" type="button">${label}</button>`).join("")}
+      </div>
+    </div>
+
+    <div class="lrow-meta">
+      <div class="lrow-meta-l">
+        <p class="lm-sync${b.posSync ? "" : " is-off"}">
+          ${b.posSync ? "與肚肚同步" : "未與肚肚同步"}: ${b.posSyncAt}
+          <img src="${A()}assets/ls-synced.svg" alt=""></p>
+        <p class="lm-record">${b.source} ｜ 最後更新: ${b.updatedAt} ｜ 建立: ${b.createdAt} ｜ 預約代碼: ${b.code}</p>
+      </div>
+      <div class="lrow-meta-r">
+        <button class="lm-edit" type="button" aria-label="修改預約">
+          <img src="${A()}assets/ls-edit.svg" alt=""></button>
+        <button class="lm-status" type="button">
+          ${statusLabel(b.status)}<img src="${A()}assets/ls-triangle.svg" alt=""></button>
+      </div>
+    </div>
+  </article>`;
+}
+
+/* 定稿：已到店卡片多一行「到店時間」，已入座多一行「入座時間」 */
+function stampRow(b) {
+  if (b.status === "arrived") return `<p class="lc-stamp">到店時間 ${b.stamps.arrived}</p>`;
+  if (b.status === "seated") return `<p class="lc-stamp">入座時間 ${b.stamps.seated}</p>`;
+  return "";
+}
+
+function slotHtml(s) {
+  return `
+    <div class="slot-head">
+      <span class="sh-time">${s.time}</span>
+      <span class="sh-sep" aria-hidden="true"></span>
+      <span>組數：${s.groups}</span>
+      <span>人數：${s.people}</span>
+    </div>
+    ${s.bookings.map(listRowHtml).join("")}`;
+}
+
+async function renderList() {
+  const groups = await api.getListGroups();
+  $("#list-body").innerHTML = groups.map((g, i) => `
+    ${i ? '<hr class="slot-divider">' : ""}
+    ${g.date ? `<div class="date-head"><span>${g.date}</span><span>${g.weekday}</span></div>` : ""}
+    ${g.slots.map(slotHtml).join("")}`).join("");
 }
 
 /* ---------- 空間圖（3-2） ----------
@@ -447,6 +574,22 @@ function toggleSidebar(collapsed) {
 function bindEvents() {
   $("#cust-toggle").addEventListener("click", () => toggleSidebar());
 
+  if (MODE === "list") {
+    $("#list-tabs").addEventListener("click", (e) => {
+      const tab = e.target.closest(".ltab");
+      if (!tab) return;
+      $$("#list-tabs .ltab").forEach((t) => {
+        const on = t === tab;
+        t.classList.toggle("is-active", on);
+        t.setAttribute("aria-selected", String(on));
+      });
+    });
+    $("#list-body").addEventListener("click", (e) => {
+      const edit = e.target.closest(".lm-edit");
+      if (edit) openEdit(edit.closest(".lrow").dataset.id);
+    });
+  }
+
   if (MODE === "space") {
     $("#floor-tabs").addEventListener("click", (e) => {
       const tab = e.target.closest(".floor-tab");
@@ -474,7 +617,7 @@ function bindEvents() {
     if (!e.target.closest(POPOVER_ANCHORS)) closePopover();
   });
 
-  $("#cust-list").addEventListener("click", (e) => {
+  $("#cust-list")?.addEventListener("click", (e) => {
     const edit = e.target.closest(".btn-edit");
     if (edit) openEdit(edit.closest(".cust-card").dataset.id);
   });
@@ -483,7 +626,7 @@ function bindEvents() {
     if (edit) openEdit(edit.closest(".cust-card").dataset.id);
   });
 
-  $("#cust-statustabs").addEventListener("click", (e) => {
+  $("#cust-statustabs")?.addEventListener("click", (e) => {
     const tab = e.target.closest(".stab");
     if (!tab) return;
     $$("#cust-statustabs .stab").forEach((t) => t.classList.toggle("is-active", t === tab));

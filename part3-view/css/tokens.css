@@ -53,6 +53,7 @@
   --fs-subtitle: 16px; --lh-subtitle: 1.5; --ls-subtitle: .03em;
   --fs-btn-lg: 16px;  --lh-btn-lg: 1.25; --ls-btn-lg: 0;
   --fs-btn-md: 14px;  --lh-btn-md: 1.25; --ls-btn-md: .05em;
+  --fs-body: 14px;    --lh-body: 1.4;   --ls-body: .05em;   /* Body 14px R：清單的主要內文 */
   --fs-caption: 13px; --lh-caption: 1;   --ls-caption: .05em;
   --fs-small: 12px;   --lh-small: 1.3;   --ls-small: .05em;
   --fs-btn-sm: 10px;  --lh-btn-sm: 1;    --ls-btn-sm: 0;
@@ -70,6 +71,7 @@
   --timebar-h: 30px;    /* Bars / 時間軸 / 座位圖 */
   --hour-w: 40px;       /* 整點格 */
   --table-w: 88px;      /* Card / Table 外框 */
+  --list-w: 928px;      /* 清單 List 內容寬（960 − 左右 16） */
   --drawer-w: 350px;    /* 修改預約抽屜 */
 
   --r-btn: 4px;

@@ -37,8 +37,11 @@ const api = (() => {
        unitGroup: "群組A", units: ["桌次1", "桌次2"],
        tags: ["葷食", "商業午餐", "兒童椅x1"],
        question: "1. 問答題答案",
-       custNote: "顧客備註 Lorem ipsum dolor",
-       shopNote: "店家備註 Lorem ipsum dolor",
+       /* 定稿清單那張的備註示意內容 */
+       surveyChoices: ["葷食", "商業午餐", "兒童椅x1"],
+       custNote: "有抽菸，希望能安排在庭院的位置",
+       shopNote: "老闆朋友，特別招待甜品",
+       savedCustomer: true,
        source: "自建", createdAt: "2022-01-01 12:00", updatedAt: "2022-01-01 12:00",
        code: "47989", posSync: true, posSyncAt: "2022-12-31 18:00",
        /* 狀態時間軌跡（定稿「預約狀態卡片樣式」：到店／入座／完成／未到店／商家取消各有一行） */
@@ -62,6 +65,13 @@ const api = (() => {
     B("b12", "B1", "12:00", 120, "鄂瑜", "0922123123", 2, 0, "seated", "warn"),
     B("b13", "B2", "12:00", 120, "熊", "0978678567", 2, 0, "seated"),
   ];
+
+  /* 定稿清單的兩種變體：線上來源、尚未存成顧客、超長項目名 */
+  Object.assign(BOOKINGS[5], {
+    source: "線上", email: "support9999@findlife.com.tw",
+    item: "預約項目的字數最多有十四個字", subItem: "子項目名稱",
+  });
+  Object.assign(BOOKINGS[1], { savedCustomer: false });
 
   /* 空間圖：樓層與桌位。座標是定稿 Content 內的絕對位置（Group 57），
      卡片 88×88（方）／88×92（圓，多一截進度條）。 */
@@ -90,8 +100,30 @@ const api = (() => {
 
   const clone = (b) => JSON.parse(JSON.stringify(b));
 
+  const slot = (time, list) => ({
+    time,
+    groups: list.length,
+    people: list.reduce((n, b) => n + b.adults + b.children, 0),
+    bookings: list,
+  });
+
   return {
     OPEN, SLOT_MIN, SLOT_COUNT, STATUS,
+
+    /* 清單：依日期→時段分組。定稿每個時段有「組數 N｜人數 N」表頭，
+       跨日時多一列日期表頭。 */
+    async getListGroups(status = "confirmed") {
+      await delay(120);
+      const rows = BOOKINGS.filter((b) => status === "all" || true).map(clone);
+      const byTime = {};
+      rows.forEach((b) => { (byTime[b.start] ||= []).push(b); });
+      const times = Object.keys(byTime).sort();
+      return [
+        { date: null, slots: times.slice(0, 1).map((t) => slot(t, byTime[t])) },
+        { date: "2026-08-01", weekday: "週六", slots: times.slice(1, 4).map((t) => slot(t, byTime[t])) },
+        { date: "2026-08-01", weekday: "週六", slots: times.slice(4).map((t) => slot(t, byTime[t])) },
+      ].filter((g) => g.slots.length);
+    },
 
     async getFloors() {
       await delay(80);

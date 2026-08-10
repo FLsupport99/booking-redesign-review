@@ -5,10 +5,11 @@ import * as C from "../verify.config.mjs";
 
 const TL = C.MODES.find((m) => m.key === "timeline");
 const SP = C.MODES.find((m) => m.key === "space");
+const LS = C.MODES.find((m) => m.key === "list");
 const url = (p) => "/" + encodeURIComponent(p);
 
-/* 就緒訊號：mock api 把預約區塊畫出來為止 */
-const ready = (page) => expect(page.locator(".block")).not.toHaveCount(0);
+/* 就緒訊號：app.js 在 init 結尾（畫面畫好＋事件綁好）才設 body[data-ready] */
+const ready = (page) => expect(page.locator("body[data-ready='1']")).toHaveCount(1);
 
 async function expectNoBrokenImages(page) {
   await page.waitForLoadState("load");
@@ -245,4 +246,55 @@ test("時間軸的 popover 不該出現空間圖專屬動作", async ({ page }) 
   await ready(page);
   await expect(page.locator(C.POPOVER)).toBeVisible();
   await expect(page.locator("#btn-swap")).toHaveCount(0);
+});
+
+
+/* ---------- 清單（3-3-1／3-3-2） ---------- */
+
+test(`${LS.label}｜載入後停在清單，且沒有右側顧客清單`, async ({ page }) => {
+  await page.goto(url(LS.file));
+  await expect(page.locator(C.LIST.view)).toBeVisible();
+  await expect(page.locator(C.LIST.row)).not.toHaveCount(0);
+  /* 定稿的清單視圖沒有顧客清單側欄，工具列也只有一顆「＋預約」 */
+  await expect(page.locator("#cust-panel")).toBeHidden();
+  await expect(page.locator("#btn-add-wait")).toBeHidden();
+  await expectNoBrokenImages(page);
+});
+
+test("狀態分頁：8 個，第 6 與第 7 之間有分隔線", async ({ page }) => {
+  await page.goto(url(LS.file));
+  await expect(page.locator(`${C.LIST.tabs} ${C.LIST.tab}`)).toHaveCount(8);
+  await expect(page.locator(`${C.LIST.tabs} .ltab-sep`)).toHaveCount(1);
+  await expect(page.locator(`${C.LIST.tab}.is-active`)).toHaveCount(1);
+});
+
+test("切換狀態分頁只會有一個 active", async ({ page }) => {
+  await page.goto(url(LS.file));
+  await ready(page);
+  await page.locator(C.LIST.tab).nth(3).click();
+  await expect(page.locator(`${C.LIST.tab}.is-active`)).toHaveCount(1);
+  await expect(page.locator(C.LIST.tab).nth(3)).toHaveClass(/is-active/);
+});
+
+test("每個時段有「組數／人數」表頭", async ({ page }) => {
+  await page.goto(url(LS.file));
+  const head = page.locator(C.LIST.slotHead).first();
+  await expect(head).toContainText("組數");
+  await expect(head).toContainText("人數");
+});
+
+test("清單列整張完整顯示，備註與建立資訊沒被切掉", async ({ page }) => {
+  await page.goto(url(LS.file));
+  const row = page.locator(C.LIST.row).first();
+  await expect(row.locator(".lc-remark")).toBeVisible();
+  await expect(row.locator(".lm-record")).toBeVisible();
+  await expect(row.locator(".lm-status")).toBeVisible();
+});
+
+test("清單也能開修改抽屜（3-3-2）", async ({ page }) => {
+  await page.goto(url(LS.file));
+  await ready(page);
+  await expect(page.locator(C.EDIT_GATE.drawer)).toBeHidden();
+  await page.locator(C.LIST.edit).first().click();
+  await expect(page.locator(C.EDIT_GATE.drawer)).toBeVisible();
 });
