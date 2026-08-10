@@ -666,7 +666,8 @@ async function openItemMenu() {
 }
 
 /* ---------- 2-1-3 選擇預約單位 ---------- */
-async function openUnitPicker() {
+async function openUnitPicker(returnTo = "#new-drawer") {
+  state.unitReturnTo = returnTo;
   const groups = await api.getUnitGroups();
   state.unitGroups = groups;
   state.pickedUnits = new Set();
@@ -728,6 +729,8 @@ function openDone() {
 const NEW_PANELS = ["#new-drawer", "#nb-items", "#nb-units", "#nb-done"];
 function swapNewPanel(sel) {
   NEW_PANELS.forEach((s) => { $(s).hidden = s !== sel; });
+  /* 單位選擇是從修改抽屜叫出來時，要把修改抽屜先讓開（共用同一個槽位） */
+  if (sel === "#nb-units" && state.unitReturnTo === "#edit-drawer") $("#edit-drawer").hidden = true;
 }
 
 /* ---------- 事件 ---------- */
@@ -753,11 +756,28 @@ function bindEvents() {
       const [g, u] = k.split("-").map(Number);
       return state.unitGroups[g].units[u].name;
     });
-    $("#nb-unit-list").hidden = !names.length;
-    $("#nb-unit-list").textContent = names.join("、");
-    swapNewPanel("#new-drawer");
+    const to = state.unitReturnTo || "#new-drawer";
+    if (to === "#edit-drawer") {
+      $("#f-unit-list").textContent = names.join("、");
+      $("#f-unit-empty").hidden = names.length > 0;
+    } else {
+      $("#nb-unit-list").hidden = !names.length;
+      $("#nb-unit-list").textContent = names.join("、");
+    }
+    backFromUnits();
   });
+  /* 修改抽屜的「變更」也開同一個單位選擇面板（原本這顆按鈕沒接任何事件，
+     連帶一組 #modal-units 標記是孤兒——走查 A 抓到的） */
+  $("#f-unit-change").addEventListener("click", () => openUnitPicker("#edit-drawer"));
+
+  const backFromUnits = () => {
+    const to = state.unitReturnTo || "#new-drawer";
+    swapNewPanel(to === "#edit-drawer" ? "" : to);
+    if (to === "#edit-drawer") $("#edit-drawer").hidden = false;
+    state.unitReturnTo = null;
+  };
   $$("[data-nb-back]").forEach((b) => b.addEventListener("click", () => {
+    if (b.closest("#nb-units")) return backFromUnits();
     if (b.closest("#nb-done")) { closeNew(); swapNewPanel("#new-drawer"); return; }
     swapNewPanel("#new-drawer");
   }));
@@ -789,6 +809,13 @@ function bindEvents() {
   });
   $("#nb-walkin").addEventListener("change", updateNewCta);
   $("#nb-phone").addEventListener("input", updateNewCta);
+  /* 定稿 2-1-1_email格式錯誤（2026-08-10 重建 manifest 後才發現的狀態） */
+  $("#nb-email").addEventListener("blur", () => {
+    const v = $("#nb-email").value.trim();
+    const bad = v !== "" && !/^\S+@\S+\.\S+$/.test(v);
+    $("#nb-email").closest(".nb-field-block").classList.toggle("has-error", bad);
+    $("#nb-email-error").hidden = !bad;
+  });
   $("#nb-time").addEventListener("click", () => {
     /* demo：點一次就選定一個時間，讓「請選擇時間」提示與主鈕狀態可驗證 */
     $("#nb-time").textContent = "12 : 00";
