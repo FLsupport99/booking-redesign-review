@@ -69,7 +69,20 @@
     </div>
   </nav>
 
+  <div class="nav-scrim" id="nav-scrim" hidden></div>
+
   <div class="main">
+
+    <!-- 手機版 Header（定稿 3-3-1_M：burger + 店家 logo / 右側帳號）。桌機不顯示。 -->
+    <div class="m-header">
+      <div class="m-header-l">
+        <button class="m-burger" type="button" id="m-burger" aria-label="開啟主導航" aria-expanded="false">
+          <span></span></button>
+        <img class="m-logo" src="assets/logo.png" alt="">
+      </div>
+      <button class="m-account" type="button" aria-label="帳號">
+        <img src="assets/nav-account.svg" alt="" width="24" height="24"></button>
+    </div>
 
     <!-- 頂部：標題 + 日期切換 + 三視圖切換（Frame 867 960×92） -->
     <header class="topbar">
@@ -122,6 +135,10 @@
         </div>
       </div>
 
+      <!-- 手機版的時間軸：甘特格線在 390 寬無法等比呈現，改為依時間排序的日視圖列表，
+           重用清單的預約卡（定稿沒有時間軸手機稿，此為本專案設計）。 -->
+      <div class="m-daylist" id="m-daylist"></div>
+
       </div>
 
       <!-- 空間圖（3-2）。頂部 Bars / 時間軸 / 座位圖 960×30，下方樓層分頁＋桌位圖 -->
@@ -158,6 +175,11 @@
         <div class="cust-list" id="cust-list"></div>
       </aside>
 
+    </div>
+
+    <!-- 手機版底部固定「＋預約」（定稿 Botom Button 390×54）。桌機不顯示。 -->
+    <div class="m-bottom">
+      <button class="btn btn-primary btn-round" type="button" id="m-add-booking">＋ 預約</button>
     </div>
   </div>
 </div>

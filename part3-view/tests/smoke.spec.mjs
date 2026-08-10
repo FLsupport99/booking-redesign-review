@@ -298,3 +298,66 @@ test("清單也能開修改抽屜（3-3-2）", async ({ page }) => {
   await page.locator(C.LIST.edit).first().click();
   await expect(page.locator(C.EDIT_GATE.drawer)).toBeVisible();
 });
+
+
+/* ---------- 手機版 RWD（斷點 760px） ----------
+   清單照定稿 3-3-1 *_M；時間軸與空間圖定稿沒有手機稿，為本專案設計。 */
+
+const MOBILE = { width: 390, height: 844 };
+
+test("手機版：主導航收成 burger，點開才出現", async ({ page }) => {
+  await page.setViewportSize(MOBILE);
+  await page.goto(url(LS.file));
+  await ready(page);
+
+  await expect(page.locator(".m-header")).toBeVisible();
+  await expect(page.locator("#m-burger")).toBeVisible();
+  /* 導航有 .2s 滑入動畫，位置要用會重試的 poll 量，不能切完 class 立刻讀 */
+  const navX = () => page.locator(".nav").boundingBox().then((b) => b.x);
+
+  await expect.poll(navX, { message: "收合時導航應移出畫面外" }).toBeLessThan(0);
+
+  await page.click("#m-burger");
+  await expect(page.locator(".nav")).toHaveClass(/is-open/);
+  await expect.poll(navX, { message: "展開後導航應回到畫面內" }).toBeGreaterThanOrEqual(0);
+
+  await page.click("#nav-scrim");
+  await expect(page.locator(".nav")).not.toHaveClass(/is-open/);
+});
+
+test("手機版：狀態分頁收成 dropdown，只露出當前那個", async ({ page }) => {
+  await page.setViewportSize(MOBILE);
+  await page.goto(url(LS.file));
+  await ready(page);
+  const visible = page.locator(`${C.LIST.tab}:visible`);
+  await expect(visible).toHaveCount(1);
+  await expect(visible.first()).toHaveClass(/is-active/);
+});
+
+test("手機版：＋預約改為底部固定鈕，工具列那顆收起來", async ({ page }) => {
+  await page.setViewportSize(MOBILE);
+  await page.goto(url(LS.file));
+  await ready(page);
+  await expect(page.locator(".m-bottom")).toBeVisible();
+  await expect(page.locator("#btn-add-booking")).toBeHidden();
+});
+
+test("手機版：時間軸改為日視圖列表，甘特格線不出現", async ({ page }) => {
+  await page.setViewportSize(MOBILE);
+  await page.goto(url(TL.file));
+  await ready(page);
+  await expect(page.locator("#grid-scroll")).toBeHidden();
+  await expect(page.locator("#m-daylist")).toBeVisible();
+  await expect(page.locator("#m-daylist .lrow")).not.toHaveCount(0);
+  /* 日視圖依時間排序 */
+  const times = await page.locator("#m-daylist .lc-hhmm").allTextContents();
+  expect([...times]).toEqual([...times].sort());
+});
+
+test("桌機版不出現手機專屬節點", async ({ page }) => {
+  await page.goto(url(LS.file));
+  await ready(page);
+  await expect(page.locator(".m-header")).toBeHidden();
+  await expect(page.locator(".m-bottom")).toBeHidden();
+  await expect(page.locator(`${C.LIST.tab}:visible`)).toHaveCount(8);
+});

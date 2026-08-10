@@ -631,3 +631,147 @@ p, h1 { margin: 0; }
   margin-right: 6px; vertical-align: -2px; border-radius: 3px; background: var(--gray-220); }
 .lc-note-cust::before { background: var(--emphasis); }
 .lc-note-shop::before { background: var(--primary-se-light); }
+
+/* 桌機版：定稿把這些節點設為 hidden，手機版才出現 */
+.lc-note-ic, .lc-pay, .lrow-expand, .lrow-warn { display: none; }
+.lc-note img { width: 18px; height: 18px; vertical-align: -4px; margin-right: 2px; display: none; }
+
+/* 手機專屬節點在桌機不出現（必須寫在 media query 之前，否則同權重會蓋掉手機的顯示） */
+.m-header, .m-bottom, .nav-scrim, .m-daylist { display: none; }
+
+/* =========================================================================
+   手機版（斷點 760px）
+   清單照定稿 3-3-1 *_M（390 寬）；時間軸與空間圖定稿沒有手機稿，
+   依同一套 token 與清單的規律設計。
+   ========================================================================= */
+@media (max-width: 760px) {
+
+  .app { min-height: 0; }
+
+  /* 左側主導航收成 header 的 burger（定稿 Header 390×48：burger 32 + logo 32 / 右側帳號） */
+  .nav {
+    position: fixed; inset: 0 auto 0 0; z-index: 60; width: var(--nav-w);
+    transform: translateX(-100%); transition: transform .2s ease;
+  }
+  .nav.is-open { transform: none; }
+  /* display 要在這裡開，base 的 .nav-scrim{display:none} 只是桌機用；
+     實際開關仍由 JS 切 hidden 屬性（[hidden] 有 !important）。 */
+  .nav-scrim { display: block; position: fixed; inset: 0; z-index: 55; background: var(--overlay); }
+
+  .m-header {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 48px; padding: 8px 16px; flex: none;
+  }
+  .m-header-l { display: flex; align-items: center; gap: 12px; }
+  .m-burger, .m-account { width: 32px; height: 32px; display: grid; place-items: center; }
+  .m-burger span { display: block; width: 18px; height: 2px; background: var(--text); position: relative; }
+  .m-burger span::before, .m-burger span::after {
+    content: ""; position: absolute; left: 0; width: 18px; height: 2px; background: var(--text);
+  }
+  .m-burger span::before { top: -6px; } .m-burger span::after { top: 6px; }
+  .m-logo { width: 32px; height: 32px; border-radius: 50%; }
+  /* nav-account.svg 的白色是給深色導航烘的；白底 header 上要轉深 */
+  .m-account img { filter: brightness(0); opacity: .75; display: block; }
+
+  /* 頂部：標題與日期同列，三視圖切換改滿版 */
+  .topbar { height: auto; padding: 12px 16px 0; }
+  .topnav { flex-wrap: wrap; height: auto; gap: 8px; }
+  .page-title { font-size: var(--fs-h3); }
+  .datenav { flex: 1; justify-content: flex-end; }
+  .viewtabs { order: 3; width: 100%; }
+  .viewtab { flex: 1; text-align: center; }
+  .warnings { flex-wrap: wrap; height: auto; }
+
+  .funcbar { height: 36px; padding: 8px 16px; }
+  .funcbar .btn-round { display: none; }          /* ＋預約改為底部固定鈕 */
+
+  /* 狀態分頁收成 dropdown（定稿「預約狀態 Dropdown」358×36） */
+  .list-tabs {
+    height: auto; padding: 8px 16px; gap: 0;
+    border: 1px solid var(--gray-220); border-radius: var(--r-btn); margin: 8px 16px;
+    overflow: visible; position: relative;
+  }
+  .list-tabs .ltab { display: none; }
+  .list-tabs .ltab.is-active { display: flex; width: 100%; border-bottom: 0; }
+  .list-tabs .ltab-sep { display: none; }
+  .list-tabs::after {
+    content: "⌄"; position: absolute; right: 16px; top: 50%;
+    transform: translateY(-60%); color: var(--text-75);
+  }
+
+  .list-body { padding: 0 8px 72px; }
+
+  /* Card / Booking List-RWD-new：改直排 */
+  .lrow { padding: 8px; gap: 16px; position: relative; }
+  .lrow-main { flex-direction: column; align-items: stretch; gap: 8px; }
+  .lrow-basic { flex-direction: column; gap: 8px; }
+
+  /* 時間變成灰底列 */
+  .lc-time {
+    width: 100%; flex-direction: row; align-items: center; gap: 16px;
+    background: var(--gray-245); border-radius: 6px; padding: 0 10px; min-height: 32px;
+  }
+  .lc-forward { display: none; }
+  .lc-dur { font-size: var(--fs-caption); letter-spacing: var(--ls-caption); }
+
+  /* 顧客資料與人數左右並排 */
+  .lc-cust, .lc-party { width: auto; }
+  .lrow-basic { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "time time" "cust party" "item item"; }
+  .lc-time { grid-area: time; }
+  .lc-cust { grid-area: cust; }
+  .lc-party { grid-area: party; align-content: flex-start; }
+  .lc-item { grid-area: item; width: auto; padding-top: 0; }
+
+  .lc-note-ic { display: inline-grid; place-items: center; width: 24px; height: 24px; }
+  .lc-note-ic img { width: 20px; height: 20px; display: block; }
+  .lc-num { font-size: var(--fs-h3); line-height: normal; }
+  .lc-pay {
+    display: inline-flex; align-items: center; gap: 4px; width: 65px; justify-content: center;
+    border: 1px solid var(--gray-220); border-radius: var(--r-btn); padding: 2px;
+    font-size: var(--fs-body); color: var(--text-60);
+  }
+  .lc-pay img { width: 16px; height: 16px; display: block; }
+
+  /* 項目＋單位與動作鈕並排 */
+  .lc-item { display: flex; }
+  .lrow-btns { flex-direction: column; align-items: flex-end; justify-content: center; }
+
+  /* 備註改灰底區塊、chips 變白底外框 */
+  .lc-remark { background: var(--gray-245); border-radius: 6px; padding: 8px 10px; gap: 8px; }
+  .lc-choice { background: var(--bg-page); border: 1px solid var(--gray-220); font-size: var(--fs-caption); }
+  .lc-answer, .lc-note { font-size: var(--fs-caption); letter-spacing: var(--ls-caption); }
+  .lc-note::before { display: none; }
+  .lc-note img { display: inline-block; }
+
+  /* 下半部：狀態與同步靠右，展開箭頭在左 */
+  .lrow-meta { flex-wrap: wrap; align-items: center; gap: 8px; }
+  .lrow-meta-l { order: 3; flex: 1; align-items: flex-end; text-align: right; }
+  .lrow-meta-r { order: 2; width: 100%; justify-content: flex-end; }
+  .lrow-expand { order: 4; display: grid; place-items: center; width: 24px; height: 24px; }
+  .lrow-expand img { width: 12px; height: 12px; display: block; }
+  .lm-sync { justify-content: flex-end; font-size: var(--fs-small); }
+  .lm-record { font-size: var(--fs-small); text-align: right; }
+
+  .lrow-warn { display: block; position: absolute; right: 8px; top: 12px; width: 20px; height: 20px; }
+  .lrow-warn img { position: absolute; display: block; }
+  .lrow-warn .wb { inset: 0 0 11.11% auto; width: 20px; transform: rotate(90deg); }
+  .lrow-warn .wg { left: 47.21%; right: 36.12%; top: 50%; transform: translateY(-50%); height: 7.4px; }
+
+  /* 底部固定「＋預約」（定稿 Botom Button 390×54） */
+  .m-bottom {
+    display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    padding: 10px 16px; background: var(--bg-page); border-top: 1px solid var(--gray-240);
+  }
+  .m-bottom .btn { width: 100%; }
+
+  /* 時間軸／空間圖：定稿沒有手機稿，以下為本專案設計 */
+  #view-timeline .grid-wrap { display: none; }
+  #view-timeline .m-daylist { display: block; flex: 1; overflow-y: auto; padding: 0 8px 72px; }
+  /* 顧客清單側欄在手機上與日視圖資訊重複，直接不出現（定稿無手機稿，此為本專案決定） */
+  .cust { display: none; }
+
+  .floor-tabs { padding: 8px 8px 0; }
+  .floor-canvas { margin: 0 8px 72px; }
+  .timebar { overflow-x: auto; }
+}
+

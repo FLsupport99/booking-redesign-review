@@ -97,6 +97,7 @@ function statusActions(b) {
     renderTimehead();
     renderLanes();
     renderNowLine();
+    renderDayList();
   }
   if (MODE !== "list") { renderStatusTabs(); renderCustList(); }
   bindEvents();
@@ -217,6 +218,9 @@ function listRowHtml(b) {
   const dur = `${Math.floor(b.mins / 60)}小時${b.mins % 60}分`;
   return `
   <article class="lrow" data-id="${b.id}">
+    ${b.flag ? `<span class="lrow-warn" aria-hidden="true">
+      <img class="wb" src="${A()}assets/ls-warn-bg.svg" alt="">
+      <img class="wg" src="${A()}assets/ls-warn.svg" alt=""></span>` : ""}
     <div class="lrow-main">
       <div class="lrow-info">
         <div class="lrow-basic">
@@ -240,6 +244,7 @@ function listRowHtml(b) {
             </div>
             <p class="lc-email">${b.email}</p>
             <div class="lc-tags">
+              <span class="lc-note-ic" aria-hidden="true"><img src="${A()}assets/ls-note.svg" alt=""></span>
               <span class="lc-tag">有效預約 5</span>
               ${b.savedCustomer ? "" : `<button class="btn-save-cust" type="button">＋ 儲存顧客</button>`}
             </div>
@@ -249,6 +254,7 @@ function listRowHtml(b) {
           <div class="lc-party">
             <span class="lc-party-item"><span class="lc-num">${b.adults}</span><span class="lc-unit-label">大人</span></span>
             <span class="lc-party-item"><span class="lc-num">${b.children}</span><span class="lc-unit-label">小孩</span></span>
+            <span class="lc-pay"><img src="${A()}assets/ls-cash.svg" alt="">1000</span>
           </div>
 
           <div class="lc-item">
@@ -260,8 +266,8 @@ function listRowHtml(b) {
         <div class="lc-remark">
           <div class="lc-choices">${b.surveyChoices.map((t) => `<span class="lc-choice">${t}</span>`).join("")}</div>
           <p class="lc-answer">${b.question}</p>
-          <p class="lc-note lc-note-cust">${b.custNote}</p>
-          <p class="lc-note lc-note-shop">${b.shopNote}</p>
+          <p class="lc-note lc-note-cust"><img src="${A()}assets/ls-remark-cust.svg" alt="">${b.custNote}</p>
+          <p class="lc-note lc-note-shop"><img src="${A()}assets/ls-remark-shop.svg" alt="">${b.shopNote}</p>
         </div>
       </div>
 
@@ -272,6 +278,8 @@ function listRowHtml(b) {
     </div>
 
     <div class="lrow-meta">
+      <button class="lrow-expand" type="button" aria-label="展開／收合">
+        <img src="${A()}assets/ls-expand.svg" alt=""></button>
       <div class="lrow-meta-l">
         <p class="lm-sync${b.posSync ? "" : " is-off"}">
           ${b.posSync ? "與肚肚同步" : "未與肚肚同步"}: ${b.posSyncAt}
@@ -354,6 +362,13 @@ function tableHtml(t) {
 
 function renderFloor() {
   $("#floor-canvas").innerHTML = state.floors[state.floor].tables.map(tableHtml).join("");
+}
+
+/* 手機版的時間軸日視圖：同一批預約依時間排序，重用清單的卡片元件。
+   桌機用 CSS 隱藏，不另外做一套資料流。 */
+function renderDayList() {
+  const rows = [...state.bookings].sort((a, b) => toMin(a.start) - toMin(b.start));
+  $("#m-daylist").innerHTML = rows.map(listRowHtml).join("");
 }
 
 /* ---------- 現在時間線 ---------- */
@@ -573,6 +588,15 @@ function toggleSidebar(collapsed) {
 /* ---------- 事件 ---------- */
 function bindEvents() {
   $("#cust-toggle").addEventListener("click", () => toggleSidebar());
+
+  /* 手機版：burger 開關左側主導航 */
+  const setNav = (open) => {
+    $(".nav").classList.toggle("is-open", open);
+    $("#nav-scrim").hidden = !open;
+    $("#m-burger").setAttribute("aria-expanded", String(open));
+  };
+  $("#m-burger").addEventListener("click", () => setNav(!$(".nav").classList.contains("is-open")));
+  $("#nav-scrim").addEventListener("click", () => setNav(false));
 
   if (MODE === "list") {
     $("#list-tabs").addEventListener("click", (e) => {
