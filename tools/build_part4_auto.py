@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""從 Part 3 定稿的後台模擬器 sim.html 產生 Part4 v2「自動排位規則」兩個方案原型。
+"""從 Part 3 定稿的後台模擬器 sim.html 產生 Part4 v2「自動排位規則」原型 part4_auto.html。
 
 原則同 build_part4_timeline.py／build_part4_exception.py：
 定稿頁 100% 不動，只「注入」——本腳本注入的是改版後的「自動排位規則」設定頁，
-把現行的「一份全域排序」升級成「人數級距 × 各自一套規則」。
+把現行的「一份全域排序」升級成「人數級距 × 各自一套規則」：
+每個級距各有一份完整排序（群組順序 ＋ 群組內單位順序）＋ 該段的併桌上限。
 
-產出兩支檔案（同一份程式碼，只有級距內的規則型態不同）：
-  part4_auto_a.html  方案 A：每個級距各一份完整排序（群組順序 ＋ 群組內單位順序）
-  part4_auto_b.html  方案 B：每個級距只選一個「主策略」，群組／單位順序全店共用一份
-
-兩頁都內建「排位模擬器」，輸入人數即可看到候選組合與逐步判斷過程。
+頁面內建「排位模擬器」，輸入人數即可看到候選組合與逐步判斷過程。
 資料存獨立 sessionStorage key（p4auto_v2），與 sim.html／part4_timeline.html 互不干擾——
 因為本頁需要一組容量更有變化的示範資料（吧台／大桌／包廂），沿用 sim_v4 會看不出級距差異。
+
+2026-08-10：原本另有「方案 B：每個級距只選一個主策略」並陳供 review，Ian 已裁定採本案，
+B 整案收掉。B 的便利性保留在每段上方的「快速排序」按鈕——那本來就只是幫店家排出一種順序。
 
 sim.html 更新時重跑本腳本即可同步。
 """
@@ -143,16 +143,11 @@ SEED_GROUPS_NEW = """  groups: [
 
 # ══════════════════════════════════════════════════════════════════
 # 3) 自動排位規則頁（JS）
-#    __VARIANT__ 由 build() 代入 'A' 或 'B'
 # ══════════════════════════════════════════════════════════════════
 PAGE_JS = r"""/* ===== Part4 v2 注入：自動排位規則（人數級距） =====
-   方案 __VARIANT__。由 tools/build_part4_auto.py 從 sim.html 產生。 */
-const P4_VARIANT = '__VARIANT__';
-const P4_STRAT = { exact_fit: '剛好優先', largest_first: '大桌優先' };
-const P4_STRAT_DESC = {
-  exact_fit: '空位浪費（總容納人數 − 預約人數）最小的組合優先。2 人會先進 2 人桌或吧台。',
-  largest_first: '總容納人數最大的組合優先。6 人會先進 8 人桌，把大桌先坐滿。',
-};
+   由 tools/build_part4_auto.py 從 sim.html 產生。 */
+/* 「快速排序」按鈕用的兩種排法；不是持續生效的模式，按下去就把順序算好寫入 */
+const P4_STRAT = { exact_fit: '小桌在前', largest_first: '大桌在前' };
 
 /* ── 規則資料 ───────────────────────────────────────────── */
 function p4DefaultOrder(gidOrder) {
@@ -182,17 +177,12 @@ function p4Ensure() {
       cuts: [4, 8],
       bands: [
         /* 1–4 人：先填吧台與小桌，不併桌 */
-        { maxUnits: 1, strategy: 'exact_fit',
-          order: p4DefaultOrder(['g_bar', 'g_indoor', 'g_outdoor', 'g_default', 'g_room']) },
+        { maxUnits: 1, order: p4DefaultOrder(['g_bar', 'g_indoor', 'g_outdoor', 'g_default', 'g_room']) },
         /* 5–8 人：大桌先坐滿，最多併 2 桌 */
-        { maxUnits: 2, strategy: 'largest_first',
-          order: p4DefaultOrder(['g_indoor', 'g_outdoor', 'g_room', 'g_default', 'g_bar']) },
+        { maxUnits: 2, order: p4DefaultOrder(['g_indoor', 'g_outdoor', 'g_room', 'g_default', 'g_bar']) },
         /* 9 人以上：包廂優先，最多併 3 桌 */
-        { maxUnits: 3, strategy: 'largest_first',
-          order: p4DefaultOrder(['g_room', 'g_indoor', 'g_outdoor', 'g_default', 'g_bar']) },
+        { maxUnits: 3, order: p4DefaultOrder(['g_room', 'g_indoor', 'g_outdoor', 'g_default', 'g_bar']) },
       ],
-      /* 方案 B 用的全店共用排序 */
-      shared: p4DefaultOrder(['g_bar', 'g_indoor', 'g_outdoor', 'g_room', 'g_default']),
     };
     /* 5–8 人這一段示範「大桌排前面」的手排結果 */
     db.auto.bands[1].order.units['g_indoor'] = ['u9', 'u8', 'u2', 'u7', 'u1'];
@@ -201,12 +191,10 @@ function p4Ensure() {
   /* bands 長度必須永遠等於 cuts.length + 1（切點是唯一真相） */
   while (db.auto.bands.length < db.auto.cuts.length + 1) {
     const tail = db.auto.bands[db.auto.bands.length - 1];
-    db.auto.bands.push({ maxUnits: tail.maxUnits, strategy: tail.strategy,
-      order: JSON.parse(JSON.stringify(tail.order)) });
+    db.auto.bands.push({ maxUnits: tail.maxUnits, order: JSON.parse(JSON.stringify(tail.order)) });
   }
   db.auto.bands.length = db.auto.cuts.length + 1;
   db.auto.bands.forEach(b => p4NormOrder(b.order));
-  p4NormOrder(db.auto.shared);
   return db.auto;
 }
 /* 切點 → 級距的上下界。cuts=[4,8] → [1,4] [5,8] [9,null] */
@@ -238,7 +226,7 @@ function p4Assign(people) {
   const A = p4Ensure();
   const bi = p4BandIndex(people, A.cuts);
   const band = A.bands[bi];
-  const order = P4_VARIANT === 'A' ? band.order : A.shared;
+  const order = band.order;
   const gRank = {}; order.groups.forEach((id, i) => { gRank[id] = i; });
 
   const build = (relaxMin) => {
@@ -278,13 +266,9 @@ function p4Assign(people) {
 
   cands.sort((a, b) => {
     if (a.n !== b.n) return a.n - b.n;                                  // ① 單位數少者優先
-    if (P4_VARIANT === 'B') {                                           // ② 方案 B：主策略
-      if (band.strategy === 'exact_fit' && a.waste !== b.waste) return a.waste - b.waste;
-      if (band.strategy === 'largest_first' && a.sumMax !== b.sumMax) return b.sumMax - a.sumMax;
-    }
-    if (a.gRank !== b.gRank) return a.gRank - b.gRank;                  // ③ 群組順序
-    const l = lex(a.uRank, b.uRank); if (l) return l;                   // ④ 群組內單位順序
-    return ids(a) < ids(b) ? -1 : 1;                                    // ⑤ 單位 id 升冪（保證唯一解）
+    if (a.gRank !== b.gRank) return a.gRank - b.gRank;                  // ② 該級距的群組順序
+    const l = lex(a.uRank, b.uRank); if (l) return l;                   // ③ 該級距的群組內單位順序
+    return ids(a) < ids(b) ? -1 : 1;                                    // ④ 單位 id 升冪（保證唯一解）
   });
 
   return { bandIdx: bi, band, bounds: p4Bounds(A.cuts)[bi], cands, chosen: cands[0] || null, relaxed };
@@ -293,9 +277,11 @@ function p4Assign(people) {
 /* ── 頁面 ───────────────────────────────────────────────── */
 function p4ViewAuto() {
   setTitle([['預約設定', '#/rules'], ['自動排位規則', '#/p4auto']], '自動排位規則');
-  const A = p4Ensure();
+  p4Ensure();
   $('#content').innerHTML = `
-    <div class="p4-note">__NOTE__</div>
+    <div class="p4-note">這一頁決定<b>「同分時選誰」</b>——系統先求「用最少的預約單位滿足人數」，
+      再看你在<b>該人數級距</b>下排的群組順序與單位順序。
+      與「後台操作偏好 &gt; 預約單位排序」（扁平、可跨群組、只管畫面顯示）是兩套獨立排序。</div>
     <div class="card">
       <div class="card-head"><div class="ch-main">
         <div class="ch-title">人數級距</div>
@@ -305,7 +291,6 @@ function p4ViewAuto() {
       <div class="p4-hint" style="margin-top:10px">切點必須由小到大、最多 4 個（5 段）。只有一段時，行為與改版前完全相同。</div>
     </div>
     <div id="p4Bands"></div>
-    __SHARED__
     <div class="card">
       <div class="card-head"><div class="ch-main">
         <div class="ch-title">排位模擬器</div>
@@ -324,9 +309,16 @@ function p4ViewAuto() {
         <div class="ch-title">演算法判斷順序</div>
         <div class="ch-desc">建立／修改線上預約，以及「自動分配預約單位」開啟時的自建預約，皆適用。</div>
       </div></div>
-      <div class="p4-algo">__ALGO__</div>
+      <div class="p4-algo">
+        <span class="k">1.</span> 依<b>預約人數</b>決定落在哪一個級距，取出該級距的規則<br>
+        <span class="k">2.</span> 列出候選組合：同群組內、單位數 ≤ min(級距上限, 群組最多可合併數)、總容納人數足夠<br>
+        <span class="k">3.</span> 優先考慮：如何使用<b>最少</b>的預約單位滿足預約人數需求<br>
+        <span class="k">4.</span> 再考慮：<b>該級距</b>的群組排列順序<br>
+        <span class="k">5.</span> 再考慮：<b>該級距</b>的群組內單位排列順序<br>
+        <span class="k">6.</span> 仍相同時：依單位 id 升冪，保證同一筆預約永遠排到同一個位子
+      </div>
     </div>`;
-  p4RenderCuts(); p4RenderBands(); __RENDER_SHARED__
+  p4RenderCuts(); p4RenderBands();
   $('#p4SimGo').onclick = p4RunSim;
   $('#p4SimN').addEventListener('keydown', e => { if (e.key === 'Enter') p4RunSim(); });
   p4RunSim();
@@ -364,8 +356,7 @@ function p4RenderCuts() {
     const last = db.auto.cuts[db.auto.cuts.length - 1] || 0;
     db.auto.cuts.push(last + 4);
     const tail = db.auto.bands[db.auto.bands.length - 1];
-    db.auto.bands.push({ maxUnits: tail.maxUnits, strategy: tail.strategy,
-      order: JSON.parse(JSON.stringify(tail.order)) });   // 新段複製最後一段，店家再微調
+    db.auto.bands.push({ maxUnits: tail.maxUnits, order: JSON.parse(JSON.stringify(tail.order)) });   // 新段複製最後一段，店家再微調
     persist(); p4RenderCuts(); p4RenderBands(); p4RunSim(); toast('已新增切點，新的一段複製自前一段');
   };
 }
@@ -386,16 +377,27 @@ function p4RenderBands() {
         <span>個預約單位</span>
         <span style="color:var(--text-muted);font-size:13px">（1 ＝ 不併桌；實際生效值取本欄與群組「最多可合併數量」的較小值）</span>
       </div>
-      __BAND_BODY__
+      <div class="p4-quick">
+        <span>快速排序：</span>
+        <button class="btn-md ghost" data-qs="${i}" data-st="exact_fit">小桌在前</button>
+        <button class="btn-md ghost" data-qs="${i}" data-st="largest_first">大桌在前</button>
+        <span>當場算好順序寫入，之後仍可手動拖曳微調。</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">${p4OrderHtml(band.order, String(i))}</div>
+      <div class="p4-hint" style="margin-top:10px">拖曳以調整順序。群組可整組移動；單位只能在所屬群組內排序，<b>不可跨組</b>。</div>
     </div>`).join('');
 
   $('#p4Bands').querySelectorAll('select[data-mu]').forEach(el => {
     el.onchange = () => { db.auto.bands[+el.dataset.mu].maxUnits = +el.value; persist(); p4RunSim(); };
   });
-  __BAND_WIRE__
+  $('#p4Bands').querySelectorAll('[data-qs]').forEach(el => {
+    el.onclick = () => { p4QuickSort(el.dataset.qs, el.dataset.st); p4RenderBands(); p4RunSim();
+      toast('已依「' + P4_STRAT[el.dataset.st] + '」重排此級距'); };
+  });
+  A.bands.forEach((b, i) => p4WireOrder(String(i), () => { p4RenderBands(); p4RunSim(); }));
 }
 
-/* 排序清單：ctx = { key, band } —— 方案 A 每段一份，方案 B 全店一份 */
+/* 排序清單：key ＝ 級距索引字串 */
 function p4OrderHtml(order, key) {
   const gs = order.groups.map(id => db.groups.find(g => g.id === id)).filter(Boolean)
     .filter(g => db.units.some(u => u.gid === g.id));
@@ -411,7 +413,7 @@ function p4OrderHtml(order, key) {
     </div>`;
   }).join('');
 }
-function p4OrderOf(key) { return key === 'shared' ? db.auto.shared : db.auto.bands[+key].order; }
+function p4OrderOf(key) { return db.auto.bands[+key].order; }
 function p4WireOrder(key, rerender) {
   const order = p4OrderOf(key);
   const gs = order.groups.map(id => db.groups.find(g => g.id === id)).filter(Boolean)
@@ -455,7 +457,7 @@ function p4WireOrder(key, rerender) {
     });
   });
 }
-/* 依策略把某一份排序一次算好寫入（方案 A 的快速排序按鈕） */
+/* 快速排序按鈕：把該級距的排序一次算好寫入（UI 輔助，不是持續生效的模式） */
 function p4QuickSort(key, strategy) {
   const order = p4OrderOf(key);
   db.groups.forEach(g => {
@@ -477,9 +479,7 @@ function p4RunSim() {
   if (!n || n < 1) { out.innerHTML = '<div class="p4-simnone">請輸入 1 以上的預約人數。</div>'; return; }
   const r = p4Assign(n);
   const bandTxt = `第 ${r.bandIdx + 1} 段（${p4BandLabel(r.bounds)}）`;
-  const capNote = P4_VARIANT === 'B'
-    ? `主策略：<b>${P4_STRAT[r.band.strategy]}</b>・最多 ${r.band.maxUnits} 個單位`
-    : `最多 ${r.band.maxUnits} 個單位`;
+  const capNote = `最多 ${r.band.maxUnits} 個單位`;
 
   if (!r.chosen) {
     out.innerHTML = `<div class="p4-simnone"><b>${n} 人</b>落在 ${bandTxt}，${capNote}。<br>
@@ -495,11 +495,10 @@ function p4RunSim() {
     ${r.relaxed ? '<div class="p4-simnone">注意：沒有任何組合同時滿足「最低人數」限制，系統已放寬最低人數再排一次。</div>' : ''}
     <div class="p4-simwrap"><table class="p4-simtbl">
       <tr><th>順位</th><th>群組</th><th>單位</th><th>單位數</th><th>可容納</th><th>空位</th>
-        ${P4_VARIANT === 'B' ? '<th>策略值</th>' : ''}<th>群組順位</th><th>單位順位</th></tr>
+        <th>群組順位</th><th>單位順位</th></tr>
       ${top.map((x, i) => `<tr class="${i === 0 ? 'win' : ''}">
         <td>${i + 1}</td><td>${esc(x.g.name)}</td><td>${x.combo.map(u => esc(u.name)).join(' ＋ ')}</td>
         <td>${x.n}</td><td>${x.sumMax}</td><td>${x.waste}</td>
-        ${P4_VARIANT === 'B' ? `<td>${r.band.strategy === 'exact_fit' ? '浪費 ' + x.waste : '容量 ' + x.sumMax}</td>` : ''}
         <td>${x.gRank + 1}</td><td>${x.uRank.map(v => v + 1).join(',')}</td></tr>`).join('')}
     </table></div>
     ${r.cands.length > top.length ? `<div class="p4-hint" style="margin-top:8px">另有 ${r.cands.length - top.length} 個候選組合未列出。</div>` : ''}
@@ -507,85 +506,13 @@ function p4RunSim() {
       <li>依人數 ${n} 落入 ${bandTxt}，取出該段規則。</li>
       <li>列出所有候選組合：同群組內、單位數 ≤ min(本段上限 ${r.band.maxUnits}, 群組最多可合併數)、總容納人數 ≥ ${n}。共 ${r.cands.length} 組。</li>
       <li>單位數少者優先 → 最少為 ${r.cands[0].n} 個單位。</li>
-      __STEP4__
+      <li>再比該級距的群組順序，最後比群組內單位順序。</li>
       <li>仍同分時依單位 id 升冪，保證同樣的輸入永遠得到同樣的結果。</li>
     </ol></div>`;
 }
 """
 
-NOTE_A = ("這一頁決定<b>「同分時選誰」</b>——系統先求「用最少的預約單位滿足人數」，"
-          "再看你在<b>該人數級距</b>下排的群組順序與單位順序。"
-          "與「後台操作偏好 &gt; 預約單位排序」（扁平、可跨群組、只管畫面顯示）是兩套獨立排序。")
-NOTE_B = ("這一頁決定<b>「同分時選誰」</b>——系統先求「用最少的預約單位滿足人數」，"
-          "再看<b>該人數級距的主策略</b>，最後才看全店共用的群組與單位順序。"
-          "與「後台操作偏好 &gt; 預約單位排序」（扁平、可跨群組、只管畫面顯示）是兩套獨立排序。")
-
-ALGO_A = """<span class="k">1.</span> 依<b>預約人數</b>決定落在哪一個級距，取出該級距的規則<br>
-        <span class="k">2.</span> 列出候選組合：同群組內、單位數 ≤ min(級距上限, 群組最多可合併數)、總容納人數足夠<br>
-        <span class="k">3.</span> 優先考慮：如何使用<b>最少</b>的預約單位滿足預約人數需求<br>
-        <span class="k">4.</span> 再考慮：<b>該級距</b>的群組排列順序<br>
-        <span class="k">5.</span> 再考慮：<b>該級距</b>的群組內單位排列順序<br>
-        <span class="k">6.</span> 仍相同時：依單位 id 升冪，保證同一筆預約永遠排到同一個位子"""
-ALGO_B = """<span class="k">1.</span> 依<b>預約人數</b>決定落在哪一個級距，取出該級距的規則<br>
-        <span class="k">2.</span> 列出候選組合：同群組內、單位數 ≤ min(級距上限, 群組最多可合併數)、總容納人數足夠<br>
-        <span class="k">3.</span> 優先考慮：如何使用<b>最少</b>的預約單位滿足預約人數需求<br>
-        <span class="k">4.</span> 再考慮：<b>該級距的主策略</b>（剛好優先／大桌優先）<br>
-        <span class="k">5.</span> 再考慮：全店共用的群組排列順序<br>
-        <span class="k">6.</span> 再考慮：全店共用的群組內單位排列順序<br>
-        <span class="k">7.</span> 仍相同時：依單位 id 升冪，保證同一筆預約永遠排到同一個位子"""
-
-# 方案 A：每個級距一份完整排序 ＋ 快速排序按鈕
-BAND_BODY_A = """<div class="p4-quick">
-        <span>快速排序：</span>
-        <button class="btn-md ghost" data-qs="${i}" data-st="exact_fit">小桌在前（剛好優先）</button>
-        <button class="btn-md ghost" data-qs="${i}" data-st="largest_first">大桌在前（大桌優先）</button>
-        <span>套用後仍可手動拖曳微調。</span>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:10px">${p4OrderHtml(band.order, String(i))}</div>
-      <div class="p4-hint" style="margin-top:10px">拖曳以調整順序。群組可整組移動；單位只能在所屬群組內排序，<b>不可跨組</b>。</div>"""
-
-BAND_WIRE_A = """$('#p4Bands').querySelectorAll('[data-qs]').forEach(el => {
-    el.onclick = () => { p4QuickSort(el.dataset.qs, el.dataset.st); p4RenderBands(); p4RunSim();
-      toast('已依「' + P4_STRAT[el.dataset.st] + '」重排此級距'); };
-  });
-  A.bands.forEach((b, i) => p4WireOrder(String(i), () => { p4RenderBands(); p4RunSim(); }));"""
-
-# 方案 B：每個級距只選主策略
-BAND_BODY_B = """<div style="display:flex;flex-direction:column;gap:10px">
-        ${Object.keys(P4_STRAT).map(s => `
-          <div class="radio-card${band.strategy === s ? ' on' : ''}" data-st="${s}" data-bi="${i}">
-            <div class="rc-head"><span class="radio"${band.strategy === s ? ' data-on' : ''}></span>${P4_STRAT[s]}</div>
-            <div class="rc-body" style="display:block;padding-left:26px;font-size:13px;line-height:20px;color:var(--text-muted)">${P4_STRAT_DESC[s]}</div>
-          </div>`).join('')}
-      </div>"""
-
-BAND_WIRE_B = """$('#p4Bands').querySelectorAll('.radio-card[data-st]').forEach(el => {
-    el.onclick = () => { db.auto.bands[+el.dataset.bi].strategy = el.dataset.st; persist();
-      p4RenderBands(); p4RunSim(); };
-  });"""
-
-SHARED_CARD_B = """<div class="card">
-      <div class="card-head"><div class="ch-main">
-        <div class="ch-title">優先排位順序（全店共用）</div>
-        <div class="ch-desc">所有級距共用這一份順序，只在「單位數與主策略都同分」時才會用到。拖曳以調整；群組可整組移動，單位只能在所屬群組內排序。</div>
-      </div></div>
-      <div id="p4Shared" style="display:flex;flex-direction:column;gap:10px"></div>
-    </div>"""
-
-RENDER_SHARED_B = """p4RenderShared();"""
-
-SHARED_FN_B = """
-function p4RenderShared() {
-  $('#p4Shared').innerHTML = p4OrderHtml(db.auto.shared, 'shared');
-  p4WireOrder('shared', () => { p4RenderShared(); p4RunSim(); });
-}"""
-
-STEP4_A = """<li>再比該級距的群組順序，最後比群組內單位順序。</li>"""
-STEP4_B = """<li>再比主策略「${P4_STRAT[r.band.strategy]}」：${r.band.strategy === 'exact_fit' ? '空位少者優先' : '總容納人數大者優先'}。</li>
-      <li>再比全店共用的群組順序，最後比群組內單位順序。</li>"""
-
-
-def build(variant):
+def build():
     src = BASE
 
     # 1) CSS
@@ -599,32 +526,8 @@ def build(variant):
     src = replace_once(src, SEED_GROUPS_OLD, SEED_GROUPS_NEW, label="seed")
 
     # 4) 自動排位規則頁
-    js = PAGE_JS.replace("__VARIANT__", variant)
-    if variant == "A":
-        js = (js.replace("__NOTE__", NOTE_A)
-                .replace("__ALGO__", ALGO_A)
-                .replace("__BAND_BODY__", BAND_BODY_A)
-                .replace("__BAND_WIRE__", BAND_WIRE_A)
-                .replace("__SHARED__", "")
-                .replace("__RENDER_SHARED__", "")
-                .replace("__STEP4__", STEP4_A))
-    else:
-        js = (js.replace("__NOTE__", NOTE_B)
-                .replace("__ALGO__", ALGO_B)
-                .replace("__BAND_BODY__", BAND_BODY_B)
-                .replace("__BAND_WIRE__", BAND_WIRE_B)
-                .replace("__SHARED__", SHARED_CARD_B)
-                .replace("__RENDER_SHARED__", RENDER_SHARED_B)
-                .replace("__STEP4__", STEP4_B)
-              + SHARED_FN_B)
-    leftover = [t for t in ("__NOTE__", "__ALGO__", "__BAND_BODY__", "__BAND_WIRE__",
-                            "__SHARED__", "__RENDER_SHARED__", "__STEP4__", "__VARIANT__")
-                if t in js]
-    if leftover:
-        sys.exit(f"❌ JS 模板仍有未取代的佔位符：{leftover}")
-
     src = inject(src, "/* =====================================================\n   預約規則 landing（入口示意）",
-                 js + "\n", label="page")
+                 PAGE_JS + "\n", label="page")
 
     # 5) 路由
     src = inject(src, "  if (h === '#/rules' || h === '') return viewRules();",
@@ -641,17 +544,16 @@ def build(variant):
                        "  const activeNav = h === '#/p4auto' ? '自動排位規則'\n"
                        "    : h.startsWith('#/customer') ? '顧客預約頁' : '預約規則';", label="activeNav")
 
-    # 8) 進站直接落在自動排位規則頁
+    # 8) 標題與檔頭註記
     src = replace_once(src, "<title>MENU店+ 後台模擬器</title>",
-                       f"<title>Part4 自動排位規則 方案 {variant}｜MENU店+ 後台模擬器</title>", label="title")
+                       "<title>Part4 自動排位規則｜MENU店+ 後台模擬器</title>", label="title")
     src = replace_once(src, "<!-- MENU店+ 後台模擬器 · 假資料互動 Demo · 維護：FindLife Support -->",
-                       f"<!-- Part4 自動排位規則 方案 {variant}：由 tools/build_part4_auto.py 從 sim.html 產生，請勿直接編輯 -->",
+                       "<!-- Part4 自動排位規則：由 tools/build_part4_auto.py 從 sim.html 產生，請勿直接編輯 -->",
                        label="comment")
 
-    out = root / f"part4_auto_{variant.lower()}.html"
+    out = root / "part4_auto.html"
     out.write_text(src, encoding="utf-8")
     print(f"{out.name} 已產生：{len(src)} chars")
 
 
-for v in ("A", "B"):
-    build(v)
+build()
