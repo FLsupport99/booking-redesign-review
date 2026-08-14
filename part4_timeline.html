@@ -514,6 +514,7 @@ body.area-book .content{padding:0;gap:0}
   margin:10px 12px 0;font-size:13px}
 .p4-bar .btn-md{height:30px}
 .bk-chip.p4{background:#e3eef6;color:#2d6a91;cursor:pointer}
+.p4-fablabel{align-self:center;font-size:12px;color:#2d6a91;background:#e3eef6;border-radius:8px;padding:7px 10px;box-shadow:0 2px 10px rgba(0,0,0,.15)}
 .p4-modebar{display:flex;align-items:center;gap:10px;margin:0 0 10px;padding:10px 14px;border-radius:var(--r-input);
   background:#2d6a91;color:#fff;font-size:13px;line-height:19px}
 .p4-modebar b{color:#fff}
@@ -654,6 +655,10 @@ body.area-book .content{padding:0;gap:0}
 <div class="toast" id="toast"></div>
 
 <div class="demo-fab">
+  <span class="p4-fablabel">Part 4</span>
+  <button class="btn-md ghost" onclick="location.hash='#/p4auto'">排位規則</button>
+  <button class="btn-md ghost" onclick="location.hash='#/p4deposit'">訂金管理</button>
+  <button class="btn-md ghost" onclick="location.hash='#/book/timeline'">臨時關閉</button>
   <button class="btn-md ghost" onclick="location.href='index.html'">← Review 入口</button>
   <button class="btn-md ghost" id="resetBtn">↺ 重置範例</button>
 </div>
@@ -1007,7 +1012,7 @@ function setTitle(crumbs, h1) {
 function route() {
   closeModal();
   if (typeof closePopover === 'function') closePopover();
-  const h = location.hash || '#/book/timeline';   // 落地頁＝預約（與真實後台一致），設定在 rail 上一鍵可達
+  const h = location.hash || '#/p4auto';   // Part4 整合版：落地頁改成自動排位規則（原始為 #/book/timeline）
   renderChrome();
   const mBook = h.match(/^#\/book(?:\/(timeline|space|list))?$/);
   if (mBook) { bk.view = mBook[1] || bk.view; return viewBooking(); }

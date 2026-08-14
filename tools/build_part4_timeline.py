@@ -96,6 +96,7 @@ src = inject(src, "</style>", """
   margin:10px 12px 0;font-size:13px}
 .p4-bar .btn-md{height:30px}
 .bk-chip.p4{background:#e3eef6;color:#2d6a91;cursor:pointer}
+.p4-fablabel{align-self:center;font-size:12px;color:#2d6a91;background:#e3eef6;border-radius:8px;padding:7px 10px;box-shadow:0 2px 10px rgba(0,0,0,.15)}
 .p4-modebar{display:flex;align-items:center;gap:10px;margin:0 0 10px;padding:10px 14px;border-radius:var(--r-input);
   background:#2d6a91;color:#fff;font-size:13px;line-height:19px}
 .p4-modebar b{color:#fff}
@@ -1068,6 +1069,28 @@ if src.count(_old_active) != 1:
 src = src.replace(_old_active,
     "  const activeNav = (h === '#/p4auto' || h === '#/p4auto1') ? '自動排位規則' : h === '#/p4deposit' ? '訂金管理'\n"
     "    : h.startsWith('#/customer') ? '顧客預約頁' : '預約規則';", 1)
+
+
+# ── 8) 讓 Part 4 的三塊功能真的點得到 ────────────────────────────
+# ⚠️ sim.html 的落地頁是預約區，而預約區會把整個設定側欄 display:none 隱藏
+#    （body.area-book）。直接開這份整合版只會看到時間軸，自動排位與訂金
+#    根本沒有入口可點——Ian 兩次反映「網站上看不到」都是這個原因。
+#    ①落地頁改成自動排位規則 ②右下角常駐一排 Part 4 導覽鈕（預約區也看得到）
+_land_old = "  const h = location.hash || '#/book/timeline';   // 落地頁＝預約（與真實後台一致），設定在 rail 上一鍵可達"
+if src.count(_land_old) != 1:
+    sys.exit(f"❌ 落地頁錨點命中 {src.count(_land_old)} 次")
+src = src.replace(_land_old,
+    "  const h = location.hash || '#/p4auto';   // Part4 整合版：落地頁改成自動排位規則（原始為 #/book/timeline）", 1)
+
+_fab_old = '<button class="btn-md ghost" onclick="location.href=\'index.html\'">\u2190 Review 入口</button>'
+if src.count(_fab_old) != 1:
+    sys.exit(f"❌ demo-fab 錨點命中 {src.count(_fab_old)} 次")
+src = src.replace(_fab_old,
+    '<span class="p4-fablabel">Part 4</span>\n'
+    '  <button class="btn-md ghost" onclick="location.hash=\'#/p4auto\'">排位規則</button>\n'
+    '  <button class="btn-md ghost" onclick="location.hash=\'#/p4deposit\'">訂金管理</button>\n'
+    '  <button class="btn-md ghost" onclick="location.hash=\'#/book/timeline\'">臨時關閉</button>\n'
+    '  ' + _fab_old, 1)
 
 
 src = src.replace("<title>MENU店+ 後台模擬器</title>",
