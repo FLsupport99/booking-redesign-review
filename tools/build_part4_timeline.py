@@ -570,7 +570,7 @@ function p4Assign(people) {
 function p4ViewAuto() {
   setTitle([['預約設定', '#/rules'], ['自動排位規則', '#/p4auto']], '自動排位規則');
   p4Ensure();
-  $('#content').innerHTML = `
+  $('#content').innerHTML = p4AutoSwitcher('v2') + `
     <div class="p4-note">這一頁決定<b>「同分時選誰」</b>——系統先求「用最少的預約單位滿足人數」，
       再看你在<b>該人數級距</b>下排的群組順序與單位順序。
       與「後台操作偏好 &gt; 預約單位排序」（扁平、可跨群組、只管畫面顯示）是兩套獨立排序。</div>
@@ -803,6 +803,108 @@ function p4RunSim() {
     </ol></div>`;
 }
 
+
+/* 兩版切換列——8/17 週會要並排比較 v1 與 v2 */
+function p4AutoSwitcher(cur) {
+  return `<div class="p4-note" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <b>自動排位規則有兩版可比較：</b>
+    <a href="#/p4auto1" style="padding:4px 12px;border-radius:999px;text-decoration:none;
+      ${cur === 'v1' ? 'background:#2d6a91;color:#fff' : 'background:#fff;color:#2d6a91;border:1px solid #cfe0eb'}">v1・單純照組別排序</a>
+    <a href="#/p4auto" style="padding:4px 12px;border-radius:999px;text-decoration:none;
+      ${cur === 'v2' ? 'background:#2d6a91;color:#fff' : 'background:#fff;color:#2d6a91;border:1px solid #cfe0eb'}">v2・依人數級距分段</a>
+    <span style="color:var(--text-muted)">${cur === 'v1'
+      ? '這是 2026-08-06 的初版：全店只有一份排序，不分人數。'
+      : '這是 2026-08-10 定案版：每個人數級距各有一份排序與併桌上限。'}</span>
+  </div>`;
+}
+
+/* ===== Part4 注入：自動排位規則 v1（2026-08-06 初版，單純照組別排序） =====
+   2026-08-11 Ian 要求把初版留著供 8/17 週會與 v2 對照。與 v2 的差別：
+   沒有人數級距，全店只有一份排序；判斷鏈是「最少單位 → 群組順序 → 群組內單位順序」。
+   v1 直接改 db.groups / db.units 的順序（與 sim.html 同一份資料），
+   v2 另存 sessionStorage p4auto_v2，兩者互不影響。 */
+function p4v1View() {
+  setTitle([['預約設定', '#/rules'], ['自動排位規則（v1）', '#/p4auto1']], '自動排位規則（v1・單純照組別排序）');
+  $('#content').innerHTML = p4AutoSwitcher('v1') + `
+    <div class="p4-note">此頁的順序<b>只決定「同分時選誰」</b>——系統先求「用最少的預約單位滿足人數」，再看群組順序、再看群組內單位順序。與「後台操作偏好 &gt; 預約單位排序」（扁平、可跨群組）是兩套獨立排序。</div>
+    <div class="card">
+      <div class="card-head"><div class="ch-main">
+        <div class="ch-title">優先排位順序</div>
+        <div class="ch-desc">拖曳以調整順序。群組可整組移動；單位只能在所屬群組內排序，不可跨組。</div>
+      </div></div>
+      <div id="p4v1List" style="display:flex;flex-direction:column;gap:10px"></div>
+      <div class="btn-row" style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn-md primary" id="p4v1Save">儲存</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="ch-main">
+        <div class="ch-title">演算法判斷順序</div>
+        <div class="ch-desc">建立／修改線上預約，以及「自動分配預約單位」開啟時的自建預約，皆適用。</div>
+      </div></div>
+      <div style="font-size:14px;line-height:22px;color:var(--text-body)">
+        1. 優先考慮：如何使用<b>最少</b>的預約單位滿足預約人數需求<br>
+        2. 再考慮：群組的排列順序<br>
+        3. 再考慮：群組內單位的排列順序
+      </div>
+    </div>`;
+  p4v1Render();
+  $('#p4v1Save').onclick = () => { persist(); toast('已儲存排位順序'); };
+}
+function p4v1Render() {
+  const gs = db.groups.filter(g => db.units.some(u => u.gid === g.id));
+  $('#p4v1List').innerHTML = gs.map((g, gi) => {
+    const us = db.units.filter(u => u.gid === g.id);
+    return `<div class="p4-gblock" draggable="true" data-gi="${gi}">
+      <div class="p4-gbhead"><span class="p4-grip">⣿</span><span class="p4-gchip">${esc(g.name)}</span>
+        <span class="ord">第 ${gi + 1} 順位・${us.length} 個單位</span></div>
+      ${us.map((u, ui) => `<div class="p4-srow" draggable="true" data-gi="${gi}" data-ui="${ui}">
+          <span class="p4-grip">⣿</span><span class="p4-sname">${esc(u.name)}</span>
+          <span class="p4-scap">${u.min}~${u.max} 人</span></div>`).join('')}
+    </div>`;
+  }).join('');
+  p4v1Wire(gs);
+}
+function p4v1Wire(gs) {
+  let src = null;
+  document.querySelectorAll('#p4v1List .p4-srow').forEach(el => {
+    el.addEventListener('dragstart', e => { e.stopPropagation(); src = el; el.classList.add('dragging'); });
+    el.addEventListener('dragend', () => { src = null; p4v1Render(); });
+    el.addEventListener('dragover', e => {
+      if (!src || !src.classList.contains('p4-srow')) return;
+      e.preventDefault(); e.stopPropagation();
+      if (src.dataset.gi === el.dataset.gi) el.classList.add('over');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault(); e.stopPropagation();
+      if (!src || src.dataset.gi !== el.dataset.gi) { toast('不可跨群組排序'); return; }
+      const gid = gs[+el.dataset.gi].id;
+      const idx = db.units.map((u, i) => u.gid === gid ? i : -1).filter(i => i >= 0);
+      const from = idx[+src.dataset.ui], to = idx[+el.dataset.ui];
+      const [m] = db.units.splice(from, 1);
+      db.units.splice(to, 0, m);
+      persist();
+    });
+  });
+  document.querySelectorAll('#p4v1List .p4-gblock').forEach(el => {
+    el.addEventListener('dragstart', e => { if (src) return; src = el; el.classList.add('dragging'); });
+    el.addEventListener('dragend', () => { src = null; p4v1Render(); });
+    el.addEventListener('dragover', e => { if (src && src.classList.contains('p4-gblock') && src !== el) { e.preventDefault(); el.classList.add('over'); } });
+    el.addEventListener('dragleave', () => el.classList.remove('over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!src || !src.classList.contains('p4-gblock')) return;
+      const a = gs[+src.dataset.gi].id, b = gs[+el.dataset.gi].id;
+      const ia = db.groups.findIndex(g => g.id === a), ib = db.groups.findIndex(g => g.id === b);
+      const [m] = db.groups.splice(ia, 1);
+      db.groups.splice(ib, 0, m);
+      persist();
+    });
+  });
+}
+
+
 /* ===== Part4 注入：訂金管理（US4-2） =====
    直接操作 sim.html 既有的 DEPOSITS 陣列——在這裡新增／刪除，時段規則表單的
    「要求訂金 → 套用規則」選單會同步，正好示範「訂金規則是可複用物件」。 */
@@ -952,7 +1054,7 @@ function p4DepDelete(d) {
 
 # 路由
 src = inject(src, "  if (h === '#/rules' || h === '') return viewRules();",
-             "  if (h === '#/p4auto') return p4ViewAuto();\n  if (h === '#/p4deposit') return p4ViewDeposit();\n", label="routes")
+             "  if (h === '#/p4auto') return p4ViewAuto();\n  if (h === '#/p4auto1') return p4v1View();\n  if (h === '#/p4deposit') return p4ViewDeposit();\n", label="routes")
 
 # 側欄導向
 src = inject(src, "    else if (a.dataset.nav === '顧客預約頁') { location.hash = '#/customer'; }",
@@ -964,7 +1066,7 @@ _old_active = "  const activeNav = h.startsWith('#/customer') ? '顧客預約頁
 if src.count(_old_active) != 1:
     sys.exit(f"❌ activeNav 錨點命中 {src.count(_old_active)} 次")
 src = src.replace(_old_active,
-    "  const activeNav = h === '#/p4auto' ? '自動排位規則' : h === '#/p4deposit' ? '訂金管理'\n"
+    "  const activeNav = (h === '#/p4auto' || h === '#/p4auto1') ? '自動排位規則' : h === '#/p4deposit' ? '訂金管理'\n"
     "    : h.startsWith('#/customer') ? '顧客預約頁' : '預約規則';", 1)
 
 
