@@ -18,8 +18,8 @@
 import pathlib, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SRC = ROOT / "part4_timeline.html"
-OUT = ROOT / "part4_priority.html"
+SRC = ROOT / "src" / "part4_timeline.html"
+OUT = ROOT / "src" / "part4_priority.html"
 
 V2_START = "/* ===== Part4 v2 注入：自動排位規則（人數級距） ====="
 V1_START = "/* ===== Part4 注入：自動排位規則 v1（2026-08-06 初版，單純照組別排序） ====="

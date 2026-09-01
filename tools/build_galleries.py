@@ -22,21 +22,21 @@ SITE = os.path.expanduser("~/FL-Agent/booking-redesign-site")
 PAGES = [
     {
         "manifest": "manifest_modes.json",
-        "html": "modes_gallery.html",
+        "html": "src/galleries/modes_gallery.html",
         "assets": "modes_assets",
         "title": "服務項目＋階層項目預約 — 設計稿總覽",
         "subtitle": "2026 May. 顧客預約頁改版（頁②③）· 照 Figma 原稿渲染",
     },
     {
         "manifest": "manifest_algo.json",
-        "html": "algo_gallery.html",
+        "html": "src/galleries/algo_gallery.html",
         "assets": "algo_assets",
         "title": "演算法改版・後台設定 — 設計稿總覽",
         "subtitle": "2025 Oct. 系統架構演算法優化 · 照 Figma 原稿渲染",
     },
     {
         "manifest": "manifest_p3.json",
-        "html": "p3_gallery.html",
+        "html": "src/galleries/p3_gallery.html",
         "assets": "p3_assets",
         "title": "演算法改版 Part3・自建預約 — 設計稿總覽",
         "subtitle": "2026 Jul. 預約系統操作優化 · 照 Figma 原稿渲染",

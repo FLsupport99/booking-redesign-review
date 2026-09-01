@@ -14,7 +14,7 @@ import re
 import sys
 
 root = pathlib.Path(__file__).resolve().parent.parent
-p = root / "exception_rules.html"
+p = root / "src" / "exception_rules.html"
 src = p.read_text(encoding="utf-8")
 
 
