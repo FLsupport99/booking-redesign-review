@@ -80,17 +80,22 @@ GALLERIES = {
     "p4": ("Part 4 定稿（臨時關閉／自訂排位／多組訂金）", "src/galleries/p4_gallery.html"),
 }
 
-# Part → (標題, [gallery keys], [(app id, 側欄連結文字)], 附註)
+# 全部統合的互動版（地圖最上方橫幅＋側欄第一條）
+BANNER = ("backend", "後台模擬器 — 全部統合的互動版", "Part 1 後台設定 ＋ Part 3 三視圖與新增修改 ＋ Part 4 訂金／臨時關閉，同一份假資料互通", "", "")
+
+# Part → (標題, [gallery keys], [(app id, 連結文字, 進場 hash, 進場後點擊)], 附註)
 PARTS = [
     ("Part 1 · 後台設定與顧客預約頁", ["algo", "design"],
-     [("backend", "後台模擬器（互動）"), ("exception", "例外預約規則（互動）")], ""),
+     [("backend", "後台設定（互動）", "#/rules", ""),
+      ("exception", "例外預約規則（互動）", "", "")], ""),
     ("Part 2 · 顧客預約頁（服務項目＋階層項目）", ["modes"],
-     [("hier", "顧客端預約流程（互動）")], ""),
-    ("Part 3 · 自建預約（時間軸／空間圖／清單）", ["p3"], [],
-     "互動版在後台模擬器的預約區（時間軸／空間圖／清單／新增修改）"),
+     [("hier", "顧客端預約流程（互動）", "", "")], ""),
+    ("Part 3 · 自建預約（時間軸／空間圖／清單）", ["p3"],
+     [("backend", "時間軸／空間圖／清單（互動）", "#/book/timeline", "")], ""),
     ("Part 4 · 自動排位・多組訂金・臨時關閉", ["p4"],
-     [("autoseat", "排位設計稿版（互動）")],
-     "排位 v3／訂金管理／臨時關閉的互動版在後台模擬器"),
+     [("autoseat", "自動排位規則（互動・定稿版）", "", ""),
+      ("backend", "訂金管理（互動）", "#/p4deposit", ""),
+      ("backend", "臨時關閉（互動・時間軸內）", "#/book/timeline", "#p4fEnter")], ""),
 ]
 
 
@@ -151,23 +156,24 @@ def build():
 
     nav_parts, main_parts, map_cards, total = [], [], [], 0
     gallery_counts = {}
+    nav_parts.append('<a class="proto big" href="#backend" data-open="backend" data-hash="" data-click="">▶ 後台模擬器（全部統合）</a>')
     for pi, (ptitle, gkeys, papps, note) in enumerate(PARTS, 1):
         nav_parts.append(f'<div class="pgh"><a href="#part{pi}">{ptitle}</a></div>')
         main_parts.append(f'<h2 class="ph" id="part{pi}">{ptitle}</h2>')
         card = [f'<div class="mp"><a class="mph" href="#part{pi}">{ptitle}</a>']
         for g in gkeys:
             card.append(f'<a class="ml g" href="#gal-{g}">{GALLERIES[g][0]}<b>{{N_{g}}} 張</b></a>')
-        for aid, label in papps:
+        for aid, label, hsh, clk in papps:
             if aid in apps:
-                card.append(f'<a class="ml i" href="#{aid}" data-open="{aid}">▶ {label}</a>')
+                card.append(f'<a class="ml i" href="#{aid}" data-open="{aid}" data-hash="{hsh}" data-click="{clk}">▶ {label}</a>')
         if note:
             card.append(f'<div class="mnote">{note}</div>')
         card.append('</div>')
         map_cards.append(''.join(card))
-        for aid, label in papps:
+        for aid, label, hsh, clk in papps:
             if aid in apps:
                 nav_parts.append(
-                    f'<a class="proto" href="#{aid}" data-open="{aid}">▶ {label}</a>'
+                    f'<a class="proto" href="#{aid}" data-open="{aid}" data-hash="{hsh}" data-click="{clk}">▶ {label}</a>'
                 )
         if note:
             nav_parts.append(f'<div class="pnote">{note}</div>')
@@ -199,11 +205,17 @@ def build():
   .ngh2{font-size:12px;font-weight:700;color:#29A379;padding:10px 12px 2px;letter-spacing:.5px;display:flex;justify-content:space-between}
   .ngh2 span{color:#9fcdbb;font-weight:500;font-variant-numeric:tabular-nums}
   nav.side a.proto{color:#3E7BFA;font-weight:500}
+  nav.side a.proto.big{background:#EEF3FE;border-radius:8px;margin:0 4px 4px;font-weight:700}
   nav.side a.proto:hover{background:#EEF3FE}
   .pnote{font-size:12px;color:#aaa;padding:4px 12px;line-height:1.5}
   .map{background:#fff;border-bottom:1px solid #e5e5e5;padding:18px 24px 22px}
   .maphint{font-size:12px;color:#999;margin-bottom:12px}
   .maphint .dg{color:#8FD6B8}.maphint .di{color:#3E7BFA}
+  .mbig{display:flex;align-items:baseline;gap:14px;background:#3E7BFA;color:#fff;border-radius:12px;padding:14px 18px;margin-bottom:14px;max-width:1280px;text-decoration:none}
+  .mbig:hover{background:#3069e0}
+  .mbig .bt{font-size:15px;font-weight:700;white-space:nowrap}
+  .mbig .bd{font-size:13px;color:rgba(255,255,255,.85);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  @media (max-width:700px){ .mbig{flex-direction:column;gap:4px} .mbig .bd{white-space:normal} }
   .mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;max-width:1280px}
   .mp{border:1px solid #e8e8e8;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
   .mph{font-size:14px;font-weight:700;color:#1f7a56;text-decoration:none;margin-bottom:8px}
@@ -233,6 +245,7 @@ def build():
 {style}</head><body>
 <header class="top"><h1>MENU店+ 改版 — Design Review</h1><span class="meta">Part 1–4 全部串接 · {total} 張設計稿＋{len(apps)} 個互動原型 · 照 Figma 原稿渲染</span></header>
 <div class="map"><div class="maphint"><span class="dg">●</span> 設計稿＝頁內跳轉　<span class="di">▶</span> 互動原型＝開新畫面（左上角「← 回設計稿」返回）</div>
+<a class="mbig" href="#backend" data-open="backend" data-hash="" data-click=""><span class="bt">▶ {BANNER[1]}</span><span class="bd">{BANNER[2]}</span></a>
 <div class="mgrid">{map_html}</div></div>
 <div class="wrap">
 <nav class="side">{''.join(nav_parts)}</nav>
@@ -253,12 +266,22 @@ const TITLES = {titles_js};
 const viewer = document.getElementById('viewer');
 const vtitle = document.getElementById('vtitle');
 let frame = null;
-function openView(id, qs) {{
+function openView(id, qs, hash, clickSel) {{
   const ta = document.getElementById('doc-' + id);
   if (!ta) return;
   closeView(true);
   frame = document.createElement('iframe');
   frame.name = qs || '';
+  /* 進場 hash 不能在 load 當下設（會被 app 開機的預設路由蓋掉），延遲到開機完成後 */
+  if (hash || clickSel) frame.addEventListener('load', () => setTimeout(() => {{
+    try {{
+      if (hash) frame.contentWindow.location.hash = hash;
+      if (clickSel) setTimeout(() => {{
+        const el = frame.contentDocument.querySelector(clickSel);
+        if (el) el.click();
+      }}, 250);
+    }} catch (e) {{}}
+  }}, 400), {{ once: true }});
   viewer.appendChild(frame);
   frame.srcdoc = ta.value;
   vtitle.textContent = TITLES[id] || '';
@@ -274,7 +297,7 @@ function closeView(keepHash) {{
     history.pushState(null, '', location.pathname);
 }}
 document.querySelectorAll('[data-open]').forEach(b =>
-  b.addEventListener('click', e => {{ e.preventDefault(); openView(b.dataset.open); }}));
+  b.addEventListener('click', e => {{ e.preventDefault(); openView(b.dataset.open, '', b.dataset.hash || '', b.dataset.click || ''); }}));
 document.getElementById('vclose').addEventListener('click', () => closeView());
 window.addEventListener('message', e => {{
   const d = e.data || {{}};
