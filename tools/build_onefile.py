@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 """單檔合成器 — 把 Part 1–4 全部 review 內容合成一個 index.html。
 
-2026-09 全站收斂：站上只留一個入口檔，其餘頁面全部下架（Ian 2026-09-01 指示）。
-- 設計稿 gallery（src/galleries/*.html，由 build_galleries.py 產生）與互動原型
-  （src/*.html，由 build_part4_*.py 鏈產生）都以 <iframe srcdoc> 全視窗掛載，
-  CSS/JS 完全隔離、原始碼一字不動（僅做下方 PATCHES 的錨定替換）。
-- 對 part4_review_lessons「不用 iframe」規則的說明：當年的病因是「窄欄 iframe
-  觸發 RWD 斷點＋內外雙側欄打架」；這裡 iframe 是 100vw 全視窗層、外殼只有
-  36px 頂條，兩個病因都不存在。srcdoc 是不重寫子 app 就能單檔化的唯一做法。
-- 子檔以 HTML-escape 存進 <textarea hidden>，開啟 view 時 textarea.value 直接
-  丟給 iframe.srcdoc；query string 依賴（exception_rules 的 ?mode=）改走
-  iframe.name（子頁 patch 成 location.search||window.name）。
-- 跨頁連結一律 patch 成 parent.postMessage({nav:...})，由外殼路由。
+2026-09-01 v2（Ian 回饋「還是 Part1-4 分開」後改版）：
+- **設計稿不再分 view**：五個 gallery（algo/design/modes/p3/p4）的 nav 與 sections
+  直接抽出、依 Part 順序串成同一個滾動長頁（單一側欄導覽、單一 lightbox）。
+  各 gallery 的 section id 加前綴避免撞名；CSS 用 p3 版（五份同源，p3 為超集）。
+- **互動原型維持浮層**：4 個 app（後台模擬器/例外規則/顧客端流程/排位設計稿版）
+  是獨立 JS app 無法攤平，仍以 <iframe srcdoc> 全視窗浮層掛載，從側欄「▶」連結開啟。
+  跨頁連結 patch 成 parent.postMessage、?mode= 走 iframe.name（同 v1）。
+- 子檔 HTML-escape 存 <textarea hidden>；sessionStorage 與外層同源共享。
 
-用法：python3 tools/build_onefile.py   （在 repo 任意處執行皆可）
+用法：python3 tools/build_onefile.py
 """
 import html as html_mod
 import json
@@ -25,13 +22,11 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "index.html"
 
 
-def esc_attr(s: str) -> str:
-    """textarea 內容只需擋 & 與 <（避免提前閉合與實體誤解）。"""
+def esc_ta(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;")
 
 
 def patch(name: str, src: str, subs) -> str:
-    """錨定替換；錨點不是恰好 1 次就中止（沿用 build_part4_* 的防呆慣例）。"""
     for old, new in subs:
         n = src.count(old)
         if n != 1:
@@ -41,75 +36,31 @@ def patch(name: str, src: str, subs) -> str:
 
 
 PM = "parent.postMessage({nav:'%s'},'*')"
-BACKLINK = (
-    '<a class="link" href="#" onclick="parent.postMessage({nav:\'home\'},\'*\');'
-    "return false\">← 回總覽</a>"
-)
 
-# view id → (標題, 來源檔, patches)
-VIEWS = {
-    "g-design": (
-        "設計稿・顧客預約頁（基本人數）",
-        "src/galleries/design_gallery.html",
-        [(
-            '<a class="link" href="hierarchical_booking.html">▶ 互動原型</a>',
-            '<a class="link" href="#" onclick="parent.postMessage({nav:\'hier\'},\'*\');return false">▶ 互動原型</a>',
-        )],
-    ),
-    "g-modes": (
-        "設計稿・顧客預約頁（服務項目＋階層項目）",
-        "src/galleries/modes_gallery.html",
-        [('<a class="link" href="index.html">← 回入口</a>', BACKLINK)],
-    ),
-    "g-algo": (
-        "設計稿・演算法改版後台設定",
-        "src/galleries/algo_gallery.html",
-        [('<a class="link" href="index.html">← 回入口</a>', BACKLINK)],
-    ),
-    "g-p3": (
-        "設計稿・Part 3 自建預約",
-        "src/galleries/p3_gallery.html",
-        [('<a class="link" href="index.html">← 回入口</a>', BACKLINK)],
-    ),
-    "g-p4": (
-        "設計稿・Part 4 定稿",
-        "src/galleries/p4_gallery.html",
-        [('<a class="link" href="index.html">← 回入口</a>', BACKLINK)],
-    ),
+# ── 互動原型（浮層 view）──
+APPS = {
     "backend": (
         "後台模擬器（Part 1 設定＋Part 3 視圖＋Part 4）",
         "src/part4_priority.html",
         [
-            (
-                "onclick=\"location.href='index.html'\">← Review 入口",
-                "onclick=\"" + PM % "home" + "\">← 回總覽",
-            ),
-            (
-                "location.href = 'part4_exception.html?mode=' + (excMap[db.mode] || 'basic');  /* Part4 整合版 */",
-                "parent.postMessage({nav:'exception', qs:'mode='+(excMap[db.mode]||'basic')},'*');",
-            ),
-            (
-                "onclick=\"location.href='hierarchical_booking.html'\"",
-                'onclick="' + PM % "hier" + '"',
-            ),
-            (
-                "onclick=\"location.href='designs.html'\"",
-                'onclick="' + PM % "home" + '"',
-            ),
+            ("onclick=\"location.href='index.html'\">← Review 入口",
+             "onclick=\"" + PM % "home" + "\">← 回總覽"),
+            ("location.href = 'part4_exception.html?mode=' + (excMap[db.mode] || 'basic');  /* Part4 整合版 */",
+             "parent.postMessage({nav:'exception', qs:'mode='+(excMap[db.mode]||'basic')},'*');"),
+            ("onclick=\"location.href='hierarchical_booking.html'\"",
+             'onclick="' + PM % "hier" + '"'),
+            ("onclick=\"location.href='designs.html'\"",
+             'onclick="' + PM % "home" + '"'),
         ],
     ),
     "exception": (
         "例外預約規則（Part 1 定稿）",
         "src/exception_rules.html",
         [
-            (
-                "new URLSearchParams(window.location.search);",
-                "new URLSearchParams(window.location.search||window.name);",
-            ),
-            (
-                '<a href="sim.html" style=',
-                '<a href="#" onclick="parent.postMessage({nav:\'backend\'},\'*\');return false" style=',
-            ),
+            ("new URLSearchParams(window.location.search);",
+             "new URLSearchParams(window.location.search||window.name);"),
+            ('<a href="sim.html" style=',
+             '<a href="#" onclick="parent.postMessage({nav:\'backend\'},\'*\');return false" style='),
         ],
     ),
     "hier": ("顧客端預約流程（階層項目）", "src/hierarchical_booking.html", []),
@@ -120,122 +71,154 @@ VIEWS = {
     ),
 }
 
+# ── 設計稿 gallery 來源（依 Part 排序串接）──
+GALLERIES = {
+    "algo": ("演算法改版・後台設定", "src/galleries/algo_gallery.html"),
+    "design": ("顧客預約頁（基本人數）", "src/galleries/design_gallery.html"),
+    "modes": ("顧客預約頁（服務項目＋階層項目）", "src/galleries/modes_gallery.html"),
+    "p3": ("Part 3 自建預約", "src/galleries/p3_gallery.html"),
+    "p4": ("Part 4 定稿（臨時關閉／自訂排位／多組訂金）", "src/galleries/p4_gallery.html"),
+}
 
-def manifest_count(assets_dir: str) -> int:
-    p = ROOT / assets_dir / "manifest.json"
-    if not p.exists():
-        return 0
-    d = json.loads(p.read_text())
-    if isinstance(d, dict):
-        fr = d.get("frames")
-        if isinstance(fr, dict):
-            return len(fr)
-        secs = d.get("sections", [])
-    else:
-        secs = d
-    return sum(len(s.get("frames", [])) for s in secs)
+# Part → (標題, [gallery keys], [(app id, 側欄連結文字)], 附註)
+PARTS = [
+    ("Part 1 · 後台設定與顧客預約頁", ["algo", "design"],
+     [("backend", "後台模擬器（互動）"), ("exception", "例外預約規則（互動）")], ""),
+    ("Part 2 · 顧客預約頁（服務項目＋階層項目）", ["modes"],
+     [("hier", "顧客端預約流程（互動）")], ""),
+    ("Part 3 · 自建預約（時間軸／空間圖／清單）", ["p3"], [],
+     "互動版在後台模擬器的預約區（時間軸／空間圖／清單／新增修改）"),
+    ("Part 4 · 自動排位・多組訂金・臨時關閉", ["p4"],
+     [("autoseat", "排位設計稿版（互動）")],
+     "排位 v3／訂金管理／臨時關閉的互動版在後台模擬器"),
+]
+
+
+import struct
+
+
+def png_size(path: Path):
+    with open(path, "rb") as f:
+        head = f.read(24)
+    if head[:8] != b"\x89PNG\r\n\x1a\n":
+        return None
+    w, h = struct.unpack(">II", head[16:24])
+    return w, h
+
+
+def add_dims(main: str) -> str:
+    """lazy 圖注入 width/height（瀏覽器據此預留 aspect-ratio），
+    否則 1300+ 張圖邊載邊推版、錨點會跑掉。"""
+
+    def repl(m):
+        rel = m.group(1)
+        p = ROOT / rel
+        if p.exists():
+            wh = png_size(p)
+            if wh:
+                return f'<img loading="lazy" decoding="async" width="{wh[0]}" height="{wh[1]}" src="{rel}"'
+        return m.group(0)
+
+    return re.sub(r'<img loading="lazy" src="([^"]+)"', repl, main)
+
+
+def extract(g: str):
+    """抽 gallery 的 nav 與 main 內容，section id 加 g- 前綴。"""
+    s = (ROOT / GALLERIES[g][1]).read_text(encoding="utf-8")
+    nav = re.search(r'<nav class="side">(.*?)</nav>', s, re.S).group(1)
+    main = re.search(r"<main>(.*?)</main>", s, re.S).group(1)
+    nav = nav.replace('href="#s-', f'href="#{g}-s-')
+    main = main.replace('<section id="s-', f'<section id="{g}-s-')
+    main = add_dims(main)
+    n = len(re.findall(r'<figure class="card', main))
+    return nav, main, n
 
 
 def build():
-    docs, missing = {}, []
-    for vid, (title, rel, subs) in VIEWS.items():
+    style = re.search(
+        r"<style>.*?</style>", (ROOT / GALLERIES["p3"][1]).read_text(encoding="utf-8"), re.S
+    ).group(0)
+
+    apps, missing = {}, []
+    for aid, (title, rel, subs) in APPS.items():
         p = ROOT / rel
         if not p.exists():
-            missing.append(vid)
+            missing.append(aid)
             continue
-        docs[vid] = patch(vid, p.read_text(encoding="utf-8"), subs)
+        apps[aid] = patch(aid, p.read_text(encoding="utf-8"), subs)
     if missing:
-        print(f"（略過不存在的 view：{', '.join(missing)}）")
+        print(f"（略過不存在的互動原型：{', '.join(missing)}）")
 
-    counts = {
-        "g-design": manifest_count("gallery_assets"),
-        "g-modes": manifest_count("modes_assets"),
-        "g-algo": manifest_count("algo_assets"),
-        "g-p3": manifest_count("p3_assets"),
-        "g-p4": manifest_count("p4_assets"),
-    }
-
-    def row(vid, kind, desc):
-        if vid not in docs:
-            return ""
-        title = VIEWS[vid][0]
-        n = counts.get(vid)
-        badge = f'<span class="n">{n} 張</span>' if n else '<span class="n it">互動</span>'
-        return (
-            f'<button class="row" data-open="{vid}"><span class="k {kind}"></span>'
-            f'<span class="t">{title}</span><span class="d">{desc}</span>{badge}</button>'
-        )
-
-    parts_html = f"""
-<section class="part"><h2>Part 1 · 後台設定與顧客預約頁</h2>
-{row('g-algo','g','演算法改版的後台設定全稿：預約模式、預約單位、時段、例外')}
-{row('g-design','g','顧客預約頁改版・基本人數模式')}
-{row('backend','i','照定稿刻的假資料後台：設定端全模組（時段、單位、模式）＋操作端')}
-{row('exception','i','例外預約規則定稿頁，四種預約模式可切換')}
-</section>
-<section class="part"><h2>Part 2 · 顧客預約頁（服務項目＋階層項目）</h2>
-{row('g-modes','g','服務項目與階層項目兩種模式的顧客端全稿')}
-{row('hier','i','顧客端階層項目預約完整流程，可實際操作')}
-</section>
-<section class="part"><h2>Part 3 · 自建預約（時間軸／空間圖／清單）</h2>
-{row('g-p3','g','新增／修改預約與三視圖全稿')}
-<div class="hint">互動版在「後台模擬器」的預約區——時間軸、空間圖、清單與新增／修改預約。</div>
-</section>
-<section class="part"><h2>Part 4 · 自動排位・多組訂金・臨時關閉</h2>
-{row('g-p4','g','2026 Aug. 定稿：臨時關閉預約單位、自訂排位順序、多組訂金規則')}
-{row('autoseat','i','自動排位規則設計稿版：人數範圍 × 分配方式')}
-<div class="hint">互動版在「後台模擬器」：自動排位規則、訂金管理兩個設定頁＋時間軸的臨時關閉模式。</div>
-</section>"""
+    nav_parts, main_parts, total = [], [], 0
+    for pi, (ptitle, gkeys, papps, note) in enumerate(PARTS, 1):
+        nav_parts.append(f'<div class="pgh"><a href="#part{pi}">{ptitle}</a></div>')
+        main_parts.append(f'<h2 class="ph" id="part{pi}">{ptitle}</h2>')
+        for aid, label in papps:
+            if aid in apps:
+                nav_parts.append(
+                    f'<a class="proto" href="#{aid}" data-open="{aid}">▶ {label}</a>'
+                )
+        if note:
+            nav_parts.append(f'<div class="pnote">{note}</div>')
+        for g in gkeys:
+            nav, main, n = extract(g)
+            total += n
+            gtitle = GALLERIES[g][0]
+            nav_parts.append(f'<div class="ngh2">{gtitle} <span>{n}</span></div>')
+            nav_parts.append(nav)
+            main_parts.append(main)
 
     textareas = "\n".join(
-        f'<textarea hidden id="doc-{vid}">{esc_attr(doc)}</textarea>'
-        for vid, doc in docs.items()
+        f'<textarea hidden id="doc-{aid}">{esc_ta(doc)}</textarea>'
+        for aid, doc in apps.items()
     )
-    titles_js = json.dumps({vid: v[0] for vid, v in VIEWS.items() if vid in docs}, ensure_ascii=False)
+    titles_js = json.dumps(
+        {aid: v[0] for aid, v in APPS.items() if aid in apps}, ensure_ascii=False
+    )
+
+    extra_css = """
+  .pgh{margin:18px 0 2px;padding:10px 12px 4px;border-top:1px solid #eee}
+  .pgh:first-child{border-top:none;margin-top:0}
+  .pgh a{font-size:13px;font-weight:800;color:#1f7a56;text-decoration:none;padding:0}
+  .ngh2{font-size:12px;font-weight:700;color:#29A379;padding:10px 12px 2px;letter-spacing:.5px;display:flex;justify-content:space-between}
+  .ngh2 span{color:#9fcdbb;font-weight:500;font-variant-numeric:tabular-nums}
+  nav.side a.proto{color:#3E7BFA;font-weight:500}
+  nav.side a.proto:hover{background:#EEF3FE}
+  .pnote{font-size:12px;color:#aaa;padding:4px 12px;line-height:1.5}
+  main .ph{font-size:22px;font-weight:800;color:#1f7a56;margin:44px 0 6px;padding-top:24px;border-top:2px solid #dfe8e4}
+  main .ph:first-of-type{margin-top:0;border-top:none;padding-top:0}
+  .viewer{position:fixed;inset:0;background:#f4f5f6;display:none;flex-direction:column;z-index:60}
+  .viewer.on{display:flex}
+  .vbar{height:36px;flex:0 0 36px;display:flex;align-items:center;gap:10px;background:#1f2937;color:#fff;padding:0 12px}
+  .vbar button{font:inherit;font-size:13px;color:#fff;background:none;border:0;cursor:pointer;padding:4px 6px;border-radius:6px}
+  .vbar button:hover{background:rgba(255,255,255,.14)}
+  .vbar .vt{font-size:13px;color:#d1d5db;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .viewer iframe{border:0;width:100%;flex:1}
+"""
+    style = style.replace("</style>", extra_css + "</style>")
 
     page = f"""<!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MENU店+ 改版 — Design Review</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>🗂️</text></svg>">
-<style>
-  *{{box-sizing:border-box;margin:0;padding:0}}
-  body{{font-family:"PingFang TC","Noto Sans TC",sans-serif;background:#f4f5f6;color:#222}}
-  .home{{max-width:820px;margin:0 auto;padding:48px 24px 80px}}
-  .home .hd h1{{font-size:24px;font-weight:700}}
-  .home .hd p{{font-size:14px;color:#888;margin-top:8px}}
-  .part{{background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:10px 10px 12px;margin-top:22px}}
-  .part h2{{font-size:15px;font-weight:700;color:#29A379;padding:10px 12px 8px}}
-  .row{{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-top:1px solid #f0f0f0;padding:12px;font:inherit;cursor:pointer;border-radius:8px}}
-  .row:hover{{background:#F3FBF7}}
-  .k{{width:8px;height:8px;border-radius:50%;flex:0 0 8px}}
-  .k.g{{background:#8FD6B8}} .k.i{{background:#3E7BFA}}
-  .t{{font-size:14px;font-weight:600;white-space:nowrap}}
-  .d{{font-size:13px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}}
-  .n{{font-size:12px;color:#29A379;background:#ECF8F3;border-radius:100px;padding:3px 10px;white-space:nowrap;font-variant-numeric:tabular-nums}}
-  .n.it{{color:#3E7BFA;background:#EEF3FE}}
-  .hint{{font-size:13px;color:#999;padding:10px 12px 4px;border-top:1px solid #f0f0f0}}
-  footer{{margin-top:36px;font-size:12px;color:#aaa;text-align:center;line-height:1.7}}
-  .viewer{{position:fixed;inset:0;background:#f4f5f6;display:none;flex-direction:column;z-index:50}}
-  .viewer.on{{display:flex}}
-  .vbar{{height:36px;flex:0 0 36px;display:flex;align-items:center;gap:10px;background:#1f2937;color:#fff;padding:0 12px}}
-  .vbar button{{font:inherit;font-size:13px;color:#fff;background:none;border:0;cursor:pointer;padding:4px 6px;border-radius:6px}}
-  .vbar button:hover{{background:rgba(255,255,255,.14)}}
-  .vbar .vt{{font-size:13px;color:#d1d5db;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
-  .viewer iframe{{border:0;width:100%;flex:1}}
-  @media (max-width:600px){{ .t{{white-space:normal}} .d{{display:none}} }}
-</style></head><body>
-<div class="home">
-  <div class="hd"><h1>MENU店+ 改版 — Design Review</h1>
-  <p>Part 1–4 設計稿與互動原型・單一入口。<span style="color:#8FD6B8">●</span> 設計稿　<span style="color:#3E7BFA">●</span> 互動原型</p></div>
-  {parts_html}
-  <footer>內部 review 用途 · LINE QR 與付款串接為畫面示意<br>© 2026 FindLife Inc.</footer>
+{style}</head><body>
+<header class="top"><h1>MENU店+ 改版 — Design Review</h1><span class="meta">Part 1–4 全部串接 · {total} 張設計稿＋{len(apps)} 個互動原型 · 照 Figma 原稿渲染</span></header>
+<div class="wrap">
+<nav class="side">{''.join(nav_parts)}</nav>
+<main>
+{''.join(main_parts)}
+</main>
 </div>
+<div id="lb" onclick="this.classList.remove('on')"><img id="lbimg" src=""></div>
 <div class="viewer" id="viewer">
-  <div class="vbar"><button id="vclose">← 回總覽</button><span class="vt" id="vtitle"></span></div>
+  <div class="vbar"><button id="vclose">← 回設計稿</button><span class="vt" id="vtitle"></span></div>
 </div>
 {textareas}
 <script>
+document.querySelectorAll('.card img').forEach(function(im){{
+  im.addEventListener('click',function(e){{e.stopPropagation();var lb=document.getElementById('lb');document.getElementById('lbimg').src=im.src;lb.classList.add('on');}});
+}});
 const TITLES = {titles_js};
 const viewer = document.getElementById('viewer');
 const vtitle = document.getElementById('vtitle');
@@ -257,10 +240,11 @@ function closeView(keepHash) {{
   if (frame) {{ frame.remove(); frame = null; }}
   viewer.classList.remove('on');
   document.body.style.overflow = '';
-  if (!keepHash && location.hash) history.pushState(null, '', location.pathname);
+  if (!keepHash && location.hash && document.getElementById('doc-' + location.hash.slice(1)))
+    history.pushState(null, '', location.pathname);
 }}
 document.querySelectorAll('[data-open]').forEach(b =>
-  b.addEventListener('click', () => openView(b.dataset.open)));
+  b.addEventListener('click', e => {{ e.preventDefault(); openView(b.dataset.open); }}));
 document.getElementById('vclose').addEventListener('click', () => closeView());
 window.addEventListener('message', e => {{
   const d = e.data || {{}};
@@ -273,15 +257,13 @@ window.addEventListener('popstate', () => {{
   const id = location.hash.slice(1);
   if (id && document.getElementById('doc-' + id)) openView(id); else closeView(true);
 }});
-if (location.hash) {{
-  const id = location.hash.slice(1);
-  if (document.getElementById('doc-' + id)) openView(id);
-}}
+if (location.hash && document.getElementById('doc-' + location.hash.slice(1)))
+  openView(location.hash.slice(1));
 </script>
 </body></html>"""
 
     OUT.write_text(page, encoding="utf-8")
-    print(f"OK → {OUT}  ({OUT.stat().st_size:,} bytes, views: {', '.join(docs)})")
+    print(f"OK → {OUT}  ({OUT.stat().st_size:,} bytes, {total} 張, apps: {', '.join(apps)})")
 
 
 if __name__ == "__main__":
