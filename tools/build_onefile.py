@@ -149,10 +149,21 @@ def build():
     if missing:
         print(f"（略過不存在的互動原型：{', '.join(missing)}）")
 
-    nav_parts, main_parts, total = [], [], 0
+    nav_parts, main_parts, map_cards, total = [], [], [], 0
+    gallery_counts = {}
     for pi, (ptitle, gkeys, papps, note) in enumerate(PARTS, 1):
         nav_parts.append(f'<div class="pgh"><a href="#part{pi}">{ptitle}</a></div>')
         main_parts.append(f'<h2 class="ph" id="part{pi}">{ptitle}</h2>')
+        card = [f'<div class="mp"><a class="mph" href="#part{pi}">{ptitle}</a>']
+        for g in gkeys:
+            card.append(f'<a class="ml g" href="#gal-{g}">{GALLERIES[g][0]}<b>{{N_{g}}} 張</b></a>')
+        for aid, label in papps:
+            if aid in apps:
+                card.append(f'<a class="ml i" href="#{aid}" data-open="{aid}">▶ {label}</a>')
+        if note:
+            card.append(f'<div class="mnote">{note}</div>')
+        card.append('</div>')
+        map_cards.append(''.join(card))
         for aid, label in papps:
             if aid in apps:
                 nav_parts.append(
@@ -162,11 +173,16 @@ def build():
             nav_parts.append(f'<div class="pnote">{note}</div>')
         for g in gkeys:
             nav, main, n = extract(g)
+            gallery_counts[g] = n
             total += n
             gtitle = GALLERIES[g][0]
-            nav_parts.append(f'<div class="ngh2">{gtitle} <span>{n}</span></div>')
+            nav_parts.append(f'<a class="ngh2" href="#gal-{g}">{gtitle} <span>{n}</span></a>')
             nav_parts.append(nav)
-            main_parts.append(main)
+            main_parts.append(f'<div id="gal-{g}">{main}</div>')
+
+    map_html = ''.join(map_cards)
+    for g in GALLERIES:
+        map_html = map_html.replace('{N_' + g + '}', str(gallery_counts.get(g, 0)))
 
     textareas = "\n".join(
         f'<textarea hidden id="doc-{aid}">{esc_ta(doc)}</textarea>'
@@ -185,6 +201,18 @@ def build():
   nav.side a.proto{color:#3E7BFA;font-weight:500}
   nav.side a.proto:hover{background:#EEF3FE}
   .pnote{font-size:12px;color:#aaa;padding:4px 12px;line-height:1.5}
+  .map{background:#fff;border-bottom:1px solid #e5e5e5;padding:18px 24px 22px}
+  .maphint{font-size:12px;color:#999;margin-bottom:12px}
+  .maphint .dg{color:#8FD6B8}.maphint .di{color:#3E7BFA}
+  .mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;max-width:1280px}
+  .mp{border:1px solid #e8e8e8;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+  .mph{font-size:14px;font-weight:700;color:#1f7a56;text-decoration:none;margin-bottom:8px}
+  .mph:hover{text-decoration:underline}
+  .ml{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;text-decoration:none;padding:6px 8px;border-radius:8px}
+  .ml.g{color:#333}.ml.g b{font-weight:500;font-size:12px;color:#29A379;background:#ECF8F3;border-radius:100px;padding:2px 9px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .ml.i{color:#3E7BFA;font-weight:500}
+  .ml:hover{background:#f5f7f6}
+  .mnote{font-size:12px;color:#aaa;padding:6px 8px 0;line-height:1.5}
   main .ph{font-size:22px;font-weight:800;color:#1f7a56;margin:44px 0 6px;padding-top:24px;border-top:2px solid #dfe8e4}
   main .ph:first-of-type{margin-top:0;border-top:none;padding-top:0}
   .viewer{position:fixed;inset:0;background:#f4f5f6;display:none;flex-direction:column;z-index:60}
@@ -204,6 +232,8 @@ def build():
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>🗂️</text></svg>">
 {style}</head><body>
 <header class="top"><h1>MENU店+ 改版 — Design Review</h1><span class="meta">Part 1–4 全部串接 · {total} 張設計稿＋{len(apps)} 個互動原型 · 照 Figma 原稿渲染</span></header>
+<div class="map"><div class="maphint"><span class="dg">●</span> 設計稿＝頁內跳轉　<span class="di">▶</span> 互動原型＝開新畫面（左上角「← 回設計稿」返回）</div>
+<div class="mgrid">{map_html}</div></div>
 <div class="wrap">
 <nav class="side">{''.join(nav_parts)}</nav>
 <main>
@@ -252,6 +282,7 @@ window.addEventListener('message', e => {{
   else if (d.nav === 'backend') openView('backend');
   else if (d.nav === 'hier') openView('hier');
   else if (d.nav === 'exception') openView('exception', d.qs || '');
+  else if (d.nav === 'autoseat') openView('autoseat');
 }});
 window.addEventListener('popstate', () => {{
   const id = location.hash.slice(1);

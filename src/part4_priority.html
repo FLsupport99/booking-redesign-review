@@ -656,7 +656,7 @@ body.area-book .content{padding:0;gap:0}
 
 <div class="demo-fab">
   <span class="p4-fablabel">Part 4</span>
-  <button class="btn-md ghost" onclick="location.hash='#/p4auto'">排位規則</button>
+  <button class="btn-md ghost" onclick="parent.postMessage({nav:'autoseat'},'*')">排位規則</button>
   <button class="btn-md ghost" onclick="location.hash='#/p4deposit'">訂金管理</button>
   <button class="btn-md ghost" onclick="location.hash='#/book/timeline'">臨時關閉</button>
   <button class="btn-md ghost" onclick="location.href='index.html'">← Review 入口</button>
@@ -987,7 +987,7 @@ function renderChrome() {
       location.href = 'part4_exception.html?mode=' + (excMap[db.mode] || 'basic');  /* Part4 整合版 */
     }
     else if (a.dataset.nav === '顧客預約頁') { location.hash = '#/customer'; }
-    else if (a.dataset.nav === '自動排位規則') { location.hash = '#/p4auto'; }
+    else if (a.dataset.nav === '自動排位規則') { parent.postMessage({nav:'autoseat'},'*'); }
     else if (a.dataset.nav === '訂金管理') { location.hash = '#/p4deposit'; }
     else toast('此頁面尚未做成互動 Demo');
   }));
@@ -1011,7 +1011,7 @@ function setTitle(crumbs, h1) {
 function route() {
   closeModal();
   if (typeof closePopover === 'function') closePopover();
-  const h = location.hash || '#/p4auto';   // Part4 整合版：落地頁改成自動排位規則（原始為 #/book/timeline）
+  const h = location.hash || '#/book/timeline';   /* 定稿收斂：落地回時間軸 */
   renderChrome();
   const mBook = h.match(/^#\/book(?:\/(timeline|space|list))?$/);
   if (mBook) { bk.view = mBook[1] || bk.view; return viewBooking(); }

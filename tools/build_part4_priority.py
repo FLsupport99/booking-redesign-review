@@ -1232,6 +1232,16 @@ function p4dRegView(){
 PATCHES = [
     ("  if (h === '#/p4auto') return p4ViewAuto();\n  if (h === '#/p4auto1') return p4v1View();",
      "  if (h === '#/p4auto') return p4cView();"),
+    # ── 2026-09-01 定稿收斂（Ian）：v3 排位是過時提案，可見面全部移除 ──
+    # 1) 落地頁改回時間軸（原本落在 v3 排位）
+    ("const h = location.hash || '#/p4auto';   // Part4 整合版：落地頁改成自動排位規則（原始為 #/book/timeline）",
+     "const h = location.hash || '#/book/timeline';   /* 定稿收斂：落地回時間軸 */"),
+    # 2) 側欄「自動排位規則」改開定稿版浮層（同「例外預約規則」的跨浮層模式）
+    ("else if (a.dataset.nav === '自動排位規則') { location.hash = '#/p4auto'; }",
+     "else if (a.dataset.nav === '自動排位規則') { parent.postMessage({nav:'autoseat'},'*'); }"),
+    # 3) Part4 pill 的「排位規則」同上
+    ("<button class=\"btn-md ghost\" onclick=\"location.hash='#/p4auto'\">排位規則</button>",
+     "<button class=\"btn-md ghost\" onclick=\"parent.postMessage({nav:'autoseat'},'*')\">排位規則</button>"),
     ("const activeNav = (h === '#/p4auto' || h === '#/p4auto1') ? '自動排位規則'",
      "const activeNav = (h === '#/p4auto') ? '自動排位規則'"),
     # 時間軸工具列加入「管理預約單位開放」off 圖示（Figma 的入口）
