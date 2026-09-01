@@ -1,5 +1,7 @@
 <!doctype html>
-<!-- 由設計團隊的「自動排位規則」原型改出：人數範圍 Modal（直接填起始人數）＋分配方式重新排序與文案精簡。 -->
+<!-- 自動排位規則（設計稿版）：對齊 2026 Aug Figma 定稿「② 自訂排位順序」1-1〜1-4。
+     ground truth＝p4_assets/（98_18494 主頁、358_7479 編輯排序、309_45342 等 modal、380_12127 模擬、421_26474 配色）。
+     Null 空狀態展示：加上 ?null=1 或 #null。 -->
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
@@ -17,9 +19,9 @@ html,body{margin:0;padding:0}
 body{
   font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',system-ui,-apple-system,sans-serif;
   background:var(--gray249); color:var(--ink); font-size:14px; line-height:140%;
-  letter-spacing:.05em; -webkit-font-smoothing:antialiased;
+  -webkit-font-smoothing:antialiased;
 }
-button,input,select{font-family:inherit;font-size:inherit;color:inherit;letter-spacing:inherit}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
 
 /* ---------- shell ---------- */
 .shell{display:flex;min-height:100vh}
@@ -27,22 +29,28 @@ button,input,select{font-family:inherit;font-size:inherit;color:inherit;letter-s
 .rail .tabs{display:flex;flex-direction:column;align-items:center;gap:8px;width:56px}
 .rail .logo{width:32px;height:32px;border-radius:8px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
 .rail .ico{width:56px;height:54px;border:0;background:transparent;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:rgba(255,255,255,.6);cursor:pointer;padding:8px 2px}
-.rail .ico span{font-size:10px;line-height:14px;letter-spacing:0}
+.rail .ico span{font-size:10px;line-height:14px}
 .rail .ico.on{color:#fff}
 .rail .ico:hover{background:rgba(255,255,255,.08)}
 
 .subnav{width:188px;flex:none;background:var(--gray249);padding:24px 8px;display:flex;flex-direction:column;gap:28px;border-right:1px solid var(--gray240)}
 .navgroup{display:flex;flex-direction:column;gap:8px}
-.navgroup > h3{margin:0;font-size:16px;line-height:125%;font-weight:500;color:var(--green);letter-spacing:0}
+.navgroup > h3{margin:0;font-size:16px;line-height:125%;font-weight:500;color:var(--green)}
 .navgroup .items{display:flex;flex-direction:column;gap:2px}
 .navgroup a{padding:8px 16px;border-radius:6px;font-size:14px;font-weight:500;line-height:125%;color:var(--ink60);text-decoration:none;cursor:pointer}
 .navgroup a:hover{background:rgba(236,248,243,.45)}
 .navgroup a.on{background:linear-gradient(0deg,rgba(0,0,0,.05),rgba(0,0,0,.05)),rgba(236,248,243,.25);color:var(--ink)}
 
+/* 手機頂欄 */
+.mtop{display:none;position:sticky;top:0;z-index:20;height:56px;background:#fff;border-bottom:1px solid var(--gray240);align-items:center;justify-content:space-between;padding:0 16px}
+.mtop .mleft{display:flex;align-items:center;gap:16px}
+.mtop .mlogo{width:32px;height:32px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+.mtop button{border:0;background:transparent;padding:4px;color:var(--ink);display:flex;cursor:pointer}
+
 .main{flex:1;min-width:0}
 .ptitle{padding:30px 20px 0;background:var(--gray249)}
 .ptitle .inner{max-width:732px}
-.ptitle h1{margin:0;font-size:16px;line-height:22px;font-weight:500;letter-spacing:.03em}
+.ptitle h1{margin:0;font-size:16px;line-height:22px;font-weight:500}
 .ptitle p{margin:4px 0 0;font-size:14px;color:var(--ink75)}
 .ptitle .divider{max-width:732px;border-top:1px solid var(--gray220);margin-top:24px}
 .content{padding:36px 20px;display:flex;flex-direction:column;gap:28px;max-width:772px}
@@ -51,18 +59,31 @@ button,input,select{font-family:inherit;font-size:inherit;color:inherit;letter-s
 .panelcard{background:#fff;border:1px solid var(--gray240);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:24px}
 .lead{margin:0;font-size:14px;color:var(--ink75)}
 
+/* ---------- Null 空狀態（尚未設定預約單位） ---------- */
+.nullcard{background:var(--gray240);border-radius:12px;padding:24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.nullcard .nt{font-size:18px;font-weight:500;color:var(--ink75)}
+.gotobtn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:8px 14px;border-radius:8px;border:1px solid var(--gray220);background:#fff;font-size:14px;font-weight:500;color:var(--ink75);cursor:pointer}
+.gotobtn:hover{background:var(--gray240)}
+.gotobtn:active{background:var(--gray220)}
+
 /* ---------- range tabs ---------- */
 .tierrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.tier{box-sizing:border-box;min-width:110px;height:72px;padding:14px 10px;background:#fff;border:1px solid var(--gray220);border-radius:8px;color:var(--ink60);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-.tier .tierrange{font-size:16px;font-weight:500;line-height:22px;letter-spacing:.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
-.tier .tierkind{font-size:12px;line-height:130%;letter-spacing:.02em;color:var(--ink60)}
-.tier:hover{border-color:var(--gray200)}
-.tier.on{min-width:150px;height:92px;padding:20px 10px;border-color:var(--green);color:var(--green)}
-.tier.on .tierrange{font-size:20px;line-height:28px}
+.tier{box-sizing:border-box;min-width:102px;height:88px;padding:14px 12px;background:#fff;border:1px solid var(--gray220);border-radius:8px;color:var(--ink60);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.tier .tierkind{font-size:13px;line-height:130%;color:var(--ink60)}
+.tier .tierrange{font-size:18px;font-weight:500;line-height:135%;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tier:hover{background:var(--gray240)}
+.tier:active{background:var(--gray220)}
+.tier.on{border-color:var(--green);color:var(--green);background:#fff}
 .tier.on .tierkind{color:var(--green)}
+.tier.on .tierrange{font-size:20px;line-height:28px}
 .tier:focus-visible{outline:2px solid var(--green);outline-offset:2px}
-.iconbtn{width:32px;height:32px;flex:none;border-radius:50%;border:1px solid var(--gray220);background:#fff;color:var(--gray103);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
-.iconbtn:hover{background:var(--gray245)}
+.editing .tier{pointer-events:none}
+.editing .tier:not(.on){background:var(--gray245);border-color:var(--gray245);color:var(--gray200)}
+.editing .tier:not(.on) .tierkind{color:var(--gray200)}
+.editing #editTiers{visibility:hidden}
+.iconbtn{width:36px;height:36px;flex:none;border-radius:50%;border:1px solid var(--gray220);background:#fff;color:var(--gray103);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.iconbtn:hover{background:var(--gray240)}
+.iconbtn:active{background:var(--gray220)}
 .iconbtn:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 
 /* ---------- rule panel ---------- */
@@ -72,17 +93,18 @@ button,input,select{font-family:inherit;font-size:inherit;color:inherit;letter-s
 .rule::after{content:"";position:absolute;top:0;left:calc(var(--arrow-x, 36px) - 2px);width:18px;height:2px;background:#fff}
 .ruletitle{display:flex;align-items:center;gap:24px;padding:4px 0}
 .ruletitle h3{margin:0;flex:1;font-size:18px;line-height:135%;font-weight:500}
-.ruletitle .sub{margin:0;font-size:16px;line-height:22px;font-weight:500;color:var(--ink60);letter-spacing:.03em;flex:1}
+.ruletitle .sub{margin:0;font-size:16px;line-height:22px;font-weight:500;color:var(--ink60);flex:1}
 .hr{border-top:1px solid var(--gray220)}
 
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:34px;padding:8px 16px;border-radius:8px;border:1px solid transparent;background:#fff;font-size:14px;font-weight:500;line-height:125%;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:36px;padding:8px 16px;border-radius:8px;border:1px solid transparent;background:#fff;font-size:14px;font-weight:500;line-height:125%;cursor:pointer}
 .btn.primary{background:var(--green);color:#fff}
 .btn.primary:hover{background:var(--green-dark)}
 .btn.ghost{border-color:var(--gray220);color:var(--ink75)}
 .btn.ghost:hover{background:var(--gray245)}
 .btn.outline{border-color:var(--green);color:var(--green)}
 .btn.outline:hover{background:var(--green-light)}
-.btn.sm{height:30px;padding:6px 8px;border-radius:6px;border-color:var(--gray220);color:var(--ink75)}
+.btn.outline:active{background:#D9F0E6}
+.btn.sm{height:32px;padding:6px 12px;border-radius:6px;border-color:var(--gray220);color:var(--ink75)}
 .btn.sm:hover{background:var(--gray245)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .btn:focus-visible{outline:2px solid var(--green);outline-offset:2px}
@@ -92,108 +114,144 @@ button,input,select{font-family:inherit;font-size:inherit;color:inherit;letter-s
 .blockhead{display:flex;flex-direction:column;gap:4px}
 .blockhead .lbl{font-size:14px;font-weight:500;line-height:125%}
 .blockhead .sublbl{font-size:12px;line-height:130%;color:var(--ink75)}
-.alert{display:flex;align-items:center;gap:4px;font-size:12px;line-height:130%;color:var(--warn)}
-.alert svg{flex:none}
+.alert{display:flex;align-items:flex-start;gap:4px;font-size:12px;line-height:150%;color:var(--warn)}
+.alert svg{flex:none;margin-top:1px}
 .radios{display:flex;flex-direction:column;gap:8px}
-.ropt{box-sizing:border-box;display:flex;flex-direction:column;gap:4px;padding:12px 16px;border:1px solid var(--gray220);border-radius:8px;cursor:pointer}
+.ropt{box-sizing:border-box;display:flex;flex-direction:column;gap:4px;padding:12px 16px;border:1px solid var(--gray220);border-radius:8px;cursor:pointer;background:#fff}
 .ropt:hover{border-color:var(--gray200)}
 .ropt.on{border-color:var(--green)}
 .ropt:focus-visible{outline:2px solid var(--green);outline-offset:1px}
-.rtop{display:flex;align-items:flex-start;gap:6px}
-.dot{width:20px;height:20px;flex:none;border-radius:50%;border:1px solid var(--gray103);background:#fff}
-.ropt.on .dot{border:5px solid var(--green)}
-.rlabel{font-size:14px;font-weight:500;line-height:125%}
-.rhint{padding-left:26px;font-size:12px;line-height:130%;color:var(--ink75)}
+.rtop{display:flex;align-items:flex-start;gap:8px}
+.dot{position:relative;width:20px;height:20px;flex:none;border-radius:50%;border:1px solid var(--gray103);background:#fff}
+.ropt.on .dot{border-color:var(--green)}
+.ropt.on .dot::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--green)}
+.rlabel{font-size:14px;font-weight:500;line-height:143%}
+.rhint{padding-left:28px;font-size:12px;line-height:150%;color:var(--ink75)}
 
 /* ---------- group list ---------- */
 .groups{display:flex;flex-direction:column;gap:8px}
-.grp{background:var(--gray245);border-radius:12px;display:flex;flex-direction:column}
+.grp{background:var(--gray245);border-radius:8px;display:flex;flex-direction:column}
 .grp.dragging{opacity:.4}
 .ghead{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 16px;height:46px;border-radius:8px;cursor:pointer;user-select:none}
 .ghead:hover{background:#EFEFEF}
-.gleft{display:flex;align-items:center;gap:8px}
-.gright{display:flex;align-items:center;gap:20px}
+.grp.empty .ghead{cursor:default}
+.grp.empty .ghead:hover{background:transparent}
+.gleft{display:flex;align-items:center;gap:8px;min-width:0}
+.gright{display:flex;align-items:center;gap:20px;flex:none}
 .sortno{width:20px;height:20px;flex:none;background:var(--gray133);border-radius:4px;color:#fff;font-size:12px;line-height:130%;display:flex;align-items:center;justify-content:center}
-.gname{font-size:16px;font-weight:500;line-height:22px;letter-spacing:.03em}
-.gmerge{font-size:14px;color:var(--ink75)}
+.gname{font-size:16px;font-weight:500;line-height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gmerge{font-size:14px;color:var(--ink75);white-space:nowrap}
+.gempty{font-size:12px;line-height:130%;color:var(--red);border:1px solid var(--red);border-radius:4px;padding:2px 8px;white-space:nowrap}
 .chev{width:20px;height:20px;flex:none;border:0;background:transparent;padding:0;color:var(--gray103);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s}
 .grp.collapsed .chev{transform:rotate(180deg)}
 .grp.collapsed .units{display:none}
-.units{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
-.unit{box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;padding:10px 12px;height:40px;background:#fff;border:1px solid var(--gray220);border-radius:8px}
-.unit.plain{border-color:transparent}
+.grp.empty .chev{color:var(--gray200);cursor:default}
+.units{padding:0 16px 12px;display:flex;flex-direction:column;gap:8px}
+.unit{box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;height:40px;background:#fff;border:1px solid var(--gray220);border-radius:8px}
 .unit.dragging{opacity:.4}
-.uleft{display:flex;align-items:center;gap:12px}
-.uname{font-size:14px;line-height:140%}
-.ucap{display:flex;align-items:center;gap:4px;font-size:14px;color:var(--ink75)}
+.uleft{display:flex;align-items:center;gap:12px;min-width:0}
+.uname{font-size:14px;line-height:140%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ucap{display:flex;align-items:center;gap:4px;font-size:14px;color:var(--ink75);font-variant-numeric:tabular-nums;flex:none}
 .handle{width:20px;height:20px;flex:none;border:0;background:transparent;padding:0;color:var(--gray103);display:flex;align-items:center;justify-content:center;cursor:grab;border-radius:4px}
 .handle:focus-visible{outline:2px solid var(--green);outline-offset:1px}
 .editrow{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:12px 0;box-shadow:0 -1px 0 rgba(0,0,0,.1)}
 
 /* ---------- simulator ---------- */
-.simbar{display:flex;flex-direction:column;gap:12px}
-.simline{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
-.simlabel{font-size:16px;line-height:22px;letter-spacing:.03em;color:var(--ink75)}
-.numfield{box-sizing:border-box;display:flex;align-items:center;gap:5px;width:150px;height:34px;background:#fff;border:1px solid var(--gray220);border-radius:7px;padding:8px 10px}
+.simbar{display:flex;align-items:flex-start;gap:24px}
+.simbar > .simlabel{flex:none;font-size:16px;line-height:36px;font-weight:500}
+.simctl{display:flex;flex-direction:column;gap:12px;min-width:0}
+.simline{display:flex;align-items:center;gap:12px}
+.numfield{box-sizing:border-box;display:flex;align-items:center;gap:5px;width:150px;height:36px;background:#fff;border:1px solid var(--gray220);border-radius:7px;padding:8px 10px}
 .numfield input{flex:1;min-width:0;border:0;outline:0;text-align:center;font-size:14px;background:transparent;font-variant-numeric:tabular-nums}
 .numfield .unit-suffix{font-size:14px;color:var(--ink27)}
+.numfield.err{border-color:var(--red)}
+.numfield.err input{color:var(--red)}
+.numerr{font-size:12px;line-height:130%;color:var(--red)}
 .quick{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.quicklabel{font-size:14px;color:var(--ink60)}
-.simbox{border:1px solid var(--gray220);border-radius:12px;padding:12px 16px;display:flex;flex-direction:column;gap:24px}
+.simbox{border:1px solid var(--gray220);border-radius:12px;padding:12px 16px;display:flex;flex-direction:column;gap:20px}
 .simhead{display:flex;justify-content:space-between;align-items:center;gap:4px}
-.simhead .t{font-size:14px;font-weight:600;color:var(--ink60)}
-.simhead .n{font-size:12px;color:var(--ink75);margin-left:8px;font-weight:400}
-.simgroups{display:flex;flex-direction:column;gap:12px}
-.tgrp{display:flex;flex-direction:column;gap:6px}
-.tgrphead{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.tgrphead .left{display:flex;align-items:center;gap:8px}
-.tgrphead .nm{font-size:14px;font-weight:600}
-.tgrphead .mg{font-size:12px;color:var(--ink75)}
+.simhead .t{font-size:14px;font-weight:500;color:var(--ink60)}
+.simstat{display:flex;flex-direction:column;gap:4px}
+.simstat .okcount{font-size:16px;line-height:22px;font-weight:500;color:var(--green)}
+.failline{font-size:14px;line-height:140%;color:var(--red);display:flex;align-items:center;gap:8px;padding-left:8px}
+.failline .bullet{width:5px;height:5px;flex:none;border-radius:50%;background:var(--red)}
+.simgroups{display:flex;flex-direction:column;gap:16px}
+.tgrp{display:flex;flex-direction:column;gap:8px}
+.tgrphead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.tgrphead .nm{font-size:15px;font-weight:500}
+.tgrphead .mg{font-size:13px;color:var(--ink75)}
 .tunits{display:flex;flex-wrap:wrap;gap:8px 6px;padding:12px 16px;background:var(--gray245);border-radius:8px}
-.tunit{box-sizing:border-box;width:90px;min-height:54px;background:#fff;border:1px solid var(--gray220);border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:4px}
-.tunit .u{font-size:14px;font-weight:500;line-height:125%;text-align:center}
-.tunit .c{font-size:12px;line-height:130%;color:var(--ink75)}
-.tunit.taken{border-width:1.5px}
-.tunit .tag{font-size:12px;line-height:130%;font-weight:500}
-.failline{font-size:12px;line-height:130%;color:var(--warn);display:flex;align-items:center;gap:4px}
+.tunit{box-sizing:border-box;width:92px;min-height:56px;background:#fff;border:1px solid var(--gray220);border-radius:8px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.tunit .u{font-size:14px;font-weight:500;line-height:125%;text-align:center;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tunit .c{font-size:12px;line-height:130%;color:var(--ink75);font-variant-numeric:tabular-nums}
+.tunit.taken{border-width:1.5px;padding:7.5px 5.5px}
+.tunit .tag{font-size:12px;line-height:130%;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
 
-/* ---------- modal：設定人數範圍 ---------- */
+/* ---------- modal：設定預約人數範圍 ---------- */
 .mask{position:fixed;inset:0;background:rgba(0,0,0,.3);display:none;align-items:center;justify-content:center;z-index:80;padding:24px}
 .mask.on{display:flex}
-.modal{background:#fff;box-shadow:0 2px 10px rgba(51,51,51,.2);border-radius:12px;width:600px;max-width:100%;max-height:100%;display:flex;flex-direction:column}
+.modal{background:#fff;box-shadow:0 2px 10px rgba(51,51,51,.2);border-radius:12px;width:632px;max-width:100%;max-height:100%;min-height:min(648px,100%);display:flex;flex-direction:column}
 .modalhead{flex:none;height:56px;display:flex;align-items:center;justify-content:center;padding:16px 24px;box-shadow:0 1px 0 rgba(0,0,0,.1)}
-.modalhead h3{margin:0;font-size:20px;line-height:28px;font-weight:500;letter-spacing:.03em;text-align:center}
-.modalbody{flex:1;min-height:0;overflow:auto;padding:24px;display:flex;flex-direction:column;gap:16px;align-items:flex-start}
-.modalhint{margin:0;font-size:12px;line-height:150%;color:var(--ink75)}
-.modalfoot{flex:none;height:64px;display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:12px;box-shadow:0 -1px 0 rgba(0,0,0,.1);border-radius:0 0 12px 12px}
-.btn.big{height:40px;padding:10px 32px;width:128px;font-size:16px;line-height:125%;letter-spacing:0}
+.modalhead h3{margin:0;font-size:20px;line-height:28px;font-weight:500;text-align:center}
+.modalbody{flex:1;min-height:0;overflow:auto;padding:24px;display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.modalhint{margin:0 0 16px;font-size:12px;line-height:150%;color:var(--ink75)}
+.modalfoot{flex:none;height:64px;display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:12px 24px;box-shadow:0 -1px 0 rgba(0,0,0,.1);border-radius:0 0 12px 12px}
+.btn.big{height:40px;padding:10px 32px;min-width:124px;font-size:16px;line-height:125%}
 
 .rangelist{width:100%;display:flex;flex-direction:column}
-.rrow{display:flex;align-items:center;gap:12px;padding:12px 0;min-height:58px}
-.rrow + .rrow{border-top:1px solid var(--gray220)}
-.rbadge{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:24px;padding:0 8px;border-radius:6px;background:var(--gray245);color:var(--ink75);font-size:12px;font-weight:500;letter-spacing:.02em}
-.rrow input{box-sizing:border-box;width:72px;height:34px;border:1px solid var(--gray220);border-radius:7px;padding:8px 10px;text-align:center;font-size:14px;font-variant-numeric:tabular-nums}
-.rrow input:focus-visible{outline:2px solid var(--green);outline-offset:1px}
-.rfixed{box-sizing:border-box;width:72px;height:34px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--gray220);border-radius:7px;background:var(--gray245);color:var(--ink27);font-size:14px}
-.rtail{font-size:14px;color:var(--ink75);white-space:nowrap}
+.rrow{display:flex;align-items:center;gap:12px;padding:10px 0;min-height:54px}
+.rrow + .rrow{border-top:1px solid var(--gray240)}
+.rlbl{flex:none;width:52px;font-size:16px;font-weight:500;line-height:22px}
+.rnum{box-sizing:border-box;display:flex;align-items:center;gap:4px;width:80px;height:36px;background:#fff;border:1px solid var(--gray220);border-radius:7px;padding:8px 10px}
+.rnum input{flex:1;min-width:0;width:100%;border:0;outline:0;text-align:center;font-size:14px;background:transparent;font-variant-numeric:tabular-nums;padding:0}
+.rnum .sfx{font-size:14px;color:var(--ink27)}
+.rnum.dis{background:var(--gray240);border-color:var(--gray240)}
+.rnum.dis input{color:var(--ink27)}
+.rnum.bad{border-color:var(--red)}
+.rnum.bad input{color:var(--red)}
+.rnum:focus-within{border-color:var(--green)}
+.rnum.bad:focus-within{border-color:var(--red)}
+.rtail{font-size:16px;line-height:22px;white-space:nowrap}
 .rspacer{flex:1}
-.rchip{display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:999px;background:var(--green-light);color:var(--green-dark);font-size:13px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rchip{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-width:106px;height:30px;padding:4px 12px;border-radius:6px;background:var(--green-light);color:var(--green);font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
 .rdel{flex:none;width:28px;height:28px;border:0;background:transparent;padding:0;color:var(--red);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:50%}
 .rdel:hover{background:var(--gray245)}
-.rdel:disabled{visibility:hidden}
+.rdel:disabled,.rdel.hide{visibility:hidden}
 .rdel:focus-visible{outline:2px solid var(--green);outline-offset:1px}
-.addrange{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--green);background:#fff;color:var(--green);font-size:14px;font-weight:500;cursor:pointer}
-.addrange:hover{background:var(--green-light)}
-.addrange:disabled{opacity:.4;cursor:not-allowed}
+.modalerr{font-size:13px;line-height:140%;color:var(--red);min-height:18px;padding:2px 0}
+.addrange{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;height:40px;border-radius:8px;border:1px solid var(--gray220);background:#fff;color:var(--ink75);font-size:14px;font-weight:500;cursor:pointer}
+.addrange:hover{background:var(--gray245)}
+.addrange:disabled{background:var(--gray240);border-color:var(--gray240);color:var(--ink27);cursor:not-allowed}
 .addrange:focus-visible{outline:2px solid var(--green);outline-offset:2px}
-.modalerr{font-size:12px;color:var(--red);min-height:16px}
 
-.toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-16px);background:var(--green);color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:100}
+.toast{position:fixed;top:88px;left:50%;transform:translateX(-50%) translateY(-16px);background:var(--green);color:#fff;padding:10px 32px;border-radius:6px;font-size:15px;opacity:0;pointer-events:none;transition:.2s;z-index:100}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ---------- RWD（_M 稿） ---------- */
 @media (max-width:900px){
   .rail,.subnav{display:none}
-  .content{padding:16px}
+  .mtop{display:flex}
+  .ptitle{padding:16px 12px 0}
+  .ptitle .divider{margin-top:16px}
+  .content{padding:24px 12px;gap:24px}
+  .panelcard{padding:16px 12px}
+  .tierrow{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .tier{flex:none}
+  .ruletitle{gap:12px}
+  .ruletitle h3{font-size:17px}
+  .simbar{gap:12px}
+  .simctl{flex:1}
+  .simline .numfield{flex:1;min-width:0}
+  .quick{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .quick .btn{flex:none}
+  .tunits{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 6px}
+  .tunit{width:auto}
+  .mask{padding:0;align-items:flex-end}
+  .modal{width:100%;max-width:100%;height:calc(100% - 88px);min-height:0;border-radius:12px 12px 0 0}
+  .modalfoot{border-radius:0}
+  .rlbl{width:48px}
+  .rchip{min-width:84px}
+  .nullcard{flex-direction:column;align-items:flex-start}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -237,50 +295,57 @@ button,input,select{font-family:inherit;font-size:inherit;color:inherit;letter-s
   </nav>
 
   <div class="main">
+    <div class="mtop" aria-hidden="true">
+      <div class="mleft">
+        <button type="button" aria-label="選單"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+        <div class="mlogo">店+</div>
+      </div>
+      <button type="button" aria-label="帳號"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="9" r="3.2" stroke="currentColor" stroke-width="1.6"/><path d="M5 20c0-3.2 3.1-5.2 7-5.2s7 2 7 5.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.6"/></svg></button>
+    </div>
     <div class="ptitle">
       <div class="inner">
         <h1>自動排位規則</h1>
-        <p>建立預約時，系統自動選位的方式與順序。</p>
+        <p>您可以設定建立預約資料時，系統自動分配預約單位的方式與順序。</p>
       </div>
       <div class="divider"></div>
     </div>
 
-    <div class="content">
-      <section class="sect">
+    <div class="content" id="content">
+      <section class="sect" id="sectOrder">
         <h2>預約單位排位順序</h2>
         <div class="panelcard">
-          <p class="lead">依人數最多分成 5 個範圍，每個範圍套用不同的排位規則。</p>
-          <div class="rulewrap">
+          <p class="lead">您最多可以設定5個預約人數範圍與排位規則。</p>
+          <div class="rulewrap" id="rulewrap">
             <div class="tierrow" id="tierrow"></div>
             <div class="rule" id="rule"></div>
           </div>
         </div>
       </section>
 
-      <section class="sect">
+      <section class="sect" id="sectSim">
         <h2>自動排位模擬預覽</h2>
         <div class="panelcard">
-          <p class="lead">依序加入預約人數，看同時段的排位結果。</p>
+          <p class="lead">依序新增預約人數，查看同時段預約的排位結果。</p>
           <div class="simbar">
-            <div class="simline">
-              <span class="simlabel">預約人數</span>
-              <div class="numfield">
-                <input id="party" type="number" min="1" max="20" value="1" aria-label="預約人數">
-                <span class="unit-suffix">人</span>
+            <span class="simlabel">預約人數</span>
+            <div class="simctl">
+              <div class="simline">
+                <div class="numfield" id="partyField">
+                  <input id="party" type="number" min="1" max="20" value="1" aria-label="預約人數">
+                  <span class="unit-suffix">人</span>
+                </div>
+                <button class="btn outline" id="addRes" type="button"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 4v10M4 9h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>預約</button>
               </div>
-              <button class="btn outline" id="addRes" type="button"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 4v10M4 9h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>預約</button>
-            </div>
-            <div class="quick">
-              <span class="quicklabel">快速加入</span>
+              <div class="numerr" id="partyErr" hidden>請輸入大於或等於 1 的數字</div>
               <div class="quick" id="quick"></div>
             </div>
           </div>
           <div class="simbox">
             <div class="simhead">
-              <div><span class="t">模擬結果</span><span class="n" id="simcount"></span></div>
+              <span class="t">模擬結果</span>
               <button class="iconbtn" id="resetSim" type="button" title="重置模擬" aria-label="重置模擬"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M15.5 7.5A6 6 0 1 0 16 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16.5 3.5v4h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             </div>
-            <div id="failbox"></div>
+            <div class="simstat" id="simstat" hidden></div>
             <div class="simgroups" id="simgroups"></div>
           </div>
         </div>
@@ -291,14 +356,14 @@ button,input,select{font-family:inherit;font-size:inherit;color:inherit;letter-s
 
 <div class="mask" id="tierMask" role="dialog" aria-modal="true" aria-labelledby="tierModalTitle">
   <div class="modal">
-    <div class="modalhead"><h3 id="tierModalTitle">設定人數範圍</h3></div>
+    <div class="modalhead"><h3 id="tierModalTitle">設定預約人數範圍</h3></div>
     <div class="modalbody">
-      <p class="modalhint">最多可分成 5 個人數範圍。第一個範圍固定從 1 人開始，其餘填入該範圍的起始人數；右側是實際生效的範圍。</p>
+      <p class="modalhint">新增人數範圍，並輸入範圍的起始人數進行設定；最多可建立5個範圍。</p>
       <div class="rangelist" id="tierRows"></div>
       <div class="modalerr" id="tierErr"></div>
       <button class="addrange" id="addTier" type="button">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M9 4v10M4 9h10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-        新增範圍
+        人數範圍
       </button>
     </div>
     <div class="modalfoot">
@@ -308,17 +373,18 @@ button,input,select{font-family:inherit;font-size:inherit;color:inherit;letter-s
   </div>
 </div>
 
-<div class="toast" id="toast">已儲存變更</div>
+<div class="toast" id="toast">已變更人數範圍</div>
 <script>
 (function(){
 "use strict";
 
 /* ================= data ================= */
+var STORE_KEY="p4autoseat_design";
 function seedGroups(){
   return [
     {id:"in",name:"室內",merge:2,units:[
       {id:"In 1",min:1,max:2},{id:"In 2",min:1,max:2},{id:"In 3",min:1,max:4},
-      {id:"In 4",min:1,max:4},{id:"in5",min:5,max:6},{id:"in6",min:1,max:10}]},
+      {id:"In 4",min:1,max:4},{id:"In 5",min:5,max:6},{id:"In 6",min:1,max:10}]},
     {id:"bar",name:"吧台",merge:1,units:[
       {id:"吧台1",min:1,max:2},{id:"吧台2",min:1,max:2},{id:"吧台3",min:1,max:2}]},
     {id:"out",name:"戶外",merge:1,units:[
@@ -331,19 +397,37 @@ function defaultOrder(groups){
   return groups.map(function(g){return {gid:g.id,uids:g.units.map(function(u){return u.id;})};});
 }
 var GROUPS = seedGroups();
+/* Null 空狀態展示（定稿 309_43384）：?null=1 或 #null */
+var NULL_MODE = /[?&#]null(=1|\b|$)/.test(location.search+location.hash);
+if(NULL_MODE) GROUPS = [];
+
 var state = {
-  tiers:[{min:1,strategy:"group",order:defaultOrder(GROUPS)}],
+  tiers:[{min:1,strategy:"least",order:defaultOrder(GROUPS)}],
   active:0
 };
+var sim={parties:[],items:[],occupied:{}};
 
-/* 排序：最少單位 → 單位順序 → 群組優先填滿（前兩者的混合） */
+/* sessionStorage 持久化（範圍設定＋模擬佇列） */
+function persist(){
+  try{sessionStorage.setItem(STORE_KEY,JSON.stringify({tiers:state.tiers,active:state.active,parties:sim.parties}));}catch(e){}
+}
+function restore(){
+  if(NULL_MODE)return;
+  try{
+    var d=JSON.parse(sessionStorage.getItem(STORE_KEY));
+    if(d&&d.tiers&&d.tiers.length){state.tiers=d.tiers;state.active=Math.min(d.active||0,d.tiers.length-1);}
+    if(d&&d.parties)sim.parties=d.parties;
+  }catch(e){}
+}
+
+/* 分配方式（定稿 358_7479）：讀取態標題與 radio 標題不同（least） */
 var STRATEGIES = [
-  {key:"least", title:"用最少單位",
-   hint:"優先用最少的桌數安排。例如 2 位客人給 2 人桌，不會占掉 4 人桌。"},
-  {key:"unit",  title:"依單位順序",
-   hint:"不管幾位客人，都從排最前面的桌子開始安排；一桌坐不下就往後併桌。"},
-  {key:"group", title:"群組優先填滿",
-   hint:"先把排在前面的群組（例如室內）坐滿，排不下才換下一個群組；同一個群組裡用最少的桌數。"}
+  {key:"least", title:"以最少單位優先", readTitle:"最少單位優先",
+   hint:"以符合人數的最少單位進行分配。如：2人預約，將優先尋找2人單位，若無符合，才合併二個1人單位"},
+  {key:"unit",  title:"依單位順序分配", readTitle:"依單位順序分配",
+   hint:"不論人數，都從排序在前的單位開始分配。如：2人預約，將安排前面的8人單位，而非後面的2人單位"},
+  {key:"group", title:"依序填滿群組", readTitle:"依序填滿群組",
+   hint:"以「最少單位優先」依序填滿群組。如：先開放排在前面的A群組，額滿後才開放下一個B群組"}
 ];
 function strat(k){for(var i=0;i<STRATEGIES.length;i++){if(STRATEGIES[i].key===k)return STRATEGIES[i];}return STRATEGIES[0];}
 function groupDef(gid){for(var i=0;i<GROUPS.length;i++){if(GROUPS[i].id===gid)return GROUPS[i];}return null;}
@@ -355,11 +439,14 @@ function unitDef(gid,uid){
 function mergeLabel(g){return g.merge>1?("可合併單位數："+g.merge):"不可合併";}
 
 /* ================= ranges ================= */
+function rangeText(lo,hi){ /* hi=null → 以上 */
+  if(hi==null)return lo+"人以上";
+  if(hi<=lo)return lo+"人";
+  return lo+"~"+hi+"人";
+}
 function tierLabel(i){
   var t=state.tiers[i],next=state.tiers[i+1];
-  if(!next)return t.min+" 人以上";
-  var hi=next.min-1;
-  return (t.min===hi ? t.min+" 人" : t.min+"–"+hi+" 人");
+  return rangeText(t.min,next?next.min-1:null);
 }
 function tierFor(party){
   var idx=0;
@@ -433,10 +520,14 @@ function allocate(tier,party,occupied){
 }
 
 /* ================= simulation ================= */
-var PALETTE=["#3FBA88","#4B9AC3","#9B7EDE","#E8894A","#D96D8F","#4FB3B3","#8CA83E","#7C8BA1"];
+/* 配位循環顏色（定稿 421_26474）：7 組循環、外框 1.5px、填滿 #FFF+15% */
+var PALETTE=["#3FBA88","#4B9AC3","#EF6868","#7F27A5","#B87F0B","#133419","#FF991F"];
 function resColor(no){return PALETTE[(no-1)%PALETTE.length];}
+function tint(hex,alpha){
+  var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return "rgba("+r+","+g+","+b+","+alpha+")";
+}
 
-var sim={parties:[],items:[],occupied:{}};
 function replay(){
   sim.items=[];sim.occupied={};
   sim.parties.forEach(function(p,i){
@@ -447,9 +538,9 @@ function replay(){
 }
 function addRes(p){
   if(!(p>=1))return;
-  sim.parties.push(p);replay();renderSim();
+  sim.parties.push(p);replay();persist();renderSim();
 }
-function resetSim(){sim.parties=[];replay();renderSim();}
+function resetSim(){sim.parties=[];replay();persist();renderSim();}
 
 /* ================= render ================= */
 var $=function(s){return document.querySelector(s);};
@@ -458,26 +549,39 @@ var DRAG='<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" ar
 var CHEV='<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 12.5 10 7.5l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var CUST='<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 4.17a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Zm0 6.25c2.9 0 5.17 1.55 5.17 3.33v1.25H4.83v-1.25c0-1.78 2.27-3.33 5.17-3.33Z"/></svg>';
 var PEN='<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M12.6 2.9a1.55 1.55 0 0 1 2.2 2.2L6.6 13.3l-3.3 1.1 1.1-3.3 8.2-8.2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
-var ALERT='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.4" stroke="currentColor" stroke-width="1.3"/><path d="M8 4.6v4.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.2" r=".85" fill="currentColor"/></svg>';
+var ALERT='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.4" stroke="currentColor" stroke-width="1.3"/><path d="M8 4.6v4.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.2" r=".85" fill="currentColor"/></svg>';
 var MINUS='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M8 12h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+var EXT='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6.5 3.5H3.8A1.3 1.3 0 0 0 2.5 4.8v7.4a1.3 1.3 0 0 0 1.3 1.3h7.4a1.3 1.3 0 0 0 1.3-1.3V9.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M9.5 2.5h4v4M13.2 2.8 8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 var editing=false, draft=null;
 var colRead={}, colEdit={};
+
+function renderNull(){
+  var host=$("#content");host.innerHTML="";
+  var card=el("div","nullcard");
+  card.appendChild(el("span","nt","尚未設定預約單位"));
+  var b=el("button","gotobtn");b.type="button";
+  b.innerHTML=EXT+"<span>前往設定</span>";
+  card.appendChild(b);
+  host.appendChild(card);
+}
 
 function renderTiers(){
   var host=$("#tierrow");host.innerHTML="";
   state.tiers.forEach(function(t,i){
     var b=el("button","tier"+(i===state.active?" on":""));
+    b.appendChild(el("span","tierkind","範圍"+(i+1)));
     b.appendChild(el("span","tierrange",tierLabel(i)));
-    b.appendChild(el("span","tierkind","範圍 "+(i+1)));
     b.type="button";b.dataset.tier=String(i);
+    if(editing&&i!==state.active)b.disabled=true;
     b.setAttribute("aria-pressed",i===state.active?"true":"false");
     host.appendChild(b);
   });
   var e=el("button","iconbtn");e.type="button";e.id="editTiers";
-  e.setAttribute("aria-label","設定人數範圍");e.title="設定人數範圍";
+  e.setAttribute("aria-label","設定預約人數範圍");e.title="設定預約人數範圍";
   e.innerHTML=PEN.replace('width="18" height="18"','width="20" height="20"');
   host.appendChild(e);
+  $("#rulewrap").classList.toggle("editing",editing);
   positionArrow();
 }
 function positionArrow(){
@@ -493,8 +597,9 @@ function positionArrow(){
 function groupRow(entry,opts){
   var g=groupDef(entry.gid),i=opts.index,edit=opts.edit;
   var col=edit?colEdit:colRead;
+  var empty=!g.units.length;
   if(!edit&&col[entry.gid]===undefined)col[entry.gid]=true;
-  var card=el("div","grp"+(col[entry.gid]?" collapsed":""));
+  var card=el("div","grp"+(empty?" empty":(col[entry.gid]?" collapsed":"")));
   card.dataset.gid=entry.gid;
   if(edit)card.draggable=true;
   var h=el("div","ghead");h.dataset.gid=entry.gid;
@@ -509,34 +614,43 @@ function groupRow(entry,opts){
   left.appendChild(el("span","gname",g.name));
   h.appendChild(left);
   var right=el("div","gright");
-  right.appendChild(el("span","gmerge",mergeLabel(g)));
+  if(empty){
+    right.appendChild(el("span","gempty","尚未設定預約單位"));
+  }else{
+    right.appendChild(el("span","gmerge",mergeLabel(g)));
+  }
   var ch=el("button","chev");ch.type="button";ch.innerHTML=CHEV;
-  ch.setAttribute("aria-expanded",col[entry.gid]?"false":"true");
-  ch.setAttribute("aria-label",(col[entry.gid]?"展開 ":"收合 ")+g.name);
+  if(empty){ch.disabled=true;ch.setAttribute("aria-hidden","true");}
+  else{
+    ch.setAttribute("aria-expanded",col[entry.gid]?"false":"true");
+    ch.setAttribute("aria-label",(col[entry.gid]?"展開 ":"收合 ")+g.name);
+  }
   right.appendChild(ch);h.appendChild(right);
   card.appendChild(h);
 
-  var ul=el("div","units");ul.dataset.gid=entry.gid;
-  entry.uids.forEach(function(uid){
-    var u=unitDef(entry.gid,uid);
-    var row=el("div","unit"+(edit?"":" plain"));
-    row.dataset.uid=uid;row.dataset.gid=entry.gid;
-    if(edit)row.draggable=true;
-    var l=el("div","uleft");
-    if(edit){
-      var uh=el("button","handle");uh.type="button";uh.innerHTML=DRAG;
-      uh.dataset.kind="unit";uh.setAttribute("aria-label","調整 "+uid+" 順序");
-      l.appendChild(uh);
-    }
-    l.appendChild(el("span","uname",uid));
-    row.appendChild(l);
-    var cap=el("div","ucap");
-    cap.appendChild(el("span",null,u.min+"~"+u.max));
-    var ic=el("span");ic.innerHTML=CUST;cap.appendChild(ic);
-    row.appendChild(cap);
-    ul.appendChild(row);
-  });
-  card.appendChild(ul);
+  if(!empty){
+    var ul=el("div","units");ul.dataset.gid=entry.gid;
+    entry.uids.forEach(function(uid){
+      var u=unitDef(entry.gid,uid);
+      var row=el("div","unit");
+      row.dataset.uid=uid;row.dataset.gid=entry.gid;
+      if(edit)row.draggable=true;
+      var l=el("div","uleft");
+      if(edit){
+        var uh=el("button","handle");uh.type="button";uh.innerHTML=DRAG;
+        uh.dataset.kind="unit";uh.setAttribute("aria-label","調整 "+uid+" 順序");
+        l.appendChild(uh);
+      }
+      l.appendChild(el("span","uname",uid));
+      row.appendChild(l);
+      var cap=el("div","ucap");
+      cap.appendChild(el("span",null,u.min+"~"+u.max));
+      var ic=el("span");ic.innerHTML=CUST;cap.appendChild(ic);
+      row.appendChild(cap);
+      ul.appendChild(row);
+    });
+    card.appendChild(ul);
+  }
   return card;
 }
 
@@ -545,7 +659,7 @@ function renderRule(){
   var tier=state.tiers[state.active];
   if(!editing){
     var t=el("div","ruletitle");
-    t.appendChild(el("h3",null,"分配方式："+strat(tier.strategy).title));
+    t.appendChild(el("h3",null,"分配方式："+strat(tier.strategy).readTitle));
     var b=el("button","btn primary");b.type="button";b.id="startEdit";
     b.innerHTML=PEN+"<span>編輯</span>";
     t.appendChild(b);host.appendChild(t);
@@ -557,7 +671,7 @@ function renderRule(){
   }
 
   var head=el("div","ruletitle");
-  head.appendChild(el("p","sub","編輯這個範圍的排位規則"));
+  head.appendChild(el("p","sub","編輯「範圍"+(state.active+1)+"」排位規則"));
   host.appendChild(head);
 
   var b1=el("div","block");
@@ -565,7 +679,7 @@ function renderRule(){
   bh.appendChild(el("div","lbl","選擇分配方式"));
   var al=el("div","alert");
   var ai=el("span");ai.innerHTML=ALERT;al.appendChild(ai);
-  al.appendChild(el("span",null,"標示「不可合併」的群組，不會把桌子併起來排。"));
+  al.appendChild(el("span",null,"預約單位群組需啟用「自動合併預約單位」，系統才會將單位合併排位"));
   bh.appendChild(al);
   b1.appendChild(bh);
   var rs=el("div","radios");rs.setAttribute("role","radiogroup");rs.setAttribute("aria-label","選擇分配方式");
@@ -587,7 +701,7 @@ function renderRule(){
   var b2=el("div","block");
   var bh2=el("div","blockhead");
   bh2.appendChild(el("div","lbl","預約單位排序"));
-  bh2.appendChild(el("div","sublbl","拖曳調整順序"));
+  bh2.appendChild(el("div","sublbl","拖曳以調整預約單位順序"));
   b2.appendChild(bh2);
   var gl2=el("div","groups");gl2.id="editGroups";
   draft.order.forEach(function(entry,i){gl2.appendChild(groupRow(entry,{index:i,edit:true}));});
@@ -602,26 +716,35 @@ function renderRule(){
 }
 
 function renderSim(){
-  $("#simcount").textContent=sim.parties.length?("已加入 "+sim.parties.length+" 筆預約"):"";
+  var stat=$("#simstat");stat.innerHTML="";
+  var okCount=sim.items.filter(function(it){return it.ok;}).length;
   var fails=sim.items.filter(function(it){return !it.ok;});
-  var fb=$("#failbox");fb.innerHTML="";
-  fails.forEach(function(it){
-    var line=el("div","failline");
-    var i=el("span");i.innerHTML=ALERT;line.appendChild(i);
-    line.appendChild(el("span",null,"第 "+it.no+" 筆 "+it.party+" 人排不進去，需人工安排"));
-    fb.appendChild(line);
-  });
+  if(sim.items.length){
+    stat.hidden=false;
+    stat.appendChild(el("div","okcount","已排位組數："+okCount));
+    fails.forEach(function(it){
+      var line=el("div","failline");
+      line.appendChild(el("span","bullet"));
+      line.appendChild(el("span",null,"已無"+it.party+"人可用的預約單位，需人工安排"));
+      stat.appendChild(line);
+    });
+  }else{
+    stat.hidden=true;
+  }
   var host=$("#simgroups");host.innerHTML="";
-  GROUPS.forEach(function(g){
+  /* 定稿 1-1 說明：模擬預覽的單位順序依「範圍1」排列；無單位的群組不顯示 */
+  var order=state.tiers[0]?state.tiers[0].order:defaultOrder(GROUPS);
+  order.forEach(function(entry){
+    var g=groupDef(entry.gid);
+    if(!g||!g.units.length)return;
     var wrap=el("div","tgrp");
     var h=el("div","tgrphead");
-    var left=el("div","left");
-    left.appendChild(el("span","nm",g.name));
-    h.appendChild(left);
+    h.appendChild(el("span","nm",g.name));
     h.appendChild(el("span","mg",mergeLabel(g)));
     wrap.appendChild(h);
     var us=el("div","tunits");
-    g.units.forEach(function(u){
+    entry.uids.forEach(function(uid){
+      var u=unitDef(entry.gid,uid);if(!u)return;
       var taken=sim.occupied[u.id];
       var card=el("div","tunit"+(taken?" taken":""));
       card.dataset.uid=u.id;
@@ -630,8 +753,8 @@ function renderSim(){
       if(taken){
         var c=resColor(taken);
         card.style.borderColor=c;
-        card.style.background=c+"1F";
-        var tag=el("div","tag","#"+taken+"・"+sim.items[taken-1].party+"人");
+        card.style.background=tint(c,.15);
+        var tag=el("div","tag","#"+taken+" · "+sim.items[taken-1].party+"人");
         tag.style.color=c;
         card.appendChild(tag);
       }
@@ -657,34 +780,40 @@ function renderAll(){renderTiers();renderRule();renderQuick();renderSim();}
 document.addEventListener("click",function(e){
   var t=e.target;
   var tierBtn=t.closest?t.closest(".tier"):null;
-  if(tierBtn){
+  if(tierBtn&&!editing){
     var i=parseInt(tierBtn.dataset.tier,10);
-    if(i!==state.active){state.active=i;editing=false;draft=null;renderAll();}
+    if(i!==state.active){state.active=i;persist();renderAll();}
     return;
   }
-  if(t.closest&&t.closest("#editTiers")){openTierModal();return;}
+  if(t.closest&&t.closest("#editTiers")){if(!editing)openTierModal();return;}
   if(t.closest&&t.closest("#startEdit")){
     editing=true;
     draft=JSON.parse(JSON.stringify(state.tiers[state.active]));
+    /* 定稿 1-3 說明：編輯時群組收合預設為展開 */
     colEdit={};draft.order.forEach(function(en){colEdit[en.gid]=false;});
-    renderRule();return;
+    renderTiers();renderRule();return;
   }
-  if(t.closest&&t.closest("#cancelEdit")){editing=false;draft=null;renderRule();return;}
+  if(t.closest&&t.closest("#cancelEdit")){editing=false;draft=null;renderTiers();renderRule();return;}
   if(t.closest&&t.closest("#saveEdit")){
     state.tiers[state.active]=draft;
-    editing=false;draft=null;replay();renderAll();toast("已儲存變更");return;
+    editing=false;draft=null;replay();persist();renderAll();
+    toast("已變更排位規則");
+    /* 定稿 1-3 說明：完成儲存時 focus 在剛剛編輯的人數範圍 tab 按鈕上 */
+    focusOn('.tier[data-tier="'+state.active+'"]');
+    return;
   }
   if(t.closest&&t.closest("#resetSim")){resetSim();return;}
   if(t.closest&&t.closest("#addRes")){
     var v=parseInt($("#party").value,10);
-    if(v>=1)addRes(v);
+    if(v>=1){setPartyErr(false);addRes(v);}
+    else setPartyErr(true);
     return;
   }
   var q=t.closest?t.closest("[data-quick]"):null;
   if(q){addRes(parseInt(q.dataset.quick,10));return;}
   if(t.closest&&t.closest(".handle"))return;
   var gh=t.closest?t.closest(".ghead"):null;
-  if(gh){
+  if(gh&&!gh.closest(".grp.empty")){
     var col=editing&&t.closest("#editGroups")?colEdit:colRead;
     var gid=gh.dataset.gid;
     col[gid]=!col[gid];
@@ -696,6 +825,15 @@ document.addEventListener("click",function(e){
   }
   var ro=t.closest?t.closest(".ropt"):null;
   if(ro&&editing){draft.strategy=ro.dataset.key;renderRule();}
+});
+
+function setPartyErr(on){
+  $("#partyField").classList.toggle("err",on);
+  $("#partyErr").hidden=!on;
+}
+$("#party").addEventListener("input",function(){
+  var v=parseInt($("#party").value,10);
+  if(v>=1)setPartyErr(false);
 });
 
 document.addEventListener("keydown",function(e){
@@ -783,8 +921,8 @@ function commitDom(){
   renderRule();
 }
 
-/* ================= 人數範圍 Modal（方案 A：直接填起始人數） ================= */
-/* tierDraft 直接存每個範圍的「起始人數」，第 1 個固定為 1 */
+/* ================= 設定預約人數範圍 Modal（定稿 309_45342／315_46002／319_48289） ================= */
+/* tierDraft 存每個範圍的「起始人數」，第 1 個固定為 1 */
 var tierDraft=null;
 
 function openTierModal(){
@@ -792,16 +930,15 @@ function openTierModal(){
   tierDraft[0]=1;
   renderTierModal();
   $("#tierMask").classList.add("on");
-  var first=$("#tierRows").querySelector("input");
+  var first=$("#tierRows").querySelector("input:not([disabled])");
   if(first)first.focus();
 }
 function closeTierModal(){$("#tierMask").classList.remove("on");tierDraft=null;}
 
 function draftLabel(i){
   var lo=tierDraft[i];
-  if(i===tierDraft.length-1)return lo+" 人以上";
-  var hi=tierDraft[i+1]-1;
-  return (lo===hi ? lo+" 人" : lo+"–"+hi+" 人");
+  if(i===tierDraft.length-1)return rangeText(lo,null);
+  return rangeText(lo,tierDraft[i+1]-1);
 }
 /* 回傳第一個不合法的索引，全部合法回 -1 */
 function firstBadRow(){
@@ -811,53 +948,55 @@ function firstBadRow(){
   return -1;
 }
 function badMessage(i){
-  return "範圍 "+(i+1)+" 的起始人數必須大於範圍 "+i+"（目前 "+tierDraft[i-1]+" 人）。";
+  return "範圍"+(i+1)+"的起始人數必須大於範圍"+i+"（人數範圍不可重複）";
 }
-function refreshChips(){
+function refreshModalState(){
+  var bad=firstBadRow();
+  $("#tierErr").textContent = bad>-1 ? badMessage(bad) : "";
   [].slice.call(document.querySelectorAll("#tierRows .rrow")).forEach(function(row,i){
     row.querySelector(".rchip").textContent=draftLabel(i);
+    var box=row.querySelector(".rnum");
+    box.classList.toggle("bad",bad>-1&&(i===bad||i===bad-1)&&i>0);
   });
 }
 function renderTierModal(){
   var host=$("#tierRows");host.innerHTML="";
   tierDraft.forEach(function(v,i){
     var row=el("div","rrow");
-    row.appendChild(el("span","rbadge","範圍 "+(i+1)));
-    if(i===0){
-      row.appendChild(el("span","rfixed","1"));
-    }else{
-      var inp=document.createElement("input");
-      inp.type="number";inp.min="2";inp.value=String(v);inp.dataset.row=String(i);
-      inp.setAttribute("aria-label","範圍 "+(i+1)+" 的起始人數");
-      row.appendChild(inp);
-    }
-    row.appendChild(el("span","rtail","人以上"));
+    row.appendChild(el("span","rlbl","範圍"+(i+1)));
+    var box=el("span","rnum"+(i===0?" dis":""));
+    var inp=document.createElement("input");
+    inp.type="number";inp.min="2";inp.value=String(v);inp.dataset.row=String(i);
+    inp.setAttribute("aria-label","範圍"+(i+1)+"的起始人數");
+    if(i===0)inp.disabled=true;
+    box.appendChild(inp);
+    box.appendChild(el("span","sfx","人"));
+    row.appendChild(box);
+    row.appendChild(el("span","rtail","以上"));
     row.appendChild(el("span","rspacer"));
     row.appendChild(el("span","rchip",draftLabel(i)));
-    var del=el("button","rdel");del.type="button";
+    var del=el("button","rdel"+(i===0?" hide":""));del.type="button";
     del.innerHTML=MINUS;del.dataset.del=String(i);
-    del.setAttribute("aria-label","刪除範圍 "+(i+1));
+    del.setAttribute("aria-label","刪除範圍"+(i+1));
     if(i===0)del.disabled=true;
     row.appendChild(del);
     host.appendChild(row);
   });
   $("#addTier").disabled=tierDraft.length>=5;
-  $("#tierErr").textContent="";
+  refreshModalState();
 }
 
 $("#tierMask").addEventListener("input",function(e){
   var inp=e.target;
   if(!inp.dataset||inp.dataset.row===undefined)return;
   tierDraft[parseInt(inp.dataset.row,10)]=parseInt(inp.value,10)||0;
-  var bad=firstBadRow();
-  $("#tierErr").textContent = bad>-1 ? badMessage(bad) : "";
-  if(bad===-1)refreshChips();
+  refreshModalState();
 });
 $("#tierMask").addEventListener("click",function(e){
   var t=e.target;
   if(t===$("#tierMask")){closeTierModal();return;}
   var d=t.closest?t.closest("[data-del]"):null;
-  if(d){tierDraft.splice(parseInt(d.dataset.del,10),1);renderTierModal();return;}
+  if(d&&!d.disabled){tierDraft.splice(parseInt(d.dataset.del,10),1);renderTierModal();return;}
   if(t.closest&&t.closest("#addTier")){
     if(tierDraft.length>=5)return;
     tierDraft.push(tierDraft[tierDraft.length-1]+3);
@@ -869,7 +1008,7 @@ $("#tierMask").addEventListener("click",function(e){
 function saveTiers(){
   var bad=firstBadRow();
   if(bad>-1){
-    $("#tierErr").textContent=badMessage(bad);
+    refreshModalState();
     var f=$("#tierRows").querySelector('input[data-row="'+bad+'"]');
     if(f)f.focus();
     return;
@@ -881,7 +1020,7 @@ function saveTiers(){
   });
   if(state.active>=state.tiers.length)state.active=state.tiers.length-1;
   editing=false;draft=null;
-  closeTierModal();replay();renderAll();toast("已更新人數範圍");
+  closeTierModal();replay();persist();renderAll();toast("已變更人數範圍");
 }
 
 /* ================= misc ================= */
@@ -890,11 +1029,18 @@ function toast(msg){
   clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove("on");},1800);
 }
 $("#party").addEventListener("keydown",function(e){
-  if(e.key==="Enter"){var v=parseInt($("#party").value,10);if(v>=1)addRes(v);}
+  if(e.key==="Enter"){
+    var v=parseInt($("#party").value,10);
+    if(v>=1){setPartyErr(false);addRes(v);}else setPartyErr(true);
+  }
 });
 window.addEventListener("resize",positionArrow);
 
-replay();renderAll();
+if(NULL_MODE){
+  renderNull();
+}else{
+  restore();replay();renderAll();
+}
 
 window.APP={
   get state(){return state;},

@@ -2980,7 +2980,7 @@ function renderTimeline() {
       if (e <= s) return '';
       const m = ST[b.status];
       return `<div class="tl-chip" data-b="${b.id}" style="left:${(s - TL_ORIGIN) / 30 * TL_COLW}px;width:${(e - s) / 30 * TL_COLW - 4}px;background:${m.chipBg};color:${m.chipFg};border-color:${m.chipBd}">
-        <div class="n">${esc(b.start)} ${b.pos ? '<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>' : ''}${esc(b.name)}</div>
+        <div class="n">${esc(b.start)} ${b.pos ? '<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>' : ''}<span class="nm">${esc(b.name)}</span></div>
         <div class="p">${esc(b.phone)}</div>
         <div class="cnt">${b.adults + b.kids} <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.3-3 4-4.4 7-4.4s5.7 1.4 7 4.4"/></svg></div>
         ${b.dupe ? `<div class="bang" style="background:var(--alert)">!</div>` : b.status === 'seated' ? `<div class="bang" style="background:var(--emphasis)">!</div>` : ''}

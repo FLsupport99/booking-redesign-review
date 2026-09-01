@@ -11,8 +11,13 @@
 - 四版：臨時關閉改用 Figma 定稿「1-1 時間軸_管理預約單位開放」（page 2:32）——
   入口為時間軸工具列 off 圖示、專屬模式（返回／中央說明／儲存）、單位列「整日關閉」、
   暫停區塊＝灰底紅虛線＋✕、儲存 toast「已變更預約單位開放」；方案 C（chip＋抽屜＋操作列）整段移除
+- 五版（2026-09-01）：訂金管理整頁改照 2026 Aug Figma 定稿「③ 訂金管理」（p4_assets/
+  manifest files[2]）重做——藍新註冊閘門（未註冊空狀態／註冊長表單含錯誤態／註冊成功）、
+  規則列表（藍新商店代號卡＋訂金規則 (N)＋注意事項）、行內新增/編輯表單、刪除確認 modal、
+  綠/紅頂部 toast。timeline 版的提案式訂金頁（p4ViewDeposit 一族）整段移除，
+  DEPOSITS 種子改為定稿的兩筆（id d1/d2 不變，時段規則「要求訂金」選單同步不受影響）。
 
-作法沿用 Part 4 慣例：以整合版定稿 part4_timeline.html 為基底注入；訂金管理不動。
+作法沿用 Part 4 慣例：以整合版定稿 part4_timeline.html 為基底注入。
 用法：python3 tools/build_part4_priority.py
 """
 import pathlib, sys
@@ -24,6 +29,7 @@ OUT = ROOT / "src" / "part4_priority.html"
 V2_START = "/* ===== Part4 v2 注入：自動排位規則（人數級距） ====="
 V1_START = "/* ===== Part4 注入：自動排位規則 v1（2026-08-06 初版，單純照組別排序） ====="
 DEP_START = "/* ===== Part4 注入：訂金管理（US4-2） ====="
+DEP_END = "/* =====================================================\n   預約規則 landing（入口示意）"
 CLOSE_START = "/* ===== Part4 注入：臨時預約關閉（資料層與時間軸互動） ====="
 CLOSE_END = "/* ---------- 時間軸 ---------- */"
 
@@ -505,6 +511,15 @@ body.p4-mode .tl-chip{opacity:.55;pointer-events:none}
 body.p4-mode .tl-us div{flex-direction:column;gap:1px;justify-content:center}
 .p4f-allday{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted);cursor:pointer}
 .p4f-allday input{accent-color:var(--primary);margin:0}
+/* 定稿 64:27016 的模式外觀：左欄與時間列深色、群組欄收起（單位單欄）、chip 只留時間 */
+body.p4-mode .tl-side,body.p4-mode .tl-side .sh,body.p4-mode .tl-th{background:#3a4250;border-color:#4a5260}
+body.p4-mode .tl-side .sh,body.p4-mode .tl-th span,body.p4-mode .tl-us div{color:#fff}
+body.p4-mode .tl-gl{display:none}
+body.p4-mode .tl-g{border-color:#4a5260}
+body.p4-mode .tl-us{flex-basis:90px}
+body.p4-mode .tl-us div{border-color:#4a5260}
+body.p4-mode .p4f-allday{color:#cfd4db}
+body.p4-mode .tl-chip .p,body.p4-mode .tl-chip .cnt,body.p4-mode .tl-chip .bang,body.p4-mode .tl-chip .n svg,body.p4-mode .tl-chip .nm{display:none}
 `;
 (function () {
   const st = document.createElement('style'); st.id = 'p4fStyle'; st.textContent = P4F_CSS;
@@ -575,6 +590,8 @@ function p4Timeline(rows) {
   document.body.classList.add('p4-mode');
   const h1 = document.querySelector('.bk-head h1');
   if (h1) h1.textContent = '管理預約單位開放';
+  const shEl = document.querySelector('.tl-side .sh');
+  if (shEl) shEl.textContent = '預約單位';   /* 定稿 64:27016 的角落標題 */
   const head = document.querySelector('.bk-head');
   if (head && !head.querySelector('.p4f-bar')) {
     const bar = document.createElement('div');
@@ -720,6 +737,498 @@ function p4fSaveAll() {
 }
 """
 
+DEP2_JS = r"""
+/* ===== Part4 注入：訂金管理（2026 Aug Figma 定稿「③ 訂金管理」多組訂金規則管理） =====
+   由 tools/build_part4_priority.py 注入，取代 timeline 版的提案式訂金頁。
+   仍直接操作 sim.html 既有的 DEPOSITS 陣列——新增／編輯／刪除後，
+   時段規則表單的「要求訂金 → 套用規則」選單會同步（讀同一份資料與 desc 欄位）。
+   藍新註冊狀態存 sessionStorage p4_dep_reg：'1'=已註冊（預設）、'new'=剛註冊成功、'0'=未註冊。 */
+
+const P4D_LINK = '<svg viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M19 14v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
+const P4D_CSS = `
+.p4d-sub{font-size:14px;line-height:20px;color:var(--text-body)}
+.p4d-hr{border:0;border-top:1px solid var(--border-card);margin:16px 0 20px}
+.p4d-gray{background:#f0f0f0;border-radius:var(--r-card);padding:18px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.p4d-gray .m{flex:1;min-width:220px}
+.p4d-gray .t{font-size:17px;line-height:24px;font-weight:700;color:var(--text-strong)}
+.p4d-gray .t.ok{color:var(--primary)}
+.p4d-gray .d{font-size:13px;line-height:19px;color:var(--text-body);margin-top:6px}
+.p4d-gray .btn-md{background:#fff}
+.p4d-sechead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 14px}
+.p4d-sectitle{font-size:17px;font-weight:700;color:var(--text-strong);font-variant-numeric:tabular-nums}
+.p4d-rule{background:#fff;border:1px solid var(--border-card);border-radius:var(--r-card);
+  box-shadow:0 1px 2px rgba(0,0,0,.04);padding:14px 18px;display:flex;align-items:center;gap:6px;margin-bottom:12px}
+.p4d-rule .m{flex:1;min-width:0}
+.p4d-rule .n{font-size:15px;font-weight:700;color:var(--text-strong)}
+.p4d-rule .d{font-size:13px;line-height:19px;color:var(--text-body);margin-top:4px}
+.p4d-ico{width:34px;height:34px;border-radius:50%;border:0;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-body);flex:none}
+.p4d-ico svg{width:17px;height:17px;stroke:currentColor;stroke-width:1.7;fill:none}
+.p4d-ico:hover{background:#ececec}
+.p4d-ico.del{color:var(--alert)}
+.p4d-ico.del:hover{background:#f9e9e9}
+.p4d-null{border:1px dashed #cfcfcf;border-radius:10px;padding:26px 16px;text-align:center;
+  font-size:15px;font-weight:700;color:var(--text-strong);margin-bottom:12px}
+.p4d-notes{background:#f0f0f0;border-radius:var(--r-card);padding:16px 20px;font-size:13px;line-height:21px;color:var(--text-body);margin-top:18px}
+.p4d-notes .nt{font-size:14px;font-weight:700;color:var(--text-strong);margin-bottom:6px}
+.p4d-notes ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.p4d-notes ul ul{margin-top:4px;list-style:none;padding-left:4px}
+.p4d-notes ul ul li::before{content:'◦';margin-right:6px}
+.p4d-notes ol{margin:4px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:4px}
+.p4d-banner{display:flex;align-items:flex-start;gap:8px;margin:20px 0 18px;color:#c94848;font-size:16px;line-height:24px;font-weight:700}
+.p4d-banner svg{width:20px;height:20px;stroke:#c94848;stroke-width:1.8;fill:none;flex:none;margin-top:2px}
+.p4d-form{margin-bottom:12px}
+.p4d-formtitle{font-size:15px;color:var(--text-muted)}
+.p4d-grouplabel{font-size:14px;color:var(--text-muted)}
+.p4d-div{border:0;border-top:1px solid var(--border-card);margin:2px 0}
+.p4d-inline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;color:var(--text-strong)}
+.p4d-inline .input{width:88px}
+.p4d-inline .input input{text-align:center}
+.p4d-err{display:none;color:var(--alert);font-size:12px;line-height:16px}
+.p4d-err.show{display:block}
+.input.p4d-bad{border-color:var(--alert)}
+.input.p4d-bad input{color:var(--alert)}
+.hint.p4d-bad{color:var(--alert)}
+sel.p4d-bad,select.p4d-bad{border-color:var(--alert)}
+.p4d-toast{position:fixed;top:88px;left:50%;transform:translateX(-50%);min-width:220px;text-align:center;
+  padding:10px 24px;border-radius:6px;color:#fff;font-size:14px;line-height:20px;z-index:9999;
+  opacity:0;pointer-events:none;transition:opacity .2s}
+.p4d-toast.ok{background:#6cc39b}
+.p4d-toast.err{background:#d05c5c}
+.p4d-toast.show{opacity:1}
+.p4d-demo{margin-top:26px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text-disabled)}
+.p4d-demo a{color:var(--text-muted);text-decoration:underline;cursor:pointer}
+.p4d-demo a.cur{color:var(--text-body);font-weight:700;text-decoration:none}
+.p4d-modal h3{font-weight:700}
+.p4d-mbody{margin:0 -24px;padding:20px 24px;background:#f0f0f0;font-size:15px;line-height:24px;color:var(--text-body)}
+.btn-md.p4d-danger{background:var(--alert);color:#fff}
+.p4d-regsec{display:flex;flex-direction:column;gap:16px}
+.p4d-radrow{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.p4d-radrow .check{align-items:center}
+textarea.p4d-ta{min-height:96px;padding:8px 10px;border:1px solid var(--border-field);border-radius:var(--r-input);
+  font-size:14px;line-height:20px;font-family:inherit;outline:0;resize:vertical;width:100%}
+textarea.p4d-ta:focus{border-color:var(--border-on)}
+textarea.p4d-ta::placeholder{color:var(--text-disabled)}
+@media (max-width:760px){
+  .p4d-gray .btn-md{width:100%;justify-content:center}
+  .p4d-rule{flex-wrap:wrap}
+}
+`;
+(function(){ const st=document.createElement('style'); st.id='p4dStyle'; st.textContent=P4D_CSS; document.head.appendChild(st); })();
+
+/* 「重置範例」也把訂金規則與藍新註冊狀態還原（DEPOSITS 是 const，reload 以外要手動回種子） */
+(function(){
+  const rb = document.getElementById('resetBtn');
+  if (rb) rb.addEventListener('click', () => {
+    DEPOSITS.splice(0, DEPOSITS.length,
+      { id: 'd1', name: '週末晚上', desc: '預先收款：2人以上，每人200元', way: 'prepay', cond: 'people', minPeople: 2, perPerson: 200, fixed: 200 },
+      { id: 'd2', name: '特殊節日', desc: '信用卡授權綁定：每組300元', way: 'auth', cond: 'fixed', minPeople: 1, perPerson: 200, fixed: 300 });
+    sessionStorage.removeItem('p4_dep_reg');
+    P4D_FORM = null;
+    if (location.hash.startsWith('#/p4deposit')) p4ViewDeposit();
+  });
+})();
+
+function p4dReg(){ return sessionStorage.getItem('p4_dep_reg') || '1'; }
+function p4dSetReg(v){ sessionStorage.setItem('p4_dep_reg', v); }
+let p4dToastTimer;
+function p4dToast(msg, kind){
+  let t = document.getElementById('p4dToast');
+  if (!t){ t = document.createElement('div'); t.id='p4dToast'; document.body.appendChild(t); }
+  t.className = 'p4d-toast ' + (kind || 'ok'); t.textContent = msg;
+  requestAnimationFrame(() => t.classList.add('show'));
+  clearTimeout(p4dToastTimer); p4dToastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function p4dDesc(f){
+  return (f.way === 'auth' ? '信用卡授權綁定' : '預先收款') + '：' +
+    (f.cond === 'fixed' ? `每組${f.fixed}元` : `${f.minPeople}人以上，每人${f.perPerson}元`);
+}
+
+/* 表單狀態：null＝關閉；{mode:'add'} 或 {mode:'edit', id} ＋工作值 f ＋錯誤 err */
+let P4D_FORM = null;
+
+const P4D_NOTES = `
+  <div class="p4d-notes"><div class="nt">注意事項</div><ul>
+    <li>若顧客未如期完成付款或信用卡授權之操作，系統將自動取消預約。</li>
+    <li>預先收款付款期限：送出預約申請後至隔日晚上22:59。若預約時間為送出預約當日或隔日，期限則為預約時間的前30分鐘。
+      <ul><li>範例1：顧客於1月1日送出1月10日中午12:00的預約申請，付款期限為1月2日晚上22:59。</li>
+      <li>範例2：顧客於1月1日送出1月2日中午12:00的預約申請，付款期限為1月2日上午11:30。</li></ul></li>
+    <li>信用卡授權綁定操作期限：送出預約申請後的30分鐘內。</li>
+    <li>信用卡授權完成後，系統僅會保留授權額度，不會自動扣款。如需請款請在授權期限內，於預約清單中找到該筆預約，手動點擊「請款」按鈕，才能執行扣款程序。</li>
+    <li>信用卡授權期限為預約日後七日內，若逾期未完成請款，授權將自動失效且無法再進行扣款，系統亦不會保存顧客的信用卡資訊。
+      <ul><li>範例：顧客若因故取消1月1日下午13:00的預約，需於1月8日晚上22:59前完成請款操作。</li></ul></li>
+  </ul></div>`;
+
+function p4dDemoBar(){
+  const r = p4dReg();
+  const lk = (v, n) => `<a data-p4dreg="${v}" class="${r === v ? 'cur' : ''}">${n}</a>`;
+  return `<div class="p4d-demo">原型展示｜藍新註冊狀態：${lk('1','已註冊')} ${lk('new','剛註冊成功')} ${lk('0','未註冊')}</div>`;
+}
+function p4dBindDemo(){
+  document.querySelectorAll('[data-p4dreg]').forEach(a => a.onclick = () => {
+    p4dSetReg(a.dataset.p4dreg); P4D_FORM = null;
+    if (location.hash === '#/p4deposit') p4ViewDeposit(); else location.hash = '#/p4deposit';
+  });
+}
+
+function p4ViewDeposit(){
+  P4D_FORM = P4D_FORM || null;
+  setTitle([['訂金管理', '#/p4deposit']], '訂金管理');
+  const reg = p4dReg();
+  let body;
+  if (reg === '0'){
+    body = `
+      <div class="p4d-gray"><div class="m">
+        <div class="t">尚未開通訂金功能</div>
+        <div class="d">請先透過MENU店+註冊藍新企業會員</div>
+      </div><button class="btn-md ghost" id="p4dGoReg">${P4D_LINK} 註冊</button></div>`;
+  } else if (reg === 'new'){
+    body = `
+      <div class="p4d-gray" style="background:#fff;border:1px solid var(--border-card)"><div class="m">
+        <div class="t ok">藍新企業會員註冊成功！</div>
+        <div class="d">尚需等待藍新金流審核商家資料</div>
+      </div><button class="btn-md ghost-green" id="p4dLogin">${P4D_LINK} 登入藍新</button></div>
+      <div class="p4d-banner"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg>
+        <span>請登入藍新金流並上傳必要的文件照片，以完成藍新帳號驗證流程。</span></div>
+      <div class="p4d-notes"><div class="nt">藍新金流帳號驗證流程說明</div><ul>
+        <li>初始登入資訊、審核進度與補件通知會發送至您的藍新管理者信箱中，請留意信件通知。</li>
+        <li>因應《洗錢防制法》與相關法規規定，藍新金流要求需於藍新金流服務平台上傳關於您與您的商店驗證資料，如：營業登記文件、金融帳戶存摺影本、實體店面照片等，才能完成帳號審核。</li>
+        <li>您需要準備的資料種類以藍新金流通知為主，請於登入平台後透過下列路徑檢查是否有需要補件或異動的資訊：
+          <ol><li>會員中心 &gt; 基本資料設定</li>
+          <li>會員中心 &gt; 基本資料設定 &gt; 金融機構帳號設定</li>
+          <li>會員中心 &gt; 商店管理 &gt; 詳細資料</li></ol></li>
+        <li>上傳所有必要資料後，需約3至4個工作天藍新金流才會完成審核。審核通過後，即可啟用「訂金功能」。</li>
+      </ul></div>`;
+  } else {
+    body = `
+      <div class="p4d-gray"><div class="m">
+        <div class="t">藍新商店代號：MINU52</div>
+        <div class="d">訂金款項由藍新金流代收，如有收付款相關問題，請直接聯繫藍新金流或付款人。</div>
+      </div><button class="btn-md ghost" id="p4dLogin">${P4D_LINK} 登入藍新</button></div>
+      <div class="p4d-sechead">
+        <div class="p4d-sectitle">訂金規則 (${DEPOSITS.length})</div>
+        <button class="btn-md primary" id="p4dAdd"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> 規則</button>
+      </div>
+      <div id="p4dList"></div>
+      ${P4D_NOTES}`;
+  }
+  $('#content').innerHTML = `
+    <div class="p4d-sub">您可以設定多組訂金規則，供不同的預約時段選擇套用。</div>
+    <hr class="p4d-hr">
+    ${body}
+    ${p4dDemoBar()}`;
+  p4dBindDemo();
+  const go = $('#p4dGoReg'); if (go) go.onclick = () => { location.hash = '#/p4deposit/register'; };
+  const lg = $('#p4dLogin'); if (lg) lg.onclick = () => p4dToast('原型示意：實際會另開藍新金流登入頁', 'ok');
+  const ad = $('#p4dAdd'); if (ad) ad.onclick = () => {
+    P4D_FORM = { mode: 'add', f: { name: '', way: 'prepay', cond: 'people', minPeople: 1, perPerson: 200, fixed: 200 }, err: {} };
+    p4dRenderList();
+  };
+  if (reg === '1') p4dRenderList();
+}
+
+function p4dFormHtml(){
+  const { mode, f, err } = P4D_FORM;
+  const numIn = (id, val, on, ph, bad) => `<div class="input${on ? '' : ' disabled'}${on && bad ? ' p4d-bad' : ''}">
+    <input id="${id}" type="text" inputmode="numeric" value="${on ? esc(String(val)) : ''}" placeholder="${ph}" ${on ? '' : 'disabled'}></div>`;
+  const people = f.cond === 'people', fixed = f.cond === 'fixed';
+  return `
+  <div class="card p4d-form" id="p4dForm">
+    <div class="p4d-formtitle">${mode === 'edit' ? '編輯' : '新增'}訂金規則</div>
+    <div class="field">
+      <span class="field-label">訂金規則名稱</span>
+      <div class="input${err.name ? ' p4d-bad' : ''}"><input id="p4dfName" value="${esc(f.name)}" placeholder="如：特殊節慶"></div>
+      <span class="p4d-err${err.name ? ' show' : ''}">${err.name || ''}</span>
+    </div>
+    <hr class="p4d-div">
+    <div class="p4d-grouplabel">收款方式</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${[['prepay', '預先收款', '顧客可透過轉帳、信用卡、超商代碼完成訂金支付'],
+         ['auth', '信用卡授權綁定', '顧客需完成信用卡授權，若顧客因故爽約，您可於授權期限內請款收取取消金額']]
+        .map(([v, n, sub]) => `<label class="check" data-p4dway="${v}"><span class="radio p4-radio"${f.way === v ? ' data-on' : ''}></span>
+          <span><span class="ck-label">${n}</span><div class="ck-desc">${sub}</div></span></label>`).join('')}
+    </div>
+    <hr class="p4d-div">
+    <div class="p4d-grouplabel">收款條件</div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label class="check p4d-inline" data-p4dcond="people" style="display:flex"><span class="radio p4-radio"${people ? ' data-on' : ''}></span>
+          <span class="ck-label">依據預約人數</span>
+          ${numIn('p4dfMin', f.minPeople, people, '1', err.people)}<span>人以上，</span>
+          ${numIn('p4dfPer', f.perPerson, people, '200', err.people)}<span>元/人</span></label>
+        <span class="p4d-err${err.people ? ' show' : ''}" style="margin:4px 0 0 28px">請輸入大於或等於 1 的人數與金額</span>
+      </div>
+      <div>
+        <label class="check p4d-inline" data-p4dcond="fixed" style="display:flex"><span class="radio p4-radio"${fixed ? ' data-on' : ''}></span>
+          <span class="ck-label">固定金額</span>
+          ${numIn('p4dfFix', f.fixed, fixed, '200', err.fixed)}<span>元/組</span></label>
+        <span class="p4d-err${err.fixed ? ' show' : ''}" style="margin:4px 0 0 28px">請輸入大於或等於 1 的金額</span>
+      </div>
+    </div>
+    <hr class="p4d-div">
+    <div class="btn-row">
+      <button class="btn-md ghost" id="p4dfCancel">取消</button>
+      <button class="btn-md primary" id="p4dfSave">儲存</button>
+    </div>
+  </div>`;
+}
+
+function p4dRenderList(){
+  const box = $('#p4dList'); if (!box) return;
+  const F = P4D_FORM;
+  const ruleCard = d => `
+    <div class="p4d-rule"><div class="m">
+      <div class="n">${esc(d.name)}</div>
+      <div class="d">${esc(d.desc)}</div>
+    </div>
+    <button class="p4d-ico" data-p4de="${d.id}" title="編輯">${ICONS.edit}</button>
+    <button class="p4d-ico del" data-p4dd="${d.id}" title="刪除">${ICONS.trash}</button></div>`;
+  let html = '';
+  if (F && F.mode === 'add') html += p4dFormHtml();
+  if (DEPOSITS.length){
+    html += DEPOSITS.map(d => (F && F.mode === 'edit' && F.id === d.id) ? p4dFormHtml() : ruleCard(d)).join('');
+  } else if (!F){
+    html += `<div class="p4d-null">尚未設定訂金規則</div>`;
+  }
+  box.innerHTML = html;
+  const cnt = document.querySelector('.p4d-sectitle');
+  if (cnt) cnt.textContent = `訂金規則 (${DEPOSITS.length})`;
+  document.querySelectorAll('[data-p4de]').forEach(b => b.onclick = () => {
+    const d = DEPOSITS.find(x => x.id === b.dataset.p4de); if (!d) return;
+    P4D_FORM = { mode: 'edit', id: d.id, orig: JSON.stringify([d.name, d.way, d.cond, d.minPeople, d.perPerson, d.fixed]),
+      f: { name: d.name, way: d.way, cond: d.cond, minPeople: d.minPeople, perPerson: d.perPerson, fixed: d.fixed }, err: {} };
+    p4dRenderList();
+  });
+  document.querySelectorAll('[data-p4dd]').forEach(b => b.onclick = () => p4dDelete(DEPOSITS.find(x => x.id === b.dataset.p4dd)));
+  if (F) p4dBindForm();
+}
+
+function p4dGrab(){
+  const f = P4D_FORM.f;
+  const v = id => { const el = document.getElementById(id); return el && !el.disabled ? el.value : null; };
+  const n = v('p4dfName'); if (n !== null) f.name = n;
+  if (f.cond === 'people'){ const a = v('p4dfMin'), b = v('p4dfPer'); if (a !== null) f.minPeople = a; if (b !== null) f.perPerson = b; }
+  else { const c = v('p4dfFix'); if (c !== null) f.fixed = c; }
+}
+function p4dDirty(){
+  const F = P4D_FORM;
+  if (F.mode === 'add') return true;
+  return F.orig !== JSON.stringify([F.f.name, F.f.way, F.f.cond, +F.f.minPeople, +F.f.perPerson, +F.f.fixed]);
+}
+function p4dSyncSave(){
+  const btn = $('#p4dfSave'); if (!btn) return;
+  const on = String(P4D_FORM.f.name).trim() !== '' && p4dDirty();
+  btn.classList.toggle('primary', on);
+  btn.classList.toggle('disabled', !on);
+}
+function p4dBindForm(){
+  p4dSyncSave();
+  ['p4dfName', 'p4dfMin', 'p4dfPer', 'p4dfFix'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => { p4dGrab(); p4dSyncSave(); });
+  });
+  document.querySelectorAll('[data-p4dway]').forEach(el => el.onclick = () => {
+    p4dGrab(); P4D_FORM.f.way = el.dataset.p4dway; p4dRenderList();
+  });
+  document.querySelectorAll('[data-p4dcond]').forEach(el => el.onclick = e => {
+    if (e.target.tagName === 'INPUT') return;
+    p4dGrab(); P4D_FORM.f.cond = el.dataset.p4dcond; p4dRenderList();
+  });
+  $('#p4dfCancel').onclick = () => { P4D_FORM = null; p4dRenderList(); };
+  $('#p4dfSave').onclick = () => {
+    if ($('#p4dfSave').classList.contains('disabled')) return;
+    p4dGrab();
+    const F = P4D_FORM, f = F.f, err = {};
+    const name = String(f.name).trim();
+    if (DEPOSITS.some(x => x.name.trim() === name && !(F.mode === 'edit' && x.id === F.id))) err.name = '此名稱已被使用';
+    const pos = v => /^\d+$/.test(String(v).trim()) && +v >= 1;
+    if (f.cond === 'people' && !(pos(f.minPeople) && pos(f.perPerson))) err.people = 1;
+    if (f.cond === 'fixed' && !pos(f.fixed)) err.fixed = 1;
+    if (Object.keys(err).length){ F.err = err; p4dRenderList(); return; }
+    const rec = { name, way: f.way, cond: f.cond, minPeople: +f.minPeople, perPerson: +f.perPerson, fixed: +f.fixed };
+    rec.desc = p4dDesc(rec);
+    if (F.mode === 'edit'){
+      const d = DEPOSITS.find(x => x.id === F.id); Object.assign(d, rec);
+      p4dToast('已儲存變更');
+    } else {
+      let i = DEPOSITS.length + 1; while (DEPOSITS.some(x => x.id === 'd' + i)) i++;
+      DEPOSITS.push(Object.assign({ id: 'd' + i }, rec));
+      p4dToast('已新增訂金規則');
+    }
+    P4D_FORM = null; p4dRenderList();
+  };
+}
+
+function p4dDelete(d){
+  if (!d) return;
+  openModal(`
+    <div class="p4d-modal" style="display:flex;flex-direction:column;gap:16px">
+      <h3>確定刪除嗎？</h3>
+      <div class="p4d-mbody">刪除後，已套用此規則的預約時段將不再收取訂金，但不影響已建立的預約。確定刪除「${esc(d.name)}」嗎？</div>
+      <div class="btn-row">
+        <button class="btn-md ghost" id="p4dDelCancel">取消</button>
+        <button class="btn-md p4d-danger" id="p4dDelOk">刪除</button>
+      </div>
+    </div>`);
+  $('#p4dDelCancel').onclick = closeModal;
+  $('#p4dDelOk').onclick = () => {
+    const i = DEPOSITS.findIndex(x => x.id === d.id);
+    if (i >= 0) DEPOSITS.splice(i, 1);
+    ['slots', 'svcSlots', 'catSlots', 'capSlots'].forEach(k => (db[k] || []).forEach(s => { if (s.deposit === d.id) s.deposit = null; }));
+    persist(); closeModal(); p4dToast('已刪除訂金規則'); p4dRenderList();
+  };
+}
+
+/* ── 1-1 註冊藍新企業會員（長表單） ─────────────────────── */
+const P4D_SEL_CITY = ['Taipei City (台北市)', 'New Taipei City (新北市)', 'Taoyuan City (桃園市)', 'Taichung City (台中市)', 'Tainan City (台南市)', 'Kaohsiung City (高雄市)'];
+const P4D_SEL_COUNTY = ['台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市'];
+const P4D_SEL_DIST = ['大同區', '中山區', '中正區', '萬華區', '大安區'];
+const P4D_SEL_IDPLACE = ['北市', '新北市', '桃市', '中市', '南市', '高市', '基市'];
+const P4D_SEL_REISSUE = ['初發', '補發', '換發'];
+const P4D_SEL_SHOPCAT = ['網路商店', '實體商店', '網路與實體商店'];
+const P4D_SEL_SALECAT = ['服務', '商品', '虛擬商品'];
+const P4D_SEL_TRADE = ['5812–餐廳', '5813–酒吧', '5814–速食店'];
+
+function p4dRegView(){
+  setTitle([['訂金管理', '#/p4deposit'], ['註冊藍新企業會員', '']], '註冊藍新企業會員');
+  const F = (id, label, ph, hint) => `
+    <div class="field"><span class="field-label">${label}</span>
+      <div class="input" data-in="${id}"><input id="${id}" placeholder="${esc(ph)}"></div>
+      ${hint ? `<span class="hint" data-hint="${id}">${hint}</span>` : ''}
+      <span class="p4d-err" data-err="${id}"></span></div>`;
+  const SEL = (id, label, opts, hint) => `
+    <div class="field"><span class="field-label">${label}</span>
+      <select class="sel" id="${id}"><option value="">請選擇</option>${opts.map(o => `<option>${o}</option>`).join('')}</select>
+      ${hint ? `<span class="hint">${hint}</span>` : ''}
+      <span class="p4d-err" data-err="${id}"></span></div>`;
+  $('#content').innerHTML = `
+    <div class="card p4d-regsec">
+      <div class="p4d-formtitle">建立藍新金流會員帳號</div>
+      ${F('rAcct', '管理者帳號', '請輸入自訂帳號', '英數混合、最長請勿超過20個字元。可接受「_」「.」「@」三種符號')}
+    </div>
+    <div class="card p4d-regsec">
+      <div class="p4d-formtitle">藍新金流帳號管理者聯絡資訊</div>
+      ${F('rCName', '管理者中文姓名', '若無中文姓名，請直接輸入英文姓名')}
+      ${F('rEName', '管理者英文姓名', 'First Name,Last Name (e.g., Xiao ming, Wang)')}
+      ${F('rPhone', '管理者行動電話號碼', '請輸入手機號碼，如：0912345678')}
+      ${F('rMail', '管理者email', '請輸入管理者聯絡信箱')}
+    </div>
+    <div class="card p4d-regsec">
+      <div class="p4d-formtitle">企業登記資料</div>
+      ${F('rCoName', '企業名稱（會員名稱）', '請提供與經濟部公司登記所記載相同之企業名稱')}
+      ${F('rTaxId', '統一編號（會員證號）', '請提供與經濟部公司登記所記載相同之統一編號')}
+      ${F('rRepName', '企業代表人中文姓名', '請輸入姓名')}
+      <div class="field"><span class="field-label">企業代表人身分</span>
+        <div class="p4d-radrow">
+          ${['本國籍', '外國籍', '外國籍（無居留證者）'].map((n, i) => `<label class="check" data-p4nat="${i}">
+            <span class="radio p4-radio"${i === 0 ? ' data-on' : ''}></span><span class="ck-label" style="font-weight:400">${n}</span></label>`).join('')}
+        </div></div>
+      ${F('rRepId', '企業代表人身分證字號', '請輸入身分證字號')}
+      ${F('rIdDate', '發證日期', '請輸入民國年份，如：0950101')}
+      ${SEL('rIdPlace', '身分證發證地點', P4D_SEL_IDPLACE)}
+      ${SEL('rIdReissue', '身分證領補換', P4D_SEL_REISSUE)}
+      ${F('rBirth', '企業代表人出生年月日', 'YYYYMMDD，如：19900101')}
+      ${F('rCapital', '實收資本額', '請輸入數字')}
+      ${F('rFound', '核准設立日期', 'YYYYMMDD，如：19900101')}
+      ${F('rCoAddr', '公司登記地址', '請輸入公司登記地址')}
+      ${F('rCoAddr2', '公司聯絡地址（會員聯絡地址）', '請輸入公司聯絡地址')}
+      ${F('rCoTel', '公司電話（會員電話）', '如：0x–000111或09xx–000111')}
+    </div>
+    <div class="card p4d-regsec">
+      <div class="p4d-formtitle">開立藍新商店資訊</div>
+      ${F('rShopCn', '商店中文名稱', '請輸入商店中文名稱')}
+      ${F('rShopEn', '商店英文名稱', '請輸入商店英文名稱')}
+      <div class="field"><span class="field-label">商店登記營業地</span>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <div class="input disabled" style="width:110px"><input value="Taiwan" disabled></div>
+          <select class="sel" id="rShopCity" style="width:240px"><option value="">城市</option>${P4D_SEL_CITY.map(o => `<option>${o}</option>`).join('')}</select>
+        </div></div>
+      <div class="field"><span class="field-label">商店聯絡地址</span>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <select class="sel" id="rAddrCounty" style="width:110px"><option value="">縣市</option>${P4D_SEL_COUNTY.map(o => `<option>${o}</option>`).join('')}</select>
+          <select class="sel" id="rAddrDist" style="width:120px"><option value="">行政區</option>${P4D_SEL_DIST.map(o => `<option>${o}</option>`).join('')}</select>
+          <div class="input disabled" style="width:110px"><input id="rAddrZip" placeholder="郵遞區號" disabled></div>
+        </div>
+        <span class="p4d-err" data-err="rAddrCounty">此為必填欄位</span>
+        <div class="input"><input id="rAddrRest" placeholder="請輸入地址"></div></div>
+      ${F('rShopEnAddr', '商店英文聯絡地址', '請輸入商店英文聯絡地址')}
+      ${SEL('rShopCat', '商店類別', P4D_SEL_SHOPCAT)}
+      ${SEL('rSaleCat', '販售類別', P4D_SEL_SALECAT)}
+      ${SEL('rTrade', '行業別', P4D_SEL_TRADE)}
+      <div class="field"><span class="field-label">商店簡介</span>
+        <textarea class="p4d-ta" id="rIntro" placeholder="請填寫商店簡介，字數為255字以內"></textarea></div>
+      ${F('rDispMail', '商店爭議款信箱', '請輸入當發生爭議款項時，藍新專員可連絡您的聯絡信箱')}
+      ${F('rCsMail', '商店客服信箱', '可帶入多組信箱，請用「,」分隔，如：test@YYY.com,test2@YYY.com')}
+    </div>
+    <div class="card p4d-regsec">
+      <div class="p4d-formtitle">連結帳戶資訊</div>
+      ${F('rBankCode', '金融機構代碼', '請輸入金融機構代碼')}
+      ${F('rBranch', '分行代碼', '請輸入分行代碼')}
+      <div class="field"><span class="field-label">帳戶戶名</span>
+        <div class="input disabled"><input id="rAcctName" disabled></div>
+        <span class="hint">帳戶名與企業名稱（會員名稱）需一致，故系統將自動帶入企業名稱以進行身分驗證，請確認名稱是否正確</span></div>
+      ${F('rBankAcct', '帳號帳戶', '請輸入帳號帳戶')}
+      <div class="p4d-notes" style="margin-top:2px"><div class="nt">注意事項</div><ul>
+        <li>此帳戶需經過身分驗證，請務必提供企業帳戶，並請勿填寫與戶名不符的帳戶資料。</li>
+        <li>驗證作業約需五個工作天。</li>
+      </ul></div>
+    </div>
+    <div class="card">
+      <div class="btn-row">
+        <button class="btn-md ghost" id="rCancel">取消</button>
+        <button class="btn-md primary" id="rSubmit">註冊</button>
+      </div>
+    </div>
+    <div class="p4d-demo">原型展示：<a id="rFill">填入範例資料</a></div>`;
+  document.querySelectorAll('[data-p4nat]').forEach(el => el.onclick = () => {
+    document.querySelectorAll('[data-p4nat] .p4-radio').forEach(r => r.removeAttribute('data-on'));
+    el.querySelector('.p4-radio').setAttribute('data-on', '');
+  });
+  $('#rCoName').addEventListener('input', e => { $('#rAcctName').value = e.target.value; });
+  $('#rAddrDist').addEventListener('change', e => { $('#rAddrZip').value = e.target.value ? '103' : ''; });
+  $('#rCancel').onclick = () => { location.hash = '#/p4deposit'; };
+  $('#rFill').onclick = () => {
+    const set = (id, v) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input')); el.dispatchEvent(new Event('change')); };
+    set('rAcct', 'menushop52'); set('rCName', '楊攸凱'); set('rEName', 'Yo Kai,Yang');
+    set('rPhone', '0912345678'); set('rMail', 'kai@mail.com');
+    set('rCoName', '找活股份有限公司'); set('rTaxId', '24661780'); set('rRepName', '楊攸凱');
+    set('rRepId', 'A123456789'); set('rIdDate', '0950101'); set('rIdPlace', '北市'); set('rIdReissue', '換發');
+    set('rBirth', '19870422'); set('rCapital', '99999999'); set('rFound', '20080916');
+    set('rCoAddr', '台北市大同區延平北路一段92號'); set('rCoAddr2', '台北市大同區延平北路一段92號'); set('rCoTel', '02-25581234');
+    set('rShopCn', 'MENU店+'); set('rShopEn', 'MENU Shop'); set('rShopCity', 'Taipei City (台北市)');
+    set('rAddrCounty', '台北市'); set('rAddrDist', '大同區'); set('rAddrRest', '延平北路一段92號');
+    set('rShopEnAddr', 'No. 92, Sec. 1, Yanping N. Rd., Datong Dist., Taipei City 103012, Taiwan');
+    set('rShopCat', '網路商店'); set('rSaleCat', '服務'); set('rTrade', '5812–餐廳');
+    set('rIntro', '商店簡介內容'); set('rDispMail', 'kai@mail.com'); set('rCsMail', 'test@YYY.com,test2@YYY.com');
+    set('rBankCode', '013'); set('rBranch', '262'); set('rBankAcct', '00012345678900');
+    p4dToast('已填入範例資料');
+  };
+  $('#rSubmit').onclick = () => {
+    const val = id => document.getElementById(id).value.trim();
+    const mark = (id, msg) => {
+      const box = document.querySelector(`[data-in="${id}"]`) || document.getElementById(id);
+      if (box) box.classList.add('p4d-bad');
+      const err = document.querySelector(`[data-err="${id}"]`);
+      if (err){ if (msg) err.textContent = msg; err.classList.add('show'); }
+      const hint = document.querySelector(`[data-hint="${id}"]`);
+      if (!msg && hint) hint.classList.add('p4d-bad');
+      bad = true;
+    };
+    document.querySelectorAll('.p4d-bad').forEach(el => el.classList.remove('p4d-bad'));
+    document.querySelectorAll('.p4d-err.show').forEach(el => el.classList.remove('show'));
+    let bad = false;
+    if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d_.@]{1,20}$/.test(val('rAcct'))) mark('rAcct', '');
+    if (!val('rCName')) mark('rCName', '此為必填欄位');
+    if (!/^09\d{8}$/.test(val('rPhone'))) mark('rPhone', '請輸入正確的手機號碼');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val('rMail'))) mark('rMail', '信箱格式錯誤');
+    if (!val('rIdPlace')) mark('rIdPlace', '此為必填欄位');
+    if (!/^0\d{1,2}[-–]\d{6,8}$/.test(val('rCoTel'))) mark('rCoTel', '請依格式輸入，如：0x–000111 或 09xx–000111');
+    if (!val('rAddrCounty')) mark('rAddrCounty');
+    if (bad){ p4dToast('表單未正確填寫', 'err'); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    p4dSetReg('new'); location.hash = '#/p4deposit';
+  };
+}
+"""
+
 PATCHES = [
     ("  if (h === '#/p4auto') return p4ViewAuto();\n  if (h === '#/p4auto1') return p4v1View();",
      "  if (h === '#/p4auto') return p4cView();"),
@@ -729,6 +1238,22 @@ PATCHES = [
     ('<button class="ico" title="匯出"',
      '<button class="ico" title="管理預約單位開放" id="p4fEnter">${P4F_ICON}</button>\n'
      '          <button class="ico" title="匯出"'),
+    # 訂金管理：加註冊藍新長表單的路由（新頁）
+    ("  if (h === '#/p4deposit') return p4ViewDeposit();",
+     "  if (h === '#/p4deposit/register') return p4dRegView();\n  if (h === '#/p4deposit') return p4ViewDeposit();"),
+    # 側欄高亮：註冊頁也要亮「訂金管理」
+    ("h === '#/p4deposit' ? '訂金管理'",
+     "h.startsWith('#/p4deposit') ? '訂金管理'"),
+    # DEPOSITS 種子改成定稿的兩筆（id 不變，時段規則表單讀 name/desc 同步不受影響）
+    ("""const DEPOSITS = [
+  { id: 'd1', name: '平日', desc: '預先收款：2人以上，每人200元' },
+  { id: 'd2', name: '例假日限定', desc: '信用卡授權綁定：每組300元' },
+  { id: 'd3', name: '訂金規則A', desc: '預先收款：2人以上，每人100元' },
+];""",
+     """const DEPOSITS = [
+  { id: 'd1', name: '週末晚上', desc: '預先收款：2人以上，每人200元', way: 'prepay', cond: 'people', minPeople: 2, perPerson: 200, fixed: 200 },
+  { id: 'd2', name: '特殊節日', desc: '信用卡授權綁定：每組300元', way: 'auth', cond: 'fixed', minPeople: 1, perPerson: 200, fixed: 300 },
+];"""),
 ]
 
 
@@ -758,11 +1283,18 @@ def main():
             sys.exit(f"注入點不唯一或找不到（count={html.count(old)}）：\n{old[:120]}…")
         html = html.replace(old, new)
     html = html.replace(DEP_START, V3_JS + "\n" + DEP_START, 1)
+    # 訂金管理：timeline 版提案頁整段換成 2026 Aug Figma 定稿版
+    if html.count(DEP_START) != 1:
+        sys.exit(f"找不到唯一標記：{DEP_START}")
+    i = html.index(DEP_START)
+    j = html.index(DEP_END, i)
+    html = html[:i] + DEP2_JS + "\n" + html[j:]
     if "<title>" in html:
         html = html.replace("<title>", "<title>Part4 整合版（自訂排位順序）｜", 1)
     OUT.write_text(html, encoding="utf-8")
     print(f"OK → {OUT}  ({OUT.stat().st_size:,} bytes)")
-    for sym in ("p4ViewAuto", "p4v1View", "p4AutoSwitcher", "#/p4auto1", "#/p4auto2", "p4OpenDrawer", "p4ModeBar", "臨時關閉模式"):
+    for sym in ("p4ViewAuto", "p4v1View", "p4AutoSwitcher", "#/p4auto1", "#/p4auto2", "p4OpenDrawer", "p4ModeBar", "臨時關閉模式",
+                "p4NormalizeDeposits", "p4DepForm", "p4DepDelete", "p4RenderDepList", "p4DepSw", "訂金預約模式"):
         if sym in html:
             print(f"⚠️ 產出檔仍殘留 {sym}")
 

@@ -126,7 +126,13 @@ def manifest_count(assets_dir: str) -> int:
     if not p.exists():
         return 0
     d = json.loads(p.read_text())
-    secs = d if isinstance(d, list) else d.get("sections", [])
+    if isinstance(d, dict):
+        fr = d.get("frames")
+        if isinstance(fr, dict):
+            return len(fr)
+        secs = d.get("sections", [])
+    else:
+        secs = d
     return sum(len(s.get("frames", [])) for s in secs)
 
 

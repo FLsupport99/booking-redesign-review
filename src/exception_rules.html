@@ -487,6 +487,10 @@ body.dev-mobile .list-row .lr-tools{justify-content:flex-end;}
 .cal2 .exc-mark svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}
 .legend2{display:flex;align-items:center;gap:6px;padding-top:12px;font-size:13px;color:var(--emphasis-d)}
 .legend2 svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
+.legend-row{display:flex;align-items:center;gap:18px}
+.legend2.p4off,.cal2 .off-mark{color:#e05b5b}
+.cal2 .off-mark{font-size:9px;font-weight:700;border:1.2px solid currentColor;border-radius:4px;padding:0 3px;line-height:13px;letter-spacing:.3px}
+.legend2.p4off .off-ic{font-size:9px;font-weight:700;border:1.2px solid currentColor;border-radius:4px;padding:0 3px;line-height:13px;letter-spacing:.3px}
 .day-head{display:flex;align-items:center;gap:12px;font-size:16px;line-height:24px;font-weight:500;margin:26px 0 14px}
 .day-head .bar{color:var(--border-field)}
 .rule-card{border:1px solid var(--border-card);border-radius:10px;background:#fff;margin-bottom:12px;overflow:hidden}
@@ -644,7 +648,8 @@ body.dev-mobile .list-row .lr-tools{justify-content:flex-end;}
               <button class="btn-md ghost" id="todayBtn">今天</button>
             </div>
             <div class="cal2" id="calGrid"></div>
-            <div class="legend2"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>已套用例外規則</div>
+            <div class="legend-row"><div class="legend2"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>已套用例外規則</div>
+            <div class="legend2 p4off"><span class="off-ic">off</span>臨時變更預約單位開放</div></div>
           </div>
         </div>
 
@@ -1208,12 +1213,21 @@ function renderCalendar(){
       ${bk==='all' ? `<span class="closed-mark"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg><span>CLOSED</span></span>` : ''}
       ${bk==='partial' ? `<span class="closed-mark" title="部分服務不可預約"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg><span>部分</span></span>` : ''}
       ${rn && bk!=='all' ? `<span class="exc-mark" title="${rn} 條例外規則"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg></span>` : ''}
+      ${inMonth && p4offDates().has(ymd) ? `<span class="off-mark" title="臨時變更預約單位開放">off</span>` : ''}
     </div>`;
   }
   grid.innerHTML = html;
   grid.querySelectorAll('[data-ymd]').forEach(c=>c.addEventListener('click',()=>{
     state.selectedDate = c.dataset.ymd; renderAll();
   }));
+}
+
+/* 臨時變更預約單位開放（Part 4 定稿 2-1）：讀後台模擬器存的 p4_closures（sessionStorage
+   同源共享，在整合單檔內即時同步）；沒有資料時以 5/27 示範一筆，讓標記看得見 */
+function p4offDates(){
+  let dates = [];
+  try { dates = (JSON.parse(sessionStorage.getItem('p4_closures'))||[]).map(c=>c.date); } catch(e){}
+  return new Set(dates.length ? dates : ['2026-05-27']);
 }
 
 /* ---------- 4. Render: Day panel ---------- */
