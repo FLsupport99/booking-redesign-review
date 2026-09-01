@@ -22,7 +22,7 @@ import pathlib
 import sys
 
 root = pathlib.Path(__file__).resolve().parent.parent
-src = (root / "sim.html").read_text(encoding="utf-8")
+src = (root / "src" / "sim.html").read_text(encoding="utf-8")
 
 
 def inject(hay, anchor, addition, before=True, label=""):
@@ -1098,6 +1098,6 @@ src = src.replace("<title>MENU店+ 後台模擬器</title>",
 src = src.replace("<!-- MENU店+ 後台模擬器 · 假資料互動 Demo · 維護：FindLife Support -->",
                   "<!-- Part4 整合版：由 tools/build_part4_timeline.py 從 sim.html 產生，請勿直接編輯 -->", 1)
 
-out = root / "part4_timeline.html"
+out = root / "src" / "part4_timeline.html"
 out.write_text(src, encoding="utf-8")
 print(f"part4_timeline.html 已產生：{len(src)} chars")

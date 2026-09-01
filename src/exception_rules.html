@@ -1,0 +1,2877 @@
+<!DOCTYPE html>
+<!-- Shop-Rebirth Prototype · 例外預約規則 · 維護：FindLife Support -->
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<title>Shop-Rebirth Prototype — 例外預約規則 v1</title>
+<style>
+/* ===== Design tokens（取自 預約模式/預約單位 Figma 實測）===== */
+:root{
+  --bg-page:#f9f9f9; --bg-surface:#fff; --bg-selected:#ecf8f3; --bg-tag-on:#d6f0e5;
+  --border-card:#f0f0f0; --border-field:#dcdcdc; --border-on:#3fba88; --border-tag-on:#8cd6b8;
+  --primary:#3fba88; --primary-dark:#29a379; --primary-l2:#d6f0e5; --primary-l3:#ecf8f3;
+  --secondary:#4b9ac3; --emphasis:#f8ba4c; --emphasis-d:#ff991f; --alert:#ce4949; --alert-light:#ef6868;
+  --text-strong:#333; --text-body:rgba(51,51,51,.75); --text-muted:rgba(51,51,51,.6); --text-disabled:rgba(51,51,51,.27);
+  --icon-muted:#676767; --sidebar-bg:#333; --btn-disabled:#dcdcdc;
+  --r-tag:4px; --r-nav:6px; --r-input:7px; --r-btn:8px; --r-card:12px;
+  --font:"PingFang TC","PingFang SC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:#e9eaec;color:var(--text-strong);-webkit-font-smoothing:antialiased;}
+button,input,select{font-family:inherit;color:inherit;}
+.canvas{width:1024px;margin:24px auto;background:var(--bg-page);display:flex;box-shadow:0 1px 4px rgba(0,0,0,.12);min-height:768px;}
+
+/* Sidebar */
+.sidebar{width:64px;flex:0 0 64px;background:var(--sidebar-bg);display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:16px 4px;}
+.sidebar .logo{width:32px;height:32px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600;}
+.nav-list{display:flex;flex-direction:column;gap:2px;margin-top:8px;align-items:center;}
+.nav-item{width:56px;height:54px;border-radius:var(--r-nav);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:rgba(255,255,255,.6);}
+.nav-item svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.6;}
+.nav-item span{font-size:10px;line-height:14px;font-weight:500;}
+.nav-item:hover{background:#3d3d3d;} .nav-item.active{color:var(--primary);}
+.sidebar-bottom{display:flex;flex-direction:column;gap:8px;align-items:center;}
+
+/* 設定分類 */
+.settings-nav{width:188px;flex:0 0 188px;background:var(--bg-page);padding:24px 8px;display:flex;flex-direction:column;gap:28px;border-right:1px solid var(--border-card);overflow:auto;}
+.nav-group-title{display:flex;align-items:center;gap:4px;padding:0 8px;margin-bottom:8px;color:var(--primary);font-size:16px;line-height:20px;font-weight:500;}
+.nav-group-title .dot{width:14px;height:14px;border:1px solid var(--primary);border-radius:3px;}
+.nav-sub{display:flex;flex-direction:column;gap:2px;}
+.nav-sub a{display:block;height:34px;line-height:18px;padding:8px 16px;border-radius:var(--r-nav);font-size:14px;font-weight:500;color:var(--text-muted);text-decoration:none;}
+.nav-sub a:hover{background:rgba(0,0,0,.03);}
+.nav-sub a.active{color:var(--text-strong);background:linear-gradient(rgba(236,248,243,.25),rgba(236,248,243,.25)),rgba(0,0,0,.05);}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;background:var(--bg-page);min-width:0;}
+.page-title{padding:30px 20px 0;display:flex;flex-direction:column;gap:24px;}
+.page-title .pt-inner{display:flex;flex-direction:column;gap:4px;}
+.page-title .crumb{font-size:14px;color:var(--text-body);display:flex;align-items:center;gap:8px;}
+.page-title .crumb a{color:var(--text-body);text-decoration:none;}
+.page-title .crumb a:hover{color:var(--primary);}
+.page-title .crumb .cur{color:var(--text-strong);font-weight:500;}
+.page-title h1{font-size:16px;line-height:22px;font-weight:500;}
+.page-title p{font-size:14px;line-height:20px;color:var(--text-body);}
+.divider{height:1px;background:var(--border-field);border:0;}
+.content{padding:24px 20px 36px;display:flex;flex-direction:column;gap:28px;}
+.section{display:flex;flex-direction:column;gap:10px;}
+.section-title{display:flex;align-items:center;gap:10px;font-size:18px;line-height:24px;font-weight:500;}
+.section-title .sub{font-size:14px;font-weight:400;color:var(--text-body);}
+.section-title .spacer{flex:1;}
+.card{background:var(--bg-surface);border:1px solid var(--border-card);border-radius:var(--r-card);padding:20px;display:flex;flex-direction:column;gap:24px;}
+.card.tight{padding:16px 20px;gap:16px;}
+.hr-inner{height:1px;background:var(--border-field);border:0;}
+.meta{font-size:12px;line-height:16px;color:var(--text-muted);}
+.field-label{font-size:14px;line-height:18px;font-weight:500;}
+.hint{font-size:12px;line-height:16px;color:var(--text-body);}
+
+/* 必填防呆 — 抄 figma 3120:57243 */
+.err-msg{display:none;color:var(--alert);font-size:12px;line-height:1.3;letter-spacing:.6px;}
+.err-msg.show{display:inline-block;}
+.field-label .err-inline{color:var(--alert);font-size:12px;font-weight:400;margin-left:8px;display:none;}
+.field-label .err-inline.show{display:inline;}
+.field.has-error > .input,
+.field.has-error .input,
+.extra-row.has-error > .input{border-color:var(--alert);}
+.radio-card.has-error{border-color:var(--alert);}
+.toast-alert{position:fixed;left:50%;top:76px;transform:translateX(-50%);background:rgba(206,73,73,.88);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);color:#fff;padding:8px 12px;border-radius:4px;min-width:218px;text-align:center;font-size:14px;line-height:1.4;letter-spacing:.7px;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:9999;opacity:0;pointer-events:none;transition:opacity .2s;}
+.toast-alert.show{opacity:1;}
+
+/* 時段重疊錯誤訊息 — 抄 figma 4012:35863 */
+.overlap-error{display:none;flex-direction:column;gap:8px;padding-left:16px;color:var(--alert);}
+.overlap-error.show{display:flex;}
+.overlap-error .oe-header{display:flex;gap:4px;align-items:flex-start;}
+.overlap-error .oe-icon{width:20px;height:20px;flex:0 0 20px;color:var(--alert);}
+.overlap-error .oe-icon svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.6;fill:none;}
+.overlap-error .oe-title{font-size:14px;font-weight:600;line-height:1.4;letter-spacing:.7px;}
+.overlap-error .oe-list{display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:1.3;letter-spacing:.6px;}
+.overlap-error .oe-row{display:flex;gap:8px;align-items:flex-start;}
+.overlap-error .oe-row .oe-date{flex:0 0 auto;}
+.overlap-error .oe-row .oe-sep{flex:0 0 auto;}
+.overlap-error .oe-row .oe-times{flex:1;min-width:0;}
+
+/* 模式切換器（放在 page-title 下方） */
+.mode-switch{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--primary-l3);border-bottom:1px solid var(--primary-l2);font-size:13px;}
+.mode-switch .label{color:var(--primary-dark);font-weight:500;}
+.mode-seg{display:inline-flex;border:1px solid var(--primary);border-radius:var(--r-btn);overflow:hidden;background:#fff;}
+.mode-seg button{padding:6px 14px;border:0;background:#fff;color:var(--primary-dark);font-size:13px;font-weight:500;cursor:pointer;border-right:1px solid var(--primary-l2);}
+.mode-seg button:last-child{border-right:0;}
+.mode-seg button.on{background:var(--primary);color:#fff;}
+
+/* Buttons */
+.btn-md{display:inline-flex;align-items:center;gap:6px;height:34px;padding:8px 16px;border-radius:var(--r-btn);font-size:14px;line-height:18px;font-weight:500;cursor:pointer;border:1px solid transparent;background:transparent;}
+.btn-md.primary{background:var(--primary);color:#fff;} .btn-md.ghost{background:#fff;border-color:var(--border-field);color:var(--text-body);} .btn-md.ghost-green{background:#fff;border-color:var(--primary);color:var(--primary);} .btn-md.ghost-red{background:#fff;border-color:var(--alert);color:var(--alert);}
+.btn-md svg{width:14px;height:14px;stroke:currentColor;stroke-width:1.8;fill:none;}
+.btn-lg{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;padding:10px 24px;border-radius:var(--r-btn);font-size:16px;line-height:20px;font-weight:500;cursor:pointer;border:1px solid transparent;background:transparent;}
+.btn-lg.primary{background:var(--primary);color:#fff;} .btn-lg.ghost{background:#fff;border-color:var(--border-field);color:var(--text-body);} .btn-lg.disabled{background:var(--btn-disabled);color:#fff;cursor:not-allowed;}
+.btn-lg.alert{background:var(--alert);color:#fff;}
+.btn-row{display:flex;gap:10px;justify-content:flex-end;}
+.icon-btn{width:32px;height:32px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;color:var(--icon-muted);cursor:pointer;background:transparent;border:0;}
+.icon-btn:hover{background:rgba(0,0,0,.05);}
+.icon-btn.danger{color:var(--alert);}
+.icon-btn svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.7;fill:none;}
+.arrow svg{width:8px;height:12px;stroke:var(--icon-muted);stroke-width:1.6;fill:none;}
+
+/* Inputs */
+.field{display:flex;flex-direction:column;gap:6px;}
+.input{height:36px;padding:8px 10px;border:1px solid var(--border-field);border-radius:var(--r-input);background:#fff;font-size:14px;line-height:20px;display:flex;align-items:center;justify-content:space-between;gap:5px;}
+.input.focused{border-color:var(--border-on);}
+.input input{flex:1;border:0;outline:0;background:transparent;font-size:14px;color:var(--text-strong);}
+.toggle{width:40px;height:24px;border-radius:9999px;background:var(--border-field);position:relative;cursor:pointer;flex:0 0 40px;transition:background .15s;}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s;}
+.toggle.on{background:var(--primary);} .toggle.on::after{left:18px;}
+.check{display:flex;align-items:flex-start;gap:8px;cursor:pointer;}
+.box{width:20px;height:20px;border-radius:var(--r-tag);border:1px solid var(--border-field);background:#fff;flex:0 0 20px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+/* checkbox 勾選態：按 figma 規範 fill PRIMARY、border 維持灰邊 */
+.box.on{background:var(--primary);border-color:var(--border-field);}
+.box.on::after{content:"";width:10px;height:6px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px);}
+.radio{width:20px;height:20px;border-radius:50%;border:1px solid var(--border-field);background:#fff;flex:0 0 20px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.radio.on{border-color:var(--primary);} .radio.on::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--primary);}
+.ck-label{font-size:14px;line-height:20px;font-weight:500;}
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--r-tag);font-size:13px;line-height:18px;}
+.tag.green{background:var(--primary-l2);color:var(--primary-dark);}
+.tag.grey{background:#f0f0f0;color:var(--text-body);}
+.tag.alert{background:rgba(206,73,73,.12);color:var(--alert);}
+.tag.orange{background:rgba(248,186,76,.2);color:var(--emphasis-d);}
+.tag.dim{background:#f5f5f5;color:var(--text-muted);}
+
+/* Radio + 巢狀綠邊框卡（與 Figma 一致的選法 pattern） */
+.radio-card{border:1px solid var(--border-field);border-radius:var(--r-card);padding:16px 20px;cursor:pointer;display:flex;flex-direction:column;gap:12px;background:#fff;}
+.radio-card.on{border-color:var(--primary);}
+.radio-card .head{display:flex;align-items:center;gap:8px;}
+.radio-card .body{padding-left:28px;display:none;flex-direction:column;gap:12px;}
+.radio-card.on .body{display:flex;}
+
+/* ============ 月曆 ============ */
+.cal-head{display:flex;align-items:center;justify-content:center;gap:8px;}
+.cal-head .nav-btn{width:28px;height:28px;border:1px solid var(--border-field);border-radius:var(--r-btn);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--icon-muted);}
+.cal-head .month{font-size:16px;font-weight:500;min-width:120px;text-align:center;}
+.cal-head .spacer{flex:1;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border-card);border:1px solid var(--border-card);border-radius:8px;overflow:hidden;}
+.cal-grid .wd{background:#f9f9f9;text-align:center;font-size:12px;color:var(--text-muted);padding:6px 0;}
+.cal-cell{background:#fff;min-height:72px;padding:6px 6px 4px;font-size:13px;color:var(--text-strong);position:relative;cursor:pointer;display:flex;flex-direction:column;gap:2px;border:2px solid transparent;}
+.cal-cell:hover{background:var(--primary-l3);}
+.cal-cell.out{color:var(--text-disabled);background:#fcfcfc;cursor:default;}
+.cal-cell.out:hover{background:#fcfcfc;}
+.cal-cell.sel{border-color:var(--primary);background:var(--primary-l3);}
+.cal-cell .daynum{font-weight:500;}
+.cal-cell.today .daynum{background:var(--primary);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;}
+.cal-cell .icons{display:flex;gap:4px;flex-wrap:wrap;margin-top:auto;align-items:center;}
+.cal-pill{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:4px;font-size:11px;line-height:14px;font-weight:500;border:1px solid transparent;white-space:nowrap;}
+.cal-pill.block-all{background:var(--alert);color:#fff;border-color:var(--alert);}
+.cal-pill.block-partial{background:#fff;color:var(--alert);border-color:var(--alert);}
+.cal-pill.exc{background:var(--emphasis-d);color:#fff;border-color:var(--emphasis-d);font-weight:700;}
+.cal-pill .em{display:inline-flex;align-items:center;justify-content:center;}
+.cal-pill .em svg{width:11px;height:11px;stroke:currentColor;stroke-width:2.2;fill:none;}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text-body);align-items:center;}
+.legend > span{display:inline-flex;align-items:center;gap:6px;}
+
+/* 規則清單列（L1） */
+.list-row{display:flex;align-items:center;gap:24px;padding:12px 16px;border:1px solid var(--border-field);border-radius:var(--r-card);background:#fff;}
+.list-row.block.all{border-color:rgba(206,73,73,.4);background:rgba(206,73,73,.04);}
+.list-row .lr-main{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;}
+.list-row .lr-title{font-size:16px;line-height:22px;font-weight:500;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.list-row .lr-title .lr-apply{font-size:13px;font-weight:400;color:var(--text-muted);margin-left:4px;}
+.list-row .lr-title .lr-flags{display:inline-flex;align-items:center;gap:8px;margin-left:4px;}
+.list-row .lr-title .lr-flags .ic{width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;color:var(--icon-muted);}
+.list-row .lr-title .lr-flags .ic svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.6;fill:none;}
+.list-row .lr-title .lr-flags .ic.deposit{color:var(--emphasis-d);}
+.list-row .lr-title .lr-flags .ic.approval{color:var(--primary);}
+.list-row .lr-sub{font-size:14px;line-height:20px;color:var(--text-body);}
+/* L1 規則 summary icon line（抄 figma Card / Time Slot Rule）*/
+.lr-summary-icons{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;margin-top:4px;}
+.lr-summary-icons .item{display:inline-flex;align-items:center;gap:6px;font-size:14px;line-height:20px;color:var(--text-strong);}
+.lr-summary-icons .item .ic{width:16px;height:16px;color:var(--icon-muted);flex:0 0 16px;}
+.lr-summary-icons .item .ic svg{width:16px;height:16px;stroke:currentColor;stroke-width:1.6;fill:none;}
+.lr-summary-icons .item.approval{color:var(--primary-dark);}
+.lr-summary-icons .item.approval .ic{color:var(--primary);}
+.list-row .lr-tools{display:flex;gap:4px;}
+.opt-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:var(--r-tag);background:#f0f0f0;color:var(--text-strong);font-size:13px;line-height:18px;font-weight:500;}
+.opt-chip .sep{color:var(--text-muted);font-weight:400;}
+.empty{text-align:center;color:var(--text-body);padding:32px 0;font-size:14px;}
+
+/* ============ L2 表單 ============ */
+.subcard{background:#f9f9f9;border:1px solid var(--border-card);border-radius:var(--r-card);padding:16px;display:flex;flex-direction:column;gap:16px;}
+.subcard-title{font-size:14px;font-weight:500;color:var(--text-muted);display:flex;align-items:center;gap:8px;}
+/* L2 內三大 Section 大標：對齊 figma「設定線上預約時段 / 承接量 / 進階設定」16/22 w500 */
+.l2-section-title{font-size:16px;line-height:22px;font-weight:500;color:var(--text-strong);}
+/* Radio Card 上方 Title 區（如「預約時段 + 請選擇設定方式」副標）*/
+.radio-section-head{display:flex;flex-direction:column;gap:4px;margin-bottom:4px;}
+.radio-section-head .t{font-size:14px;line-height:18px;font-weight:500;color:var(--text-strong);}
+.radio-section-head .sub{font-size:12px;line-height:16px;font-weight:400;color:var(--text-body);}
+/* Radio Card 內 head 旁的 hint 文字（每個選項一行說明）*/
+.radio-card .head .hint{font-size:12px;line-height:16px;color:var(--text-body);font-weight:400;margin-left:4px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+/* 時段預覽：對齊 figma 灰底 #f5f5f5 r12，label 一列、pills 下一列 */
+.preview-pills{display:flex;flex-direction:column;gap:10px;background:#f5f5f5;padding:12px 14px;border-radius:12px;}
+.preview-pills .label{font-size:14px;line-height:20px;color:var(--text-body);display:inline-flex;align-items:center;gap:6px;}
+.preview-pills .label .ico{display:inline-flex;width:16px;height:16px;border-radius:50%;border:1px solid var(--icon-muted);color:var(--icon-muted);font-size:11px;align-items:center;justify-content:center;font-weight:600;}
+.preview-pills .pills-row{display:flex;gap:6px;flex-wrap:wrap;}
+.preview-pills .p{min-width:54px;height:22px;padding:0 8px;background:#fff;border:1px solid var(--border-field);border-radius:4px;font-size:13px;line-height:20px;color:var(--text-strong);display:inline-flex;align-items:center;justify-content:center;}
+.unit-tree{display:flex;flex-direction:column;gap:8px;}
+.unit-tree .grp-head{display:flex;align-items:center;gap:8px;}
+.unit-tree .grp-radio{padding-left:28px;display:flex;gap:24px;}
+.unit-tree .units{padding-left:28px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 12px;margin-top:4px;}
+.unit-tree .total-line{padding:12px 16px;background:#f5f5f5;border-radius:8px;font-size:14px;display:flex;align-items:center;gap:8px;}
+.unit-tree .total-line strong{font-size:18px;color:var(--primary-dark);font-weight:600;}
+.adv-row{display:flex;align-items:flex-start;gap:8px;padding:12px 0;border-bottom:1px solid var(--border-card);}
+.adv-row:last-child{border-bottom:0;}
+.adv-row .col{flex:1;display:flex;flex-direction:column;gap:4px;}
+.adv-row .col .t{font-size:14px;font-weight:500;}
+.adv-row .col .h{font-size:12px;color:var(--text-body);}
+.option-list{display:flex;flex-direction:column;gap:6px;}
+.option-list .opt{padding:8px 12px;border:1px solid var(--border-field);border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:8px;}
+.option-list .opt.on{border-color:var(--primary);background:var(--primary-l3);}
+.option-list .opt .path{font-size:12px;color:var(--text-muted);}
+
+/* Modal */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.3);display:none;align-items:center;justify-content:center;z-index:200;}
+.modal-mask.show{display:flex;}
+.modal{background:#fff;border-radius:8px;padding:24px;width:440px;max-width:92vw;display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 32px rgba(0,0,0,.2);}
+.modal h3{font-size:18px;line-height:24px;font-weight:500;}
+.modal .body{font-size:14px;line-height:20px;color:var(--text-body);display:flex;flex-direction:column;gap:8px;}
+.modal .body p{margin:0;}
+.modal .body .warn{color:var(--text-strong);margin-top:4px;}
+.del-date-list{padding-left:20px;margin:4px 0;color:var(--text-strong);font-size:14px;line-height:22px;}
+.del-date-list li{list-style:disc;}
+
+/* 變更模式 Modal（抄 figma part1_mode option row 風格）*/
+.modal.mode-modal{width:520px;max-width:92vw;}
+.mode-list{display:flex;flex-direction:column;gap:10px;}
+.opt-row{padding:12px 16px;border-radius:var(--r-card);background:#fff;border:1px solid var(--border-field);cursor:pointer;display:flex;align-items:center;gap:16px;}
+.opt-row .radio{flex:0 0 20px;}
+.opt-row .opt-main{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;}
+.opt-row .opt-title{font-size:16px;line-height:22px;font-weight:500;color:var(--text-strong);}
+.opt-row .opt-desc{font-size:14px;line-height:20px;color:var(--text-body);}
+.opt-row .opt-suit{display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--r-tag);background:#f5f5f5;border:1px solid var(--border-field);font-size:13px;line-height:18px;color:var(--text-body);align-self:flex-start;margin-top:4px;}
+.opt-row.on{background:var(--bg-selected);border-color:var(--primary);}
+.opt-row.on .opt-suit{background:var(--bg-tag-on);border-color:var(--border-tag-on);color:var(--primary-dark);}
+.opt-row.on .radio{border-color:var(--primary);}
+.opt-row.on .radio::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--primary);}
+@media (max-width:1023.98px){
+  .modal.mode-modal{width:calc(100% - 32px);}
+}
+.modal .body b{color:var(--text-strong);font-weight:500;}
+
+/* 標註模式 */
+body.annotate .anno{position:relative;outline:2px dashed rgba(206,73,73,.55);outline-offset:-2px;background-color:rgba(248,186,76,.10) !important;}
+.anno > .anno-tag{display:none;position:absolute;top:0;left:0;transform:translateY(-100%);background:#ce4949;color:#fff;font-size:11px;line-height:1.4;font-weight:600;padding:1px 6px;border-radius:0 4px 0 0;white-space:nowrap;z-index:50;}
+body.annotate .anno > .anno-tag{display:block;}
+body.annotate .anno .anno{outline-color:rgba(75,154,195,.6);background-color:rgba(75,154,195,.08) !important;}
+body.annotate .anno .anno > .anno-tag{background:#4b9ac3;}
+body.annotate .anno .anno .anno{outline-color:rgba(99,176,135,.7);}
+body.annotate .anno .anno .anno > .anno-tag{background:#61b087;}
+
+.toolbar{width:1024px;margin:0 auto;display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:8px 4px;font-size:13px;color:#555;}
+.toolbar button{font-size:13px;padding:4px 12px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;}
+.toolbar button.on{background:#333;color:#fff;border-color:#333;}
+.toolbar .note{color:#888;flex-basis:100%;}
+
+/* mode-specific visibility helpers — body class controls which mode-* are shown */
+.mode-only{display:none;}
+body.mode-basic .mode-basic{display:revert;}
+body.mode-total .mode-total{display:revert;}
+body.mode-service .mode-service{display:revert;}
+body.mode-hier .mode-hier{display:revert;}
+body.mode-service .mode-has-options,
+body.mode-hier .mode-has-options{display:revert;}
+/* legend 內：.legend > span specificity (0,1,1) 比 .mode-only (0,1,0) 高，
+   所以要在 legend context 提升 .mode-only 的 specificity 才能真的隱藏。
+   也順帶 enforce mode-service/hier 顯示時用 inline-flex（revert 會降回 inline）。*/
+.legend > span.mode-only{display:none;}
+body.mode-service .legend > span.mode-has-options,
+body.mode-hier .legend > span.mode-has-options{display:inline-flex;}
+body.mode-basic .mode-no-options,
+body.mode-total .mode-no-options{display:revert;}
+body.mode-basic .mode-capacity-units,
+body.mode-service .mode-capacity-units,
+body.mode-hier .mode-capacity-units{display:revert;}
+body.mode-total .mode-capacity-number{display:revert;}
+body.mode-basic .mode-has-limits,
+body.mode-service .mode-has-limits,
+body.mode-hier .mode-has-limits{display:revert;}
+
+/* L1/L2 view 切換 */
+.view{display:none;}
+body.view-l1 .view-l1{display:flex;flex-direction:column;}
+body.view-l2 .view-l2{display:flex;flex-direction:column;}
+
+/* ============ RWD：1024 / 390 兩個斷點（依設計師 figma 慣例）============ */
+/* 桌機是 default。body.dev-mobile 觸發手機。實際 viewport @media 也聯動。 */
+.header-mobile{display:none;}
+
+@media (max-width:1023.98px){
+  .canvas{width:100%;max-width:390px;min-height:auto;margin:0 auto;}
+  .toolbar{width:100%;max-width:390px;flex-direction:column;align-items:flex-start;gap:8px;padding:8px 12px;}
+  .toolbar .note{font-size:11px;line-height:1.4;}
+  .sidebar,.settings-nav{display:none;}
+  .header-mobile{display:flex;}
+  .main .page-title{padding:20px 12px 0;}
+  .main .page-title .crumb{font-size:13px;}
+  .main .content{padding:20px 12px 36px;gap:24px;}
+  .card{padding:16px;gap:20px;}
+  .card.tight{padding:12px 16px;}
+  .section-title{flex-direction:column;align-items:stretch;gap:10px;font-size:16px;line-height:22px;}
+  .section-title .spacer{display:none;}
+  .grid2,.grid3{grid-template-columns:1fr;}
+  .unit-tree .units{grid-template-columns:1fr 1fr;}
+  .modal{width:calc(100% - 32px);max-width:none;padding:20px;}
+  .legend{font-size:12px;gap:10px;}
+  .cal-cell{min-height:56px;font-size:12px;padding:4px 4px 3px;}
+  .cal-pill{font-size:10px;padding:1px 4px;}
+  .list-row{flex-direction:column;align-items:stretch;gap:12px;}
+  .list-row .lr-tools{justify-content:flex-end;}
+}
+body.dev-mobile .canvas{width:390px;max-width:390px;min-height:auto;}
+body.dev-mobile .toolbar{width:390px;flex-direction:column;align-items:flex-start;gap:8px;padding:8px 12px;}
+body.dev-mobile .toolbar .note{font-size:11px;line-height:1.4;}
+body.dev-mobile .sidebar,body.dev-mobile .settings-nav{display:none;}
+body.dev-mobile .header-mobile{display:flex;}
+body.dev-mobile .main .page-title{padding:20px 12px 0;}
+body.dev-mobile .main .page-title .crumb{font-size:13px;}
+body.dev-mobile .main .content{padding:20px 12px 36px;gap:24px;}
+body.dev-mobile .card{padding:16px;gap:20px;}
+body.dev-mobile .card.tight{padding:12px 16px;}
+body.dev-mobile .section-title{flex-direction:column;align-items:stretch;gap:10px;font-size:16px;line-height:22px;}
+body.dev-mobile .section-title .spacer{display:none;}
+body.dev-mobile .grid2,body.dev-mobile .grid3{grid-template-columns:1fr;}
+body.dev-mobile .unit-tree .units{grid-template-columns:1fr 1fr;}
+body.dev-mobile .modal{width:calc(100% - 32px);max-width:none;padding:20px;}
+body.dev-mobile .legend{font-size:12px;gap:10px;}
+body.dev-mobile .cal-cell{min-height:56px;font-size:12px;padding:4px 4px 3px;}
+body.dev-mobile .cal-pill{font-size:10px;padding:1px 4px;}
+body.dev-mobile .list-row{flex-direction:column;align-items:stretch;gap:12px;}
+body.dev-mobile .list-row .lr-tools{justify-content:flex-end;}
+
+/* Header (mobile only) */
+.header-mobile{height:48px;padding:8px 16px;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid var(--border-card);}
+.header-mobile .burger,.header-mobile .account{width:32px;height:32px;border:0;background:transparent;display:flex;align-items:center;justify-content:center;color:var(--text-strong);cursor:pointer;border-radius:6px;}
+.header-mobile .burger:hover,.header-mobile .account:hover{background:rgba(0,0,0,.05);}
+.header-mobile svg{width:24px;height:24px;stroke:currentColor;stroke-width:1.6;fill:none;}
+
+/* toolbar 裝置切換 */
+.dev-seg{display:inline-flex;border:1px solid var(--border-field);border-radius:var(--r-btn);overflow:hidden;background:#fff;}
+.dev-seg button{padding:4px 12px;border:0;background:#fff;color:var(--text-body);font-size:13px;font-weight:500;cursor:pointer;border-right:1px solid var(--border-field);}
+.dev-seg button:last-child{border-right:0;}
+.dev-seg button.on{background:#333;color:#fff;}
+
+/* 進階設定：勾後展開的延伸欄位 */
+.adv-row.on{border-bottom:0;}
+.adv-extra{padding:0 0 12px 28px;display:none;flex-direction:column;gap:10px;border-bottom:1px solid var(--border-card);}
+.adv-row.on + .adv-extra{display:flex;}
+.adv-extra:last-child{border-bottom:0;}
+.adv-extra .extra-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.adv-extra .input{flex:0 0 auto;border-color:var(--primary);}
+.adv-extra .input input:focus{outline:none;}
+.adv-extra select.input{appearance:none;-webkit-appearance:none;padding-right:28px;background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'><path d='M1 1l5 5-5 5' fill='none' stroke='%2329a379' stroke-width='1.6'/></svg>") no-repeat right 8px center;background-size:8px 12px;cursor:pointer;border-color:var(--primary);color:var(--text-strong);}
+/* 訂金條件 summary card（對齊 figma 訂金條件：灰底 r:12 + label/desc 兩段） */
+.adv-extra .deposit-summary{font-size:14px;line-height:20px;color:var(--text-strong);padding:14px 16px;background:#f5f5f5;border-radius:12px;display:flex;flex-direction:column;gap:4px;flex:1;min-width:240px;}
+.adv-extra .deposit-summary .title{font-weight:500;}
+.adv-extra .deposit-summary .desc{color:var(--text-body);}
+
+/* ========== L2 互動元件（picker / dropdown / popup）========== */
+/* Number input — 隱藏原生 spinner；filled 態用綠邊（對齊 figma Input / Complete） */
+.num-input{font-family:inherit;color:var(--text-strong);border:1px solid var(--primary);outline:none;}
+.num-input:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(63,186,136,.12);}
+.num-input::-webkit-outer-spin-button,
+.num-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.num-input[type=number]{-moz-appearance:textfield;}
+
+/* Generic floating popup container (anchored under a trigger) */
+.popup{position:absolute;z-index:300;background:#fff;border:1px solid var(--border-card);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:8px;display:none;}
+.popup.show{display:block;}
+
+/* Dropdown menu (時間間隔 / generic) — 抄 figma Dropdown Menu 樣式 (256x126 r:8) */
+.dropdown-menu{min-width:120px;display:flex;flex-direction:column;gap:2px;padding:6px 0;}
+.dropdown-menu .item{padding:8px 16px;font-size:14px;line-height:20px;color:var(--text-strong);cursor:pointer;}
+.dropdown-menu .item:hover{background:var(--primary-l3);}
+.dropdown-menu .item.on{background:var(--primary-l2);color:var(--primary-dark);font-weight:500;}
+
+/* Time picker menu (102x408 figma) — 兩欄時數/分數捲動 */
+.time-picker{display:flex;gap:8px;padding:8px;min-width:200px;}
+.time-picker .col{display:flex;flex-direction:column;align-items:center;flex:1;}
+.time-picker .col .ttl{font-size:12px;color:var(--text-muted);margin-bottom:4px;}
+.time-picker .col .scroll{max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;width:100%;}
+.time-picker .col .scroll::-webkit-scrollbar{width:6px;}
+.time-picker .col .scroll::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px;}
+.time-picker .col .v{padding:4px 8px;text-align:center;font-size:14px;cursor:pointer;border-radius:4px;color:var(--text-strong);}
+.time-picker .col .v:hover{background:var(--primary-l3);}
+.time-picker .col .v.on{background:var(--primary);color:#fff;font-weight:500;}
+.time-picker-foot{padding:8px;display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--border-card);}
+.time-picker-foot .sep{padding:0 4px;color:var(--text-muted);align-self:center;font-size:13px;}
+
+/* Time range picker — 顯示 start → end 兩個 time slot */
+.time-range-picker{padding:12px;min-width:280px;display:flex;flex-direction:column;gap:12px;}
+.time-range-picker .row{display:flex;align-items:center;gap:12px;}
+.time-range-picker .field{flex:1;}
+.time-range-picker .field-label{font-size:12px;color:var(--text-muted);}
+.time-range-picker .val{padding:8px 10px;border:1px solid var(--border-field);border-radius:7px;font-size:14px;background:#fff;cursor:pointer;text-align:center;}
+.time-range-picker .val.focused{border-color:var(--primary);}
+.time-range-picker .scroll-cols{display:flex;gap:8px;justify-content:space-around;padding:6px 0;border-top:1px solid var(--border-card);}
+.time-range-picker .arrow-sep{font-size:14px;color:var(--text-muted);align-self:center;}
+.time-range-picker .pop-actions{display:flex;justify-content:flex-end;gap:8px;padding-top:8px;border-top:1px solid var(--border-card);}
+
+/* 自訂時間 list */
+.custom-time-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
+.custom-time-row{display:flex;align-items:center;gap:8px;}
+.custom-time-row .input{flex:1;cursor:pointer;}
+.custom-time-row .del{width:32px;height:32px;border:0;background:transparent;color:var(--alert);cursor:pointer;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;}
+.custom-time-row .del:hover{background:rgba(206,73,73,.08);}
+.custom-time-row .del svg{width:16px;height:16px;stroke:currentColor;stroke-width:1.8;fill:none;}
+
+/* Date popup (multi-date) */
+.date-popup{width:340px;padding:0;display:none;}
+.date-popup.show{display:flex;flex-direction:column;}
+.date-popup .dp-head{padding:10px 12px;display:flex;align-items:center;justify-content:center;gap:8px;border-bottom:1px solid var(--border-card);}
+.date-popup .dp-head .title{font-size:15px;font-weight:500;color:var(--text-strong);min-width:80px;text-align:center;}
+.date-popup .dp-head .yr-nav{width:28px;height:28px;border:1px solid var(--border-field);background:#fff;border-radius:6px;cursor:pointer;color:var(--icon-muted);display:inline-flex;align-items:center;justify-content:center;font-size:16px;line-height:1;padding:0;}
+.date-popup .dp-head .yr-nav:hover{background:var(--primary-l3);color:var(--primary);}
+.date-popup .dp-head .today-btn{padding:6px 14px;height:28px;border:1px solid var(--border-field);background:#fff;color:var(--text-strong);font-size:13px;font-weight:500;border-radius:6px;cursor:pointer;line-height:1;margin-left:8px;}
+.date-popup .dp-head .today-btn:hover{background:var(--primary-l3);color:var(--primary);border-color:var(--primary);}
+.date-popup .dp-scroll{max-height:340px;overflow-y:auto;padding:8px 12px;}
+.date-popup .dp-scroll::-webkit-scrollbar{width:6px;}
+.date-popup .dp-scroll::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px;}
+.date-popup .dp-month{margin-bottom:16px;}
+.date-popup .dp-month-label{font-size:13px;font-weight:500;color:var(--text-strong);padding:4px 0 8px;text-align:center;position:sticky;top:0;background:#fff;}
+.date-popup .dp-wd-row{display:grid;grid-template-columns:repeat(7,1fr);font-size:11px;color:var(--text-muted);text-align:center;padding:2px 0;}
+.date-popup .dp-day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.date-popup .dp-cell{padding:6px 0;text-align:center;font-size:13px;border-radius:6px;cursor:pointer;color:var(--text-strong);}
+.date-popup .dp-cell.out{color:var(--text-disabled);cursor:default;}
+.date-popup .dp-cell.out:hover{background:transparent;}
+.date-popup .dp-cell:hover{background:var(--primary-l3);}
+.date-popup .dp-cell.today{font-weight:600;outline:1px solid var(--primary);outline-offset:-1px;}
+.date-popup .dp-cell.sel{background:var(--primary);color:#fff;font-weight:500;}
+.date-popup .dp-cell.sel:hover{background:var(--primary-dark);}
+.date-popup .dp-foot{padding:10px 12px;border-top:1px solid var(--border-card);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.date-popup .dp-foot .count{font-size:12px;color:var(--text-body);}
+.date-popup .dp-foot .actions{display:flex;gap:8px;}
+
+/* 互動防呆：popup 開啟時遮罩外部點擊 */
+.popup-mask{position:fixed;inset:0;z-index:299;display:none;}
+.popup-mask.show{display:block;}
+
+/* Figma 桌機 Timepicker (3120:55536) — 112×~292 直立 hour|min 雙欄 */
+.figma-timepicker{width:112px;padding:0;border-radius:10px;}
+.figma-timepicker .ft-cols{display:flex;padding:8px 0;height:222px;}
+.figma-timepicker .ft-col{width:44px;display:flex;flex-direction:column;gap:2px;align-items:center;overflow-y:auto;flex:1;}
+.figma-timepicker .ft-col::-webkit-scrollbar{width:4px;}
+.figma-timepicker .ft-col::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px;}
+.figma-timepicker .ft-cell{width:44px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;line-height:18px;font-weight:500;cursor:pointer;color:var(--text-strong);flex:0 0 26px;}
+.figma-timepicker .ft-cell:hover{background:var(--bg-page);}
+.figma-timepicker .ft-cell.on{background:var(--primary-l3);}
+.figma-timepicker .ft-divider{width:1px;background:var(--border-card);align-self:stretch;}
+.figma-timepicker .ft-foot{display:flex;align-items:center;justify-content:flex-end;padding:8px 12px;border-top:1px solid var(--border-card);gap:8px;}
+.figma-timepicker .ft-ok{padding:6px 12px;height:30px;font-size:14px;font-weight:500;color:#fff;background:var(--primary);border:0;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;line-height:1;}
+
+/* ===== 2026-08-09 對齊 Figma 定稿（④ 例外預約規則）新增 ===== */
+.sec-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sec-bar .t{font-size:18px;line-height:24px;font-weight:500;flex:1}
+.cal-head2{display:flex;align-items:center;gap:8px;padding:4px 2px 14px}
+.cal-head2 .ym{font-size:18px;line-height:24px;font-weight:500;font-variant-numeric:tabular-nums}
+.cal-head2 .sp{flex:1}
+.cal2{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--border-card);border-radius:8px;overflow:hidden}
+.cal2 .wd{font-size:12px;line-height:16px;color:var(--text-body);text-align:center;padding:9px 0;border-bottom:1px solid var(--border-card);background:#fff}
+.cal2 .cell{min-height:72px;padding:8px 10px;border-right:1px solid var(--border-card);border-bottom:1px solid var(--border-card);
+  background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:6px;position:relative}
+.cal2 .cell:nth-child(7n+7){border-right:0}
+.cal2 .cell.out{color:var(--text-disabled);cursor:default;background:#fff}
+.cal2 .cell .d{font-size:14px;line-height:20px;font-weight:500;font-variant-numeric:tabular-nums}
+.cal2 .cell.out .d{font-weight:400;color:var(--text-disabled)}
+.cal2 .cell.today .d{background:var(--primary);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.cal2 .cell.sel{background:var(--primary-l3);box-shadow:inset 0 0 0 1.5px var(--primary)}
+.cal2 .cell.closed{background:#f5f5f5}
+.cal2 .cell.closed .d{color:var(--text-muted)}
+.cal2 .closed-mark{display:flex;flex-direction:column;align-items:center;gap:2px;align-self:center;color:var(--text-disabled)}
+.cal2 .closed-mark svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6}
+.cal2 .closed-mark span{font-size:11px;letter-spacing:.5px}
+.cal2 .exc-mark{color:var(--emphasis-d)}
+.cal2 .exc-mark svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}
+.legend2{display:flex;align-items:center;gap:6px;padding-top:12px;font-size:13px;color:var(--emphasis-d)}
+.legend2 svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
+.legend-row{display:flex;align-items:center;gap:18px}
+.legend2.p4off,.cal2 .off-mark{color:#e05b5b}
+.cal2 .off-mark{font-size:9px;font-weight:700;border:1.2px solid currentColor;border-radius:4px;padding:0 3px;line-height:13px;letter-spacing:.3px}
+.legend2.p4off .off-ic{font-size:9px;font-weight:700;border:1.2px solid currentColor;border-radius:4px;padding:0 3px;line-height:13px;letter-spacing:.3px}
+.day-head{display:flex;align-items:center;gap:12px;font-size:16px;line-height:24px;font-weight:500;margin:26px 0 14px}
+.day-head .bar{color:var(--border-field)}
+.rule-card{border:1px solid var(--border-card);border-radius:10px;background:#fff;margin-bottom:12px;overflow:hidden}
+.rule-card .rh{display:flex;align-items:center;gap:10px;padding:14px 16px}
+.rule-card .caret{width:24px;height:24px;border-radius:50%;border:1px solid var(--border-field);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;background:#fff}
+.rule-card .caret svg{width:12px;height:12px;fill:none;stroke:var(--icon-muted);stroke-width:2;transition:transform .15s}
+.rule-card.open .caret svg{transform:rotate(180deg)}
+.rule-card .nm{font-size:16px;line-height:24px;font-weight:500;white-space:nowrap}
+.rule-card .tchips{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0}
+.rule-card .tchip{border:1px solid var(--border-field);border-radius:6px;padding:3px 10px;font-size:13px;line-height:19px;font-variant-numeric:tabular-nums;color:var(--text-strong);background:#fff}
+.rule-card .applied{font-size:12px;line-height:18px;color:var(--text-muted);white-space:nowrap}
+.rule-card .flags{display:flex;align-items:center;gap:8px}
+.rule-card .flags .ic{width:18px;height:18px;display:flex}
+.rule-card .flags .ic svg{width:18px;height:18px}
+.tag-nounit{font-size:10px;line-height:16px;padding:2px 8px;border-radius:4px;border:1px solid var(--alert);color:var(--alert);white-space:nowrap}
+.rule-card .acts{display:flex;align-items:center;gap:4px;padding-left:12px;border-left:1px solid var(--border-card)}
+.rule-card .bd{display:none;grid-template-columns:1fr 1fr;gap:24px;padding:0 16px 18px 50px}
+.rule-card.open .bd{display:grid}
+.rule-card .bd .col+.col{border-left:1px dashed var(--border-card);padding-left:24px}
+.rb-h{display:flex;align-items:center;gap:6px;font-size:12px;line-height:18px;color:var(--text-muted);margin:6px 0 8px}
+.rb-h svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6}
+.rb-yr{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.rb-yr .y{font-size:12px;line-height:26px;color:var(--text-muted);width:34px;flex:none;font-variant-numeric:tabular-nums}
+.rb-yr .ds{display:flex;gap:6px;flex-wrap:wrap}
+.rb-li{font-size:14px;line-height:22px;color:var(--text-body);display:flex;align-items:flex-start;gap:8px;margin-bottom:4px}
+.rb-li>svg{width:16px;height:16px;margin-top:3px;flex:none;fill:none;stroke:var(--icon-muted);stroke-width:1.6}
+.rb-li .sub{font-size:12px;color:var(--text-muted)}
+.rb-dot{list-style:disc;margin-left:18px;font-size:14px;line-height:22px;color:var(--text-body)}
+.link-view{background:none;border:0;color:var(--primary-dark);font-size:12px;text-decoration:underline;cursor:pointer;padding:0}
+.day-empty{border:1px solid var(--border-card);border-radius:10px;background:#fff;padding:34px;text-align:center;font-size:16px;font-weight:500;color:var(--text-muted)}
+/* 關閉預約日子頁（年曆） */
+.crumb2{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-muted);margin-bottom:22px}
+.crumb2 a{color:var(--text-body);cursor:pointer}
+.crumb2 b{color:var(--text-strong);font-weight:500}
+.yr-head{display:flex;align-items:center;gap:8px;padding:2px 2px 14px}
+.yr-head .y{font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}
+.yr-head .sp{flex:1}
+.yr-head .lg{font-size:12px;color:var(--text-body);display:flex;align-items:center;gap:6px}
+.yr-head .lg i{width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block}
+.yr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media(max-width:900px){.yr-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mini{border:1px solid var(--border-card);border-radius:8px;padding:12px}
+.mini .mh{text-align:center;font-size:13px;color:var(--text-body);padding-bottom:8px}
+.mini .mg{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.mini .mg span{font-size:10px;color:var(--text-muted);text-align:center;line-height:18px}
+.mini .mg button{border:0;background:none;font-size:12px;line-height:24px;height:24px;border-radius:50%;cursor:pointer;color:var(--text-strong);font-variant-numeric:tabular-nums;padding:0}
+.mini .mg button.out{color:var(--text-disabled);cursor:default}
+.mini .mg button.on{background:var(--primary);color:#fff}
+.units-modal .ug{display:flex;flex-direction:column;gap:14px;max-height:420px;overflow:auto}
+.units-modal .gh{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:500;cursor:pointer}
+.units-modal .gh svg{width:20px;height:20px;fill:none;stroke:var(--icon-muted);stroke-width:2;transition:transform .15s}
+.units-modal .gh.open svg{transform:rotate(180deg)}
+.units-modal .uu{display:none;gap:8px;flex-wrap:wrap;padding-left:28px}
+.units-modal .gh.open+.uu{display:flex}
+.units-modal .uu span{border:1px solid var(--border-field);border-radius:6px;padding:3px 10px;font-size:14px;color:var(--text-body)}
+</style>
+</head>
+<body class="mode-basic view-l1 dev-desktop">
+
+<div class="toolbar">
+  <button id="toggleAnno">標註模式：關</button>
+  <span class="dev-seg" id="devSeg">
+    <button data-dev="desktop" class="on">桌機 1024</button>
+    <button data-dev="mobile">手機 390</button>
+  </span>
+  <button id="openModeModal" title="變更目前演示的預約模式">變更模式：<span id="curModeLabel">階層項目預約</span></button>
+  <button id="resetData" title="清空 sessionStorage 並恢復預設範例資料">重置範例</button>
+  <span class="note">互動資料以 sessionStorage 保存（同 tab reload 仍在；關 tab 重置）。變更模式時：basic ↔ total 共用資料；其他切換會重置該模式範例資料。</span>
+</div>
+
+<div class="canvas">
+
+  <aside class="sidebar">
+    <div>
+      <div class="logo">店+</div>
+      <nav class="nav-list">
+        <div class="nav-item"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 4v16"/></svg><span>預約</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><path d="M16 11h5M16 15h5M16 19h5"/></svg><span>排隊</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg><span>月曆</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg><span>顧客</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M5 8a3 3 0 013-3h8a3 3 0 013 3v6a3 3 0 01-3 3h-6l-4 3v-3a3 3 0 01-1-2z"/></svg><span>推播</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M5 5h11l3 3v11H5z"/><path d="M8 10h8M8 14h6"/></svg><span>公告</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="11" rx="2"/><path d="M12 7v11"/></svg><span>優惠券</span></div>
+        <div class="nav-item active"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><span>設定</span></div>
+      </nav>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-7 7M11 5H6a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1v-5"/></svg><span>開啟</span></div>
+      <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></div>
+    </div>
+  </aside>
+
+  <nav class="settings-nav">
+    <div>
+      <div class="nav-group-title"><span class="dot"></span>帳號設定</div>
+      <div class="nav-sub"><a href="#">商家基本資訊</a><a href="#">肚肚POS串接設定</a><a href="#">通知點數管理</a></div>
+    </div>
+    <div>
+      <div class="nav-group-title"><span class="dot"></span>預約設定</div>
+      <div class="nav-sub">
+        <a href="#">預約規則</a>
+        <a href="#" class="active">例外預約規則</a>
+        <a href="#">自動排位規則</a><a href="#">顧客頁</a><a href="#">後台操作偏好</a>
+        <a href="#">預約通知</a><a href="#">預約追蹤</a><a href="#">訂金管理</a>
+        <a href="#">自訂預約問卷</a><a href="#">店內空間配置</a><a href="#">透過Google預訂</a>
+      </div>
+    </div>
+    <div>
+      <div class="nav-group-title"><span class="dot"></span>排隊設定</div>
+      <div class="nav-sub"><a href="#">線上排隊設定</a><a href="#">排隊組別</a><a href="#">排隊通知</a><a href="#">預計等候時間</a><a href="#">排隊展示頁</a><a href="#">抽單機</a></div>
+    </div>
+    <div>
+      <div class="nav-group-title"><span class="dot"></span>人員帳號設定</div>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ====== 手機 Header（僅手機顯示） ====== -->
+    <div class="header-mobile">
+      <button class="burger" title="選單"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <button class="account" title="帳號"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></button>
+    </div>
+
+    <!-- ====== L1 view ====== -->
+    <div class="view view-l1">
+
+      <div class="page-title">
+        <div>
+          <h1>例外預約規則</h1>
+          <p>您可以針對特定日期關閉線上預約，或設定例外的預約時段與規則。</p>
+        </div>
+        <hr class="divider" />
+      </div>
+
+      <div class="content">
+
+        <!-- 例外預約規則總覽 -->
+        <div class="section">
+          <div class="sec-bar">
+            <span class="t">例外預約規則總覽</span>
+            <button class="btn-md ghost-red" id="blockBtn">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg>關閉預約
+            </button>
+            <button class="btn-md primary" id="addBtn">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>例外規則
+            </button>
+          </div>
+          <div class="card">
+            <div class="cal-head2">
+              <button class="nav-btn" id="prevMonth"><svg viewBox="0 0 8 12" width="7" height="10"><path d="M7 1L2 6l5 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+              <span class="ym" id="monthLabel">2026-05</span>
+              <button class="nav-btn" id="nextMonth"><svg viewBox="0 0 8 12" width="7" height="10"><path d="M1 1l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+              <span class="sp"></span>
+              <button class="btn-md ghost" id="todayBtn">今天</button>
+            </div>
+            <div class="cal2" id="calGrid"></div>
+            <div class="legend-row"><div class="legend2"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>已套用例外規則</div>
+            <div class="legend2 p4off"><span class="off-ic">off</span>臨時變更預約單位開放</div></div>
+          </div>
+        </div>
+
+        <!-- 該日詳情 -->
+        <div class="section">
+          <div class="day-head"><span>例外規則</span><span class="bar">｜</span><span id="dayTitle">2026-05-27 星期三</span></div>
+          <div id="dayPanel"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== L2 view ====== -->
+    <div class="view view-l2">
+
+      <div class="page-title">
+        <div class="crumb">
+          <a href="#" id="backToL1">例外預約規則</a> ›
+          <span class="cur" id="l2Title">新增例外規則</span>
+        </div>
+        <hr class="divider" />
+      </div>
+
+      <div class="content">
+
+        <div class="card">
+
+          <!-- 規則命名 -->
+          <div class="field anno">
+            <span class="anno-tag">F-1 例外規則名稱</span>
+            <span class="field-label">例外規則名稱</span>
+            <div class="input"><input id="ruleName" value="2026母親節" /></div>
+            <span class="err-msg" data-err="name">請輸入例外規則名稱</span>
+          </div>
+
+          <hr class="hr-inner" />
+
+          <!-- 套用日期 -->
+          <div class="field anno">
+            <span class="anno-tag">F-2 套用日期</span>
+            <span class="field-label">套用日期（可多選）</span>
+            <div class="input" id="ruleDatesField" style="cursor:pointer;">
+              <span id="ruleDatesText">2026/05/09、2026/05/10</span>
+              <span class="arrow"><svg viewBox="0 0 8 12"><path d="M1 1l5 5-5 5"/></svg></span>
+            </div>
+            <span class="err-msg" data-err="dates">請選擇套用日期</span>
+          </div>
+
+          <hr class="hr-inner mode-has-options mode-only" />
+
+          <!-- 套用至選項（服務 / 階層 模式才有） -->
+          <div class="field mode-has-options mode-only anno">
+            <span class="anno-tag">F-3 套用至選項</span>
+            <span class="field-label">套用至 <span class="mode-service mode-only">服務項目</span><span class="mode-hier mode-only">子項目</span></span>
+            <span class="hint mode-service mode-only">單選；一條例外規則對應一個項目。若要套到多個項目，請使用「複製」功能。</span>
+            <div class="option-list" id="optionList"></div>
+            <span class="err-msg" data-err="option">請選擇套用的項目</span>
+          </div>
+
+          <hr class="hr-inner" />
+
+          <!-- 設定線上預約時段 -->
+          <div class="field anno">
+            <span class="anno-tag">G 設定線上預約時段</span>
+            <span class="l2-section-title">設定線上預約時段</span>
+            <div class="radio-section-head" style="margin-top:8px;">
+              <span class="t">預約時段</span>
+              <span class="sub">請選擇設定方式</span>
+            </div>
+            <div class="radio-card on anno" data-card="auto">
+              <span class="anno-tag">G-1 自動計算</span>
+              <div class="head">
+                <span class="radio on"></span>
+                <span class="ck-label">自動計算</span>
+                <span class="hint">依據輸入時間自動計算可預約時段</span>
+              </div>
+              <div class="body">
+                <div class="field" data-field-wrap="timeRange">
+                  <span class="field-label">時段範圍 <span class="err-inline" data-err-inline="timeRange">請選擇時段範圍</span></span>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                    <div class="input" id="timeStartField" style="cursor:pointer;width:140px;flex:0 0 140px;">
+                      <span id="timeStartText">11:00</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                    </div>
+                    <span class="hint" style="flex:0 0 auto;color:var(--text-muted);">→</span>
+                    <div class="input" id="timeEndField" style="cursor:pointer;width:140px;flex:0 0 140px;">
+                      <span id="timeEndText">21:00</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                    </div>
+                  </div>
+                </div>
+                <div class="field">
+                  <span class="field-label">時間間隔</span>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                    <div class="input dropdown-trigger" id="intervalField" style="cursor:pointer;width:140px;flex:0 0 140px;" data-dropdown="interval">
+                      <span id="intervalText">30</span>
+                      <span class="arrow"><svg viewBox="0 0 8 12"><path d="M1 1l5 5-5 5"/></svg></span>
+                    </div>
+                    <span class="hint">分鐘</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="radio-card anno" data-card="custom">
+              <span class="anno-tag">G-2 自訂時間</span>
+              <div class="head">
+                <span class="radio"></span>
+                <span class="ck-label">自訂時間</span>
+                <span class="hint">逐筆指定可預約時段</span>
+              </div>
+              <div class="body">
+                <div class="custom-time-list" id="customTimeList">
+                  <!-- 由 JS render -->
+                </div>
+                <button class="btn-md ghost-green" id="addCustomTimeBtn" type="button">
+                  <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> 加入時間
+                </button>
+                <span class="err-msg" data-err="customTimes">請點擊「加入時間」新增自訂時間</span>
+              </div>
+            </div>
+            <div class="field anno" style="margin-top:8px;">
+              <span class="anno-tag">G-3 時段預覽</span>
+              <div class="preview-pills" id="previewPills">
+                <span class="label">線上預約可選時段預覽<span class="ico">i</span></span>
+                <!-- chips rendered by JS -->
+              </div>
+              <div class="overlap-error" id="overlapError">
+                <div class="oe-header">
+                  <span class="oe-icon"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="9"/><path d="M10 5.5v5"/><circle cx="10" cy="13.5" r=".8" fill="currentColor" stroke="none"/></svg></span>
+                  <span class="oe-title">發現有與其他例外規則重複的可選預約時段</span>
+                </div>
+                <div class="oe-list" id="overlapList"></div>
+              </div>
+            </div>
+            <div class="field anno" data-field-wrap="service">
+              <span class="anno-tag">G-4 服務時間長度</span>
+              <span class="field-label">服務時間長度 <span class="err-inline" data-err-inline="service">不可為 0</span></span>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="number" min="0" max="12" class="input num-input" id="serviceHourInput" value="1" style="width:80px;text-align:center;" />
+                <span class="hint">小時</span>
+                <input type="number" min="0" max="59" step="5" class="input num-input" id="serviceMinuteInput" value="30" style="width:80px;text-align:center;" />
+                <span class="hint">分鐘</span>
+              </div>
+            </div>
+          </div>
+
+          <hr class="hr-inner" />
+
+          <!-- 設定線上預約承接量 -->
+          <div class="field anno">
+            <span class="anno-tag">H 設定線上預約承接量</span>
+            <span class="l2-section-title">設定線上預約承接量</span>
+
+            <!-- 預約單位（基本 / 服務 / 階層）-->
+            <div class="mode-capacity-units mode-only">
+              <div class="radio-card" data-card="all-units" style="margin-bottom:10px;">
+                <div class="head"><span class="radio"></span><span class="ck-label">套用所有預約單位</span></div>
+              </div>
+              <div class="radio-card on" data-card="custom-units">
+                <div class="head"><span class="radio on"></span><span class="ck-label">自訂預約單位</span></div>
+                <div class="body">
+                  <span class="hint">*若選擇「套用全部」，未來新增至該群組中的預約單位也將自動套用至此時段規則。</span>
+                  <span class="err-msg" data-err="capacity">請選擇預約單位</span>
+                  <div class="unit-tree" id="unitTree"><!-- render by JS L2Form.renderUnitTree() --></div>
+                  <div class="total-line"><span>最多可承接人數總計</span><strong id="unitTotalNum">0</strong><span class="hint">人</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 開放預約人數上限（總量控管）-->
+            <div class="mode-capacity-number mode-only">
+              <div class="field" style="margin-top:8px;">
+                <span class="field-label">開放預約人數上限</span>
+                <div class="input" style="width:240px;"><input type="text" value="50" /></div>
+                <span class="hint">總量控管模式：直接輸入該時段最多接受的總人數。</span>
+              </div>
+            </div>
+          </div>
+
+          <hr class="hr-inner" />
+
+          <!-- 進階設定 -->
+          <div class="field anno">
+            <span class="anno-tag">I 進階設定</span>
+            <span class="l2-section-title">進階設定</span>
+            <div class="mode-has-limits mode-only">
+              <div class="adv-row" data-adv="limit-people">
+                <span class="box"></span>
+                <div class="col"><span class="t">限制店內總人數</span><span class="h">限制同一時段店內的總人數（含現場客）。達上限後將暫停開放該時段的線上預約，但仍可自建預約。</span></div>
+              </div>
+              <div class="adv-extra">
+                <div class="extra-row">
+                  <span class="field-label" style="flex:0 0 auto;">人數上限</span>
+                  <div class="input" style="width:120px;"><input type="text" value="1" id="limitPeopleVal" /><span class="hint">人</span></div>
+                  <span class="err-msg" data-err="limitPeople">請輸入大於或等於 1 的數字</span>
+                </div>
+              </div>
+              <div class="adv-row" data-adv="limit-groups">
+                <span class="box"></span>
+                <div class="col"><span class="t">限制店內總組數</span><span class="h">限制同一時段店內的顧客組數（含現場客）。達上限後將暫停開放該時段的線上預約，但仍可自建預約。</span></div>
+              </div>
+              <div class="adv-extra">
+                <div class="extra-row">
+                  <span class="field-label" style="flex:0 0 auto;">組數上限</span>
+                  <div class="input" style="width:120px;"><input type="text" value="1" id="limitGroupsVal" /><span class="hint">組</span></div>
+                  <span class="err-msg" data-err="limitGroups">請輸入大於或等於 1 的數字</span>
+                </div>
+              </div>
+            </div>
+            <div class="adv-row on" data-adv="deposit">
+              <span class="box on"></span>
+              <div class="col"><span class="t">要求訂金</span><span class="h">需先於「訂金管理」設定訂金規則；每個預約時段都可套用不同的訂金規則。</span></div>
+            </div>
+            <div class="adv-extra">
+              <div class="extra-row">
+                <span class="hint" style="flex:0 0 auto;">套用規則：</span>
+                <select class="input" id="depositRule" style="min-width:200px;">
+                  <option value="weekday" selected>平日</option>
+                  <option value="weekend">例假日限定</option>
+                  <option value="holiday">2026國定假日</option>
+                </select>
+              </div>
+              <div class="deposit-summary" id="depositSummary">
+                <span class="title">平日</span>
+                <span class="desc">預先收款：2人以上，每人 200 元</span>
+              </div>
+              <span class="hint" style="padding-left:0;">於「訂金管理」設定新規則 ›</span>
+            </div>
+            <div class="adv-row" data-adv="approval">
+              <span class="box"></span>
+              <div class="col"><span class="t">審核預約</span><span class="h">開啟後所有線上預約將進入待審核狀態，需由商家手動審核，確認預約後將自動發送 email 告知顧客預約成功。</span></div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="btn-row anno">
+          <span class="anno-tag">J 底部按鈕列</span>
+          <button class="btn-lg ghost" id="cancelBtn">取消</button>
+          <button class="btn-lg primary" id="saveBtn">儲存</button>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- 必填防呆 Toast — 抄 figma 3120:57243 -->
+<div class="toast-alert" id="toastAlert">內容未正確輸入</div>
+
+<!-- ============ Modals ============ -->
+
+<!-- Block 確認（基本/總量）/ Block 確認（服務/階層，先選選項）-->
+<div class="modal-mask" id="blockMask">
+  <div class="modal" id="blockModal">
+    <h3 id="blockModalTitle">確認設定整日不可預約</h3>
+    <div class="body" id="blockModalBody"></div>
+    <div class="btn-row">
+      <button class="btn-lg ghost" id="blockCancel">取消</button>
+      <button class="btn-lg alert" id="blockConfirm">確定</button>
+    </div>
+  </div>
+</div>
+
+<!-- Unblock 確認 -->
+<div class="modal-mask" id="unblockMask">
+  <div class="modal">
+    <h3>解除整日不可預約</h3>
+    <div class="body" id="unblockBody"></div>
+    <p class="hint" id="unblockHint"></p>
+    <div class="btn-row">
+      <button class="btn-lg ghost">取消</button>
+      <button class="btn-lg primary" id="unblockConfirm">確定解除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 刪除確認 -->
+<div class="modal-mask" id="delMask">
+  <div class="modal">
+    <h3>確認刪除例外規則</h3>
+    <div class="body" id="delBody"></div>
+    <div class="btn-row">
+      <button class="btn-lg ghost">取消</button>
+      <button class="btn-lg alert" id="delConfirm">確定刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 變更模式（prototype demo 用，抄 figma 預約模式設定頁的 option row 樣式）-->
+<div class="modal-mask" id="modeMask">
+  <div class="modal mode-modal">
+    <h3>變更預約模式</h3>
+    <div class="body">
+      <p class="hint" style="margin-bottom:4px;">prototype demo 用：切換目前演示的預約模式。產品上此設定位於「設定 › 預約設定 › 預約規則」。</p>
+      <div class="mode-list" id="modeList">
+        <label class="opt-row" data-mode="basic">
+          <span class="radio"></span>
+          <div class="opt-main">
+            <span class="opt-title">基本人數預約</span>
+            <span class="opt-desc">以人數為單位接受預約；每組預約只記錄人數，不分服務項目。</span>
+            <span class="opt-suit">適合：一般餐廳、咖啡廳、酒吧</span>
+          </div>
+        </label>
+        <label class="opt-row" data-mode="service">
+          <span class="radio"></span>
+          <div class="opt-main">
+            <span class="opt-title">服務項目預約</span>
+            <span class="opt-desc">以「服務項目」為單位開放預約；每筆預約對應一個服務（如不同套餐、體驗類型）。</span>
+            <span class="opt-suit">適合：複合式服務、有多種套餐／體驗項目</span>
+          </div>
+        </label>
+        <label class="opt-row" data-mode="hier">
+          <span class="radio"></span>
+          <div class="opt-main">
+            <span class="opt-title">階層項目預約</span>
+            <span class="opt-desc">服務項目分母／子兩層；每筆預約對應一個子項目。</span>
+            <span class="opt-suit">適合：餐期 + 套餐、活動 + 場次</span>
+          </div>
+        </label>
+        <label class="opt-row" data-mode="total">
+          <span class="radio"></span>
+          <div class="opt-main">
+            <span class="opt-title">總量控管</span>
+            <span class="opt-desc">直接設定該時段可接受的總人數上限，不分桌位／單位。</span>
+            <span class="opt-suit">適合：限定活動、總量受限的場合</span>
+          </div>
+        </label>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-lg ghost">取消</button>
+      <button class="btn-lg primary" id="modeConfirm">變更</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   例外預約規則 prototype — 互動版（sessionStorage 持久化）
+   ============================================================ */
+
+/* ---------- 0. 常數 ---------- */
+const STORAGE_KEY = 'shop-rebirth-exception-rules-v3';
+const TODAY = new Date(2026, 4, 20);  // 月份 0-indexed: 4 = 5 月
+const MODES = ['basic', 'total', 'service', 'hier'];
+
+const OPTIONS = {
+  service: [
+    { id:'s1', label:'精緻主餐' },
+    { id:'s2', label:'點心自助吧' },
+    { id:'s3', label:'星空酒吧' }
+  ],
+  hier: [
+    { id:'h1', parent:'精緻私廚特餐', label:'早午時光' },
+    { id:'h2', parent:'精緻私廚特餐', label:'精緻午茶' },
+    { id:'h3', parent:'精緻私廚特餐', label:'晚安佳餚' },
+    { id:'h4', parent:'自助吧吃到飽', label:'499超值吃到飽' },
+    { id:'h5', parent:'自助吧吃到飽', label:'699海陸尊榮雙饗' },
+    { id:'h6', parent:'星空酒吧', label:'特調' },
+    { id:'h7', parent:'星空酒吧', label:'招牌' }
+  ]
+};
+
+/* ----- SVG icons (抄 figma Card / Time Slot Rule 內 16x16 icon set) ----- */
+const ICON_CLOCK = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+const ICON_CASH = '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9v6M18 9v6"/></svg>';
+const ICON_CARD = '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M6 15h3"/></svg>';
+const ICON_CHECK = '<svg viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg>';
+const ICON_CUSTOMER = '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a6 6 0 016-6h4a6 6 0 016 6v2"/></svg>';
+const ICON_CUSTOMERS = '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20v-1a5 5 0 015-5h4a5 5 0 015 5v1M15 20v-1a4 4 0 014-4h0a4 4 0 014 4v1"/></svg>';
+
+const DEPOSIT_DESC = {
+  weekday: '預先收款：2人以上，每人 200 元',
+  weekend: '信用卡授權綁定：每組 300 元',
+  holiday: '預先收款：每人 300 元'
+};
+
+/* 初始範例資料（重置時用） */
+/* 範例規則的 meta 樣板：週年活動晚上加開（5/27–29 20:15–22:30、需訂金） */
+const ANNIV_META_BASE = {
+  time: {
+    mode:'auto', start:'20:15', end:'22:30', interval:30,
+    customTimes:[], serviceHour:1, serviceMinute:30,
+  },
+  deposit: { kind:'cash', label:'預先收款：2人以上，每人 200 元', ruleKey:'weekday' },
+  approval: false,
+  limit: { people: null, groups: null },
+  capacity: {
+    mode:'custom',
+    groups: [
+      { id:'G1', enabled:true, mode:'all', selected:[] },
+      { id:'G2', enabled:true, mode:'custom', selected:['B2','C2','D2'] },
+      { id:'G3', enabled:false, mode:'all', selected:[] },
+      { id:'default', enabled:true, mode:'custom', selected:['Default'] },
+    ],
+  },
+};
+
+const DEFAULT_DATA = {
+  basic: {
+    blocks: [{ date:'2026-05-01' }],
+    rules: [
+      { id:1, name:'2026國定假日', dates:['2026-06-19'], summary:'11:00–14:00、間隔30分鐘、需訂金' },
+      { id:2, name:'2026母親節', dates:['2026-05-09','2026-05-10'], summary:'11:00–21:00、間隔30分鐘、需訂金' },
+      { id:3, name:'週年活動-晚上加開', dates:['2026-05-27','2026-05-28','2026-05-29'],
+        summary:'20:15–22:30、間隔30分鐘、需訂金',
+        meta: JSON.parse(JSON.stringify(ANNIV_META_BASE)) },
+      { id:4, name:'週年活動-正常時段', dates:['2026-05-27','2026-05-28','2026-05-29'],
+        summary:'17:00–20:00、間隔30分鐘',
+        meta: (function(){ const m = JSON.parse(JSON.stringify(ANNIV_META_BASE)); m.time.start='17:00'; m.time.end='20:00'; m.deposit=null; return m; })() }
+    ]
+  },
+  total: {
+    blocks: [{ date:'2026-05-01' }],
+    rules: [
+      { id:1, name:'2026國定假日', dates:['2026-06-19'], summary:'11:00–14:00、人數上限 50' },
+      { id:2, name:'2026母親節', dates:['2026-05-09','2026-05-10'], summary:'11:00–21:00、人數上限 80、需訂金' },
+      { id:3, name:'週年活動-晚上加開', dates:['2026-05-27','2026-05-28','2026-05-29'],
+        summary:'20:15–22:30、間隔30分鐘、人數上限 60、需訂金',
+        meta: (function(){ const m = JSON.parse(JSON.stringify(ANNIV_META_BASE)); m.limit.people = 60; return m; })() },
+      { id:4, name:'週年活動-正常時段', dates:['2026-05-27','2026-05-28','2026-05-29'],
+        summary:'17:00–20:00、間隔30分鐘、人數上限 80',
+        meta: (function(){ const m = JSON.parse(JSON.stringify(ANNIV_META_BASE)); m.time.start='17:00'; m.time.end='20:00'; m.deposit=null; m.limit.people=80; return m; })() }
+    ]
+  },
+  service: {
+    blocks: [
+      { date:'2026-05-01', options:['s1','s2','s3'] },
+      { date:'2026-05-24', options:['s2'] }
+    ],
+    rules: [
+      { id:1, name:'2026母親節', dates:['2026-05-09','2026-05-10'], optionId:'s1', summary:'11:00–21:00、需訂金' },
+      { id:2, name:'2026國定假日', dates:['2026-06-19'], optionId:'s2', summary:'11:00–14:00' },
+      { id:3, name:'週年活動-晚上加開', dates:['2026-05-27','2026-05-28','2026-05-29'], optionId:'s1',
+        summary:'20:15–22:30、間隔30分鐘、需訂金',
+        meta: JSON.parse(JSON.stringify(ANNIV_META_BASE)) },
+      { id:4, name:'週年活動-正常時段', dates:['2026-05-27','2026-05-28','2026-05-29'], optionId:'s1',
+        summary:'17:00–20:00、間隔30分鐘',
+        meta: (function(){ const m = JSON.parse(JSON.stringify(ANNIV_META_BASE)); m.time.start='17:00'; m.time.end='20:00'; m.deposit=null; return m; })() }
+    ]
+  },
+  hier: {
+    blocks: [
+      { date:'2026-05-01', options:['h1','h2','h3','h4','h5','h6','h7'] },
+      { date:'2026-05-24', options:['h1'] }
+    ],
+    rules: [
+      { id:1, name:'2026母親節', dates:['2026-05-09','2026-05-10'], optionId:'h2', summary:'11:00–14:00、需訂金' },
+      { id:2, name:'2026國定假日-午餐', dates:['2026-06-19'], optionId:'h1', summary:'11:00–14:00' },
+      { id:3, name:'2026國定假日-晚餐', dates:['2026-06-19'], optionId:'h3', summary:'17:30–21:00、需訂金' },
+      { id:4, name:'週年活動-晚上加開', dates:['2026-05-27','2026-05-28','2026-05-29'], optionId:'h3',
+        summary:'20:15–22:30、間隔30分鐘、需訂金',
+        meta: JSON.parse(JSON.stringify(ANNIV_META_BASE)) },
+      { id:5, name:'週年活動-正常時段', dates:['2026-05-27','2026-05-28','2026-05-29'], optionId:'h1',
+        summary:'17:00–20:00、間隔30分鐘',
+        meta: (function(){ const m = JSON.parse(JSON.stringify(ANNIV_META_BASE)); m.time.start='17:00'; m.time.end='20:00'; m.deposit=null; return m; })() }
+    ]
+  }
+};
+
+/* ---------- 1. State + 持久化 ---------- */
+function loadData(){
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) { console.warn('load failed', e); }
+  return JSON.parse(JSON.stringify(DEFAULT_DATA));  // deep clone
+}
+function persistData(){
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+  } catch(e) { console.warn('persist failed', e); }
+}
+function resetData(){
+  if (!confirm('確定要清空所有變更，恢復預設範例資料嗎？')) return;
+  sessionStorage.removeItem(STORAGE_KEY);
+  appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  // 重設 transient state
+  state.selectedDate = fmtDate(TODAY);
+  state.calMonth = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+  state.view = 'l1';
+  document.body.classList.remove('view-l2');
+  document.body.classList.add('view-l1');
+  renderAll();
+}
+
+/* 偵測模式：URL ?mode=xxx 優先，否則預設 hier */
+function detectMode(){
+  const u = new URLSearchParams(window.location.search);
+  const m = u.get('mode');
+  if (m && MODES.includes(m)) return m;
+  return 'basic';
+}
+
+let appData = loadData();
+
+let state = {
+  mode: detectMode(),
+  view: 'l1',
+  selectedDate: fmtDate(TODAY),
+  calMonth: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1),
+  l2: null    // { mode: 'add' | 'edit' | 'duplicate', ruleId: number | null }
+};
+
+/* ---------- 2. Helpers ---------- */
+function fmtDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function ymd2d(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function zhWk(d){ return '日一二三四五六'[d.getDay()]; }
+function zhDate(s){ const d=ymd2d(s); return `${d.getMonth()+1}/${d.getDate()}（${zhWk(d)}）`; }
+function longDate(s){ const d=ymd2d(s); return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} (${zhWk(d)})`; }
+function slashDate(s){ const d=ymd2d(s); return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}（${zhWk(d)}）`; }
+
+function data(){ return appData[state.mode]; }
+function blockOf(date){ return data().blocks.find(b=>b.date===date); }
+function rulesOf(date){ return data().rules.filter(r=>r.dates.includes(date)); }
+function ruleById(id){ return data().rules.find(r=>r.id===id); }
+function optionLabel(id){
+  if (state.mode==='service') return (OPTIONS.service.find(o=>o.id===id)||{}).label||id;
+  if (state.mode==='hier'){ const o=OPTIONS.hier.find(o=>o.id===id); return o?`${o.parent} › ${o.label}`:id; }
+  return '';
+}
+function totalOptions(){
+  if (state.mode==='service') return OPTIONS.service.length;
+  if (state.mode==='hier') return OPTIONS.hier.length;
+  return 0;
+}
+function hasOptions(){ return state.mode==='service' || state.mode==='hier'; }
+function blockKind(date){
+  const b = blockOf(date); if (!b) return 'none';
+  if (!hasOptions()) return 'all';
+  return (b.options && b.options.length>=totalOptions()) ? 'all' : 'partial';
+}
+function nextRuleId(){
+  const ids = data().rules.map(r=>r.id);
+  return ids.length ? Math.max(...ids)+1 : 1;
+}
+
+/* ---------- 3. Render: Calendar ---------- */
+function renderCalendar(){
+  const grid = document.getElementById('calGrid');
+  const m = state.calMonth;
+  document.getElementById('monthLabel').textContent =
+    `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
+  let html = ['日','一','二','三','四','五','六'].map(w=>`<div class="wd">${w}</div>`).join('');
+  const first = new Date(m.getFullYear(), m.getMonth(), 1);
+  const start = new Date(first); start.setDate(start.getDate()-first.getDay());
+  for (let i=0;i<42;i++){
+    const d = new Date(start); d.setDate(start.getDate()+i);
+    const inMonth = d.getMonth()===m.getMonth();
+    const ymd = fmtDate(d);
+    const bk = inMonth ? blockKind(ymd) : 'none';
+    const rn = inMonth ? rulesOf(ymd).length : 0;
+    const cls = ['cell'];
+    if (!inMonth) cls.push('out');
+    if (inMonth && fmtDate(TODAY)===ymd) cls.push('today');
+    if (inMonth && state.selectedDate===ymd) cls.push('sel');
+    if (bk==='all') cls.push('closed');
+    html += `<div class="${cls.join(' ')}"${inMonth?` data-ymd="${ymd}"`:''}>
+      <span class="d">${d.getDate()}</span>
+      ${bk==='all' ? `<span class="closed-mark"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg><span>CLOSED</span></span>` : ''}
+      ${bk==='partial' ? `<span class="closed-mark" title="部分服務不可預約"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg><span>部分</span></span>` : ''}
+      ${rn && bk!=='all' ? `<span class="exc-mark" title="${rn} 條例外規則"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg></span>` : ''}
+      ${inMonth && p4offDates().has(ymd) ? `<span class="off-mark" title="臨時變更預約單位開放">off</span>` : ''}
+    </div>`;
+  }
+  grid.innerHTML = html;
+  grid.querySelectorAll('[data-ymd]').forEach(c=>c.addEventListener('click',()=>{
+    state.selectedDate = c.dataset.ymd; renderAll();
+  }));
+}
+
+/* 臨時變更預約單位開放（Part 4 定稿 2-1）：讀後台模擬器存的 p4_closures（sessionStorage
+   同源共享，在整合單檔內即時同步）；沒有資料時以 5/27 示範一筆，讓標記看得見 */
+function p4offDates(){
+  let dates = [];
+  try { dates = (JSON.parse(sessionStorage.getItem('p4_closures'))||[]).map(c=>c.date); } catch(e){}
+  return new Set(dates.length ? dates : ['2026-05-27']);
+}
+
+/* ---------- 4. Render: Day panel ---------- */
+function renderDayPanel(){
+  const date = state.selectedDate;
+  const block = blockOf(date);
+  const rules = rulesOf(date);
+  const bk = blockKind(date);
+  const w = '日一二三四五六'[ymd2d(date).getDay()];
+  document.getElementById('dayTitle').textContent = `${date} 星期${w}`;
+
+  const panel = document.getElementById('dayPanel');
+
+  if (bk==='all'){ panel.innerHTML = `<div class="day-empty">已關閉預約</div>`; return; }
+  if (!rules.length){ panel.innerHTML = `<div class="day-empty">未建立例外預約規則</div>`; return; }
+
+  panel.innerHTML = rules.map((r,i)=>ruleCardHTML(r,i)).join('');
+  panel.querySelectorAll('.caret').forEach(c=>c.addEventListener('click',()=>{
+    c.closest('.rule-card').classList.toggle('open');
+  }));
+  panel.querySelectorAll('[data-viewunits]').forEach(b=>b.addEventListener('click',()=>openUnitsModal(b.dataset.viewunits)));
+}
+
+/* 規則卡：收合＝名稱＋時段 chips＋已套用 N 個日期＋旗標＋操作；展開＝左適用日期/預約時段、右容量與規則 */
+function ruleCardHTML(r,i){
+  const m = r.meta || {};
+  const s = r.summary || '';
+  const times = ruleTimeChips(r);
+  const noUnit = m.units && m.units.mode==='none';
+  const hasDeposit = !!m.deposit || /需訂金|預先收款|信用卡/.test(s);
+  const hasApproval = !!m.approval || s.includes('需審核');
+  const dates = (r.dates||[]).slice().sort();
+  const byYear = {};
+  dates.forEach(d=>{ const [y,mm,dd]=d.split('-'); (byYear[y]=byYear[y]||[]).push(`${mm}/${dd}`); });
+  const dur = m.time && m.time.dur ? m.time.dur : '2小時0分鐘';
+  const slotN = times.length;
+  return `<div class="rule-card" data-i="${i}">
+    <div class="rh">
+      <span class="caret"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span>
+      <span class="nm">${escapeHtml(r.name)}</span>
+      <span class="tchips">${times.slice(0,4).map(t=>`<span class="tchip">${t}</span>`).join('')}${times.length>4?'<span class="tchip">⋯</span>':''}</span>
+      <span class="applied">已套用${dates.length}個日期</span>
+      <span class="flags">
+        ${hasDeposit?`<span class="ic">${ICON_CASH}</span>`:''}
+        ${hasApproval?`<span class="ic">${ICON_CHECK}</span>`:''}
+        ${noUnit?'<span class="tag-nounit">尚未設定預約單位</span>':''}
+      </span>
+      <span class="acts">
+        <button class="icon-btn" title="編輯" data-action="edit" data-id="${r.id}"><svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg></button>
+        <button class="icon-btn" title="複製" data-action="duplicate" data-id="${r.id}"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg></button>
+        <button class="icon-btn danger" title="刪除" data-action="delete" data-id="${r.id}"><svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13"/></svg></button>
+      </span>
+    </div>
+    <div class="bd">
+      <div class="col">
+        <div class="rb-h"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>適用日期</div>
+        ${Object.keys(byYear).sort().map(y=>`<div class="rb-yr"><span class="y">${y}</span>
+          <span class="ds">${byYear[y].map(d=>`<span class="tchip">${d}</span>`).join('')}</span></div>`).join('')}
+        <div class="rb-h" style="margin-top:14px"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>預約時段</div>
+        <ul style="margin:0;padding:0">
+          <li class="rb-dot">服務時長：${escapeHtml(dur)}</li>
+          <li class="rb-dot">線上預約可選時段：${slotN}個</li>
+        </ul>
+        <div class="ds" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${times.map(t=>`<span class="tchip">${t}</span>`).join('')}</div>
+      </div>
+      <div class="col">
+        <div class="rb-li"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16"/></svg>
+          <span>開放預約單位：${m.units && m.units.count!=null ? m.units.count : 7}個（最多可承接${m.units && m.units.cap!=null ? m.units.cap : 30}人）<br>
+          <button class="link-view" data-viewunits="${escapeHtml(r.name)}">查看預約單位</button></span></div>
+        <div class="rb-li"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.3-3 4-4.4 7-4.4s5.7 1.4 7 4.4"/></svg>
+          <span>店內總人數上限：${m.limit && m.limit.people!=null ? m.limit.people : 20}人</span></div>
+        <div class="rb-li"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="16" cy="9" r="2.4"/><path d="M3 20c1-2.6 3.3-3.9 6-3.9s5 1.3 6 3.9"/></svg>
+          <span>店內總組數上限：${m.limit && m.limit.groups!=null ? m.limit.groups : 20}組</span></div>
+        ${hasDeposit?`<div class="rb-li">${ICON_CASH}<span>${escapeHtml((m.deposit&&m.deposit.name)||'訂金規則名稱')}<br><span class="sub">${escapeHtml((m.deposit&&m.deposit.label)||'預先收款：2人以上，每人200元')}</span></span></div>`:''}
+        ${hasApproval?`<div class="rb-li">${ICON_CHECK}<span>預約需審核</span></div>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* 從 meta / summary 取出時段 chips */
+function ruleTimeChips(r){
+  const m = r.meta || {};
+  if (m.time && m.time.mode==='custom' && (m.time.customTimes||[]).length) return m.time.customTimes.slice();
+  const s = r.summary || '';
+  const mm = s.match(/(\d{1,2}:\d{2})\s*[–\-]\s*(\d{1,2}:\d{2})(?:.*?間隔\s*(\d+)\s*分鐘)?/);
+  if (!mm) return ['09:00'];
+  const step = +(mm[3]||30);
+  const toM = t=>{const[a,b]=t.split(':').map(Number);return a*60+b;};
+  const out=[]; for(let x=toM(mm[1]); x<=toM(mm[2]) && out.length<24; x+=step)
+    out.push(String(Math.floor(x/60)).padStart(2,'0')+':'+String(x%60).padStart(2,'0'));
+  return out;
+}
+
+/* 查看預約單位 Modal（Figma 4627:75358） */
+const VIEW_UNITS = [
+  { g:'群組 G1', us:['單位A','單位B','單位C','單位D','單位E','單位F','單位G','單位H','單位I','單位J'] },
+  { g:'群組 G2', us:['單位A','單位B','單位C','單位D','單位E','單位F','單位G','單位H','單位I','單位J'] },
+  { g:'群組 G3', us:['單位A','單位B','單位C','單位D','單位E','單位F','單位G','單位H','單位I','單位J','單位K','單位L','單位M'] },
+  { g:'群組 G4', us:['單位A1','單位A2','單位A3','單位A4'] },
+  { g:'預設群組', us:['預設A'] },
+];
+function openUnitsModal(ruleName){
+  let el = document.getElementById('unitsModal');
+  if (!el){
+    el = document.createElement('div');
+    el.className='modal-mask units-modal'; el.id='unitsModal';
+    document.body.appendChild(el);
+    el.addEventListener('click',e=>{ if(e.target===el) el.classList.remove('show'); });
+  }
+  el.innerHTML = `<div class="modal" style="width:640px">
+    <h3 style="text-align:center;font-size:20px">${escapeHtml(ruleName)} - 開放預約單位</h3>
+    <div class="ug">
+      ${VIEW_UNITS.map((g,i)=>`<div>
+        <div class="gh${i>=2?' open':''}"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>${g.g} (${g.us.length})</div>
+        <div class="uu">${g.us.map(u=>`<span>${u}</span>`).join('')}</div></div>`).join('')}
+    </div>
+    <button class="btn-lg primary" id="umClose" style="width:100%">關閉</button>
+  </div>`;
+  el.classList.add('show');
+  el.querySelectorAll('.gh').forEach(h=>h.addEventListener('click',()=>h.classList.toggle('open')));
+  el.querySelector('#umClose').addEventListener('click',()=>el.classList.remove('show'));
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* lr-title 右側旗標 icons（訂金 / 審核）— 抄 figma 2863:39014 Card / Time Slot Rule */
+function flagIconsHTML(r){
+  const m = r.meta || {};
+  const s = r.summary || '';
+  const hasDeposit = !!m.deposit || /需訂金|預先收款|信用卡/.test(s);
+  const hasApproval = !!m.approval || s.includes('需審核');
+  if (!hasDeposit && !hasApproval) return '';
+  let html = '<span class="lr-flags">';
+  if (hasDeposit){
+    const isCard = m.deposit && m.deposit.kind === 'card';
+    const ic = isCard ? ICON_CARD : ICON_CASH;
+    const title = m.deposit ? (m.deposit.label || '需訂金') : '需訂金';
+    html += `<span class="ic deposit" title="${escapeHtml(title)}">${ic}</span>`;
+  }
+  if (hasApproval) html += `<span class="ic approval" title="需審核">${ICON_CHECK}</span>`;
+  html += '</span>';
+  return html;
+}
+
+/* 把 rule 的 summary 拆成 icon items（時段 / 訂金（現金 or 信用卡）/ 需審核 / 人數上限）
+   優先讀 r.meta，沒 meta 時從 r.summary 字串推斷 */
+function summaryIconsHTML(r){
+  const items = [];
+  const s = r.summary || '';
+  const m = r.meta || {};
+
+  // 時段：「11:00–14:00」或「11:00-21:00」，可選後綴「、間隔 30 分鐘」
+  const timeMatch = s.match(/(\d{1,2}:\d{2}\s*[–\-]\s*\d{1,2}:\d{2})(?:.*?間隔\s*(\d+)\s*分鐘)?/);
+  if (m.time && m.time.mode === 'custom') {
+    const n = (m.time.customTimes || []).length;
+    items.push(`<span class="item"><span class="ic">${ICON_CLOCK}</span>自訂時段 (${n} 筆)</span>`);
+  } else if (timeMatch){
+    let text = timeMatch[1].replace(/\s+/g,'');
+    if (timeMatch[2]) text += ` · 每 ${timeMatch[2]} 分`;
+    items.push(`<span class="item"><span class="ic">${ICON_CLOCK}</span>${escapeHtml(text)}</span>`);
+  }
+
+  // 人數上限（總量控管 mode 才會出現「人數上限 XX」）
+  const limit = s.match(/人數上限\s*(\d+)/);
+  if (limit){
+    items.push(`<span class="item"><span class="ic">${ICON_CUSTOMER}</span>上限 ${limit[1]} 人</span>`);
+  }
+
+  // 訂金：信用卡 vs 預先收款
+  const dep = m.deposit;
+  if (dep && dep.kind === 'card'){
+    items.push(`<span class="item"><span class="ic">${ICON_CARD}</span>${escapeHtml(dep.label || '信用卡綁定')}</span>`);
+  } else if (dep && dep.kind === 'cash'){
+    items.push(`<span class="item"><span class="ic">${ICON_CASH}</span>${escapeHtml(dep.label || '預先收款')}</span>`);
+  } else if (s.includes('信用卡')){
+    items.push(`<span class="item"><span class="ic">${ICON_CARD}</span>信用卡綁定</span>`);
+  } else if (s.includes('預先收款') || s.includes('需訂金')){
+    items.push(`<span class="item"><span class="ic">${ICON_CASH}</span>預先收款</span>`);
+  }
+
+  // 需審核
+  if (m.approval || s.includes('需審核')){
+    items.push(`<span class="item approval"><span class="ic">${ICON_CHECK}</span>需審核</span>`);
+  }
+
+  return items.length ? items.join('') : `<span class="item">${escapeHtml(s)}</span>`;
+}
+
+/* ---------- 5. View 切換 + L2 ---------- */
+function goL1(){
+  state.view='l1';
+  state.l2=null;
+  document.body.classList.remove('view-l2');
+  document.body.classList.add('view-l1');
+  window.scrollTo(0,0);
+}
+
+function openL2(mode, ruleId){
+  state.view='l2';
+  state.l2 = { mode, ruleId: ruleId||null };
+
+  /* 標題 */
+  const titleEl = document.getElementById('l2Title');
+  if (mode==='add') titleEl.textContent = '新增例外規則';
+  else if (mode==='edit') titleEl.textContent = '編輯例外規則：' + (ruleById(ruleId)?.name || '');
+  else if (mode==='duplicate') titleEl.textContent = '複製例外規則：' + ((ruleById(ruleId)?.name || '') + '-副本');
+
+  /* 預載欄位 */
+  let preload = {
+    name: '',
+    dates: [],
+    optionId: null,
+    summary: '',
+    isAdd: mode === 'add',
+  };
+  if (mode==='edit' || mode==='duplicate'){
+    const r = ruleById(ruleId);
+    if (r){
+      preload = {
+        name: mode==='duplicate' ? r.name + '-副本' : r.name,
+        dates: [...r.dates],
+        optionId: r.optionId || null,
+        summary: r.summary || '',
+        meta: r.meta,
+        isAdd: false,
+      };
+    }
+  }
+
+  /* 填入 DOM */
+  document.getElementById('ruleName').value = preload.name;
+  // L2Form 接管 dates / 時段相關欄位
+  L2Form.load(preload);
+  renderOptionList(preload.optionId);
+
+  document.body.classList.remove('view-l1');
+  document.body.classList.add('view-l2');
+  window.scrollTo(0,0);
+}
+
+function renderOptionList(selectedId){
+  const el = document.getElementById('optionList');
+  el.innerHTML='';
+  let list = [];
+  if (state.mode==='service') list = OPTIONS.service.map(o=>({id:o.id,label:o.label,path:''}));
+  else if (state.mode==='hier') list = OPTIONS.hier.map(o=>({id:o.id,label:o.label,path:o.parent}));
+  list.forEach((o)=>{
+    const sel = selectedId ? (o.id===selectedId) : false;
+    const d = document.createElement('div');
+    d.className='opt'+(sel?' on':'');
+    d.dataset.id = o.id;
+    d.innerHTML = `<span class="radio${sel?' on':''}"></span>${o.path?`<span class="path">${o.path} ›</span>`:''}<span class="ck-label">${o.label}</span>`;
+    d.addEventListener('click',()=>{
+      el.querySelectorAll('.opt').forEach(x=>{x.classList.remove('on');const r=x.querySelector('.radio');if(r)r.classList.remove('on');});
+      d.classList.add('on'); d.querySelector('.radio').classList.add('on');
+      clearErrorFor('option');
+      hideOverlapError();
+    });
+    el.appendChild(d);
+  });
+}
+
+function saveL2(){
+  if (!state.l2) return;
+  const errs = validateL2();
+  if (errs.length){
+    showToast('內容未正確輸入');
+    const firstEl = document.querySelector('.view-l2 .err-msg.show, .view-l2 .err-inline.show, .view-l2 .has-error');
+    if (firstEl) firstEl.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  const conflicts = findOverlaps();
+  if (Object.keys(conflicts).length){
+    showToast('可預約時間不可重複');
+    renderOverlapError(conflicts);
+    const el = document.getElementById('overlapError');
+    if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  hideOverlapError();
+  const name = (document.getElementById('ruleName').value || '').trim();
+  const dates = L2Form.getDates();
+  const summary = L2Form.computeSummary();
+  let optionId = null;
+  if (hasOptions()){
+    const onOpt = document.querySelector('#optionList .opt.on');
+    optionId = onOpt ? onOpt.dataset.id : (state.mode==='service'?OPTIONS.service[0].id:OPTIONS.hier[0].id);
+  }
+
+  const meta = L2Form.getMeta();
+  if (state.l2.mode==='edit' && state.l2.ruleId){
+    const r = ruleById(state.l2.ruleId);
+    if (r){ r.name=name; r.dates=dates; r.summary=summary; r.meta=meta; if(hasOptions()) r.optionId=optionId; }
+  } else {
+    const newRule = { id: nextRuleId(), name, dates, summary, meta };
+    if (hasOptions()) newRule.optionId = optionId;
+    data().rules.push(newRule);
+  }
+  persistData();
+  goL1();
+  renderAll();
+}
+
+/* ---------- 6. Modals ---------- */
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+function anyModalOpen(){ return !!document.querySelector('.modal-mask.show'); }
+function closeAllModals(){ document.querySelectorAll('.modal-mask').forEach(m=>m.classList.remove('show')); }
+
+/* 變更模式 Modal */
+const MODE_LABELS = { basic:'基本人數預約', service:'服務項目預約', hier:'階層項目預約', total:'總量控管' };
+
+function updateCurModeLabel(){
+  const el = document.getElementById('curModeLabel');
+  if (el) el.textContent = MODE_LABELS[state.mode] || state.mode;
+}
+
+function openModeModal(){
+  /* 預載當前模式為選中 */
+  document.querySelectorAll('#modeList .opt-row').forEach(r => {
+    const on = r.dataset.mode === state.mode;
+    r.classList.toggle('on', on);
+    const radio = r.querySelector('.radio');
+    if (radio) radio.classList.toggle('on', on);
+  });
+  openModal('modeMask');
+}
+
+function selectedModeInModal(){
+  const r = document.querySelector('#modeList .opt-row.on');
+  return r ? r.dataset.mode : state.mode;
+}
+
+function setMode(newMode){
+  if (!MODES.includes(newMode) || newMode === state.mode){
+    closeModal('modeMask');
+    return;
+  }
+  const isFlat = (m) => m === 'basic' || m === 'total';
+  if (isFlat(state.mode) && isFlat(newMode)){
+    /* basic ↔ total：共用資料（把當前資料 copy 到目標模式 key）*/
+    appData[newMode] = JSON.parse(JSON.stringify(appData[state.mode]));
+  } else {
+    /* 跨家族：重置目標模式為預設範例 */
+    appData[newMode] = JSON.parse(JSON.stringify(DEFAULT_DATA[newMode]));
+  }
+  state.mode = newMode;
+  document.body.classList.remove('mode-basic','mode-total','mode-service','mode-hier');
+  document.body.classList.add('mode-'+newMode);
+
+  /* 若在 L2，跳回 L1（L2 表單欄位可能與新模式不一致）*/
+  if (state.view === 'l2') goL1();
+
+  updateCurModeLabel();
+  persistData();
+  closeModal('modeMask');
+  renderAll();
+}
+
+/* Block / Adjust / Unblock 派發 */
+function onBlockBtnClick(){
+  const date = state.selectedDate;
+  const bk = blockKind(date);
+  if (!hasOptions()){
+    if (bk==='all') openUnblockModal(date);
+    else openBlockConfirmModal(date);
+  } else {
+    /* service / hier */
+    openBlockMultiModal(date, bk==='none' ? 'set' : 'adjust');
+  }
+}
+
+/* basic/total Block 純確認版 */
+function openBlockConfirmModal(date){
+  document.getElementById('blockModalTitle').textContent = `設定整日不可預約 - ${longDate(date)}`;
+  document.getElementById('blockModalBody').innerHTML = `<p>確定將 <b>${zhDate(date)}</b> 設為整日不可預約嗎？此設定優先權最高，當日全部時段都將無法線上預約。</p>`;
+  const confirmBtn = document.getElementById('blockConfirm');
+  confirmBtn.onclick = ()=>{
+    data().blocks.push({ date });
+    persistData();
+    closeModal('blockMask');
+    renderAll();
+  };
+  openModal('blockMask');
+}
+
+/* service/hier Block 多選版（含設定情境 & 調整情境）*/
+function openBlockMultiModal(date, kind){
+  /* kind: 'set' (none → 設定) | 'adjust' (partial/all → 調整) */
+  const title = kind==='set'
+    ? `設定整日不可預約 - ${longDate(date)}`
+    : `調整不可預約規則 - ${longDate(date)}`;
+  document.getElementById('blockModalTitle').textContent = title;
+
+  const list = state.mode==='service' ? OPTIONS.service : OPTIONS.hier;
+  const existing = blockOf(date);
+  const preloadedIds = kind==='adjust' && existing ? (existing.options || []) : list.map(o=>o.id);
+
+  document.getElementById('blockModalBody').innerHTML = `
+    <p class="field-label">套用至：</p>
+    <div style="display:flex;flex-direction:column;gap:14px;max-height:360px;overflow:auto;padding:4px 0;">
+      <label class="check" id="blockSelectAllRow">
+        <span class="box" id="blockSelectAll"></span>
+        <span class="ck-label" style="font-weight:500;">全選</span>
+      </label>
+      <div id="blockOpts" style="display:flex;flex-direction:column;gap:14px;padding-left:28px;">
+        ${list.map(o=>{
+          const on = preloadedIds.includes(o.id);
+          return `<label class="check" data-id="${o.id}"><span class="box${on?' on':''}"></span><span class="ck-label">${o.parent?`<span style="color:var(--text-muted);font-weight:400;">${o.parent} ›</span> `:''}${o.label}</span></label>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  /* 同步全選狀態 */
+  const selectAllBox = document.getElementById('blockSelectAll');
+  const syncSelectAll = ()=>{
+    const allOn = Array.from(document.querySelectorAll('#blockOpts .box')).every(b=>b.classList.contains('on'));
+    selectAllBox.classList.toggle('on', allOn);
+  };
+  syncSelectAll();
+
+  document.getElementById('blockSelectAllRow').onclick = (e)=>{
+    e.preventDefault();
+    const turnOn = !selectAllBox.classList.contains('on');
+    selectAllBox.classList.toggle('on', turnOn);
+    document.querySelectorAll('#blockOpts .box').forEach(b=>b.classList.toggle('on', turnOn));
+  };
+  document.querySelectorAll('#blockOpts .check').forEach(l=>{
+    l.onclick = (e)=>{
+      e.preventDefault();
+      l.querySelector('.box').classList.toggle('on');
+      syncSelectAll();
+    };
+  });
+
+  /* 確定 → 寫入 / 更新 / 刪除 */
+  document.getElementById('blockConfirm').onclick = ()=>{
+    const selected = Array.from(document.querySelectorAll('#blockOpts .check'))
+      .filter(l=>l.querySelector('.box').classList.contains('on'))
+      .map(l=>l.dataset.id);
+
+    const blocks = data().blocks;
+    const existIdx = blocks.findIndex(b=>b.date===date);
+
+    if (selected.length===0){
+      /* 全不勾 = 解除 */
+      if (existIdx>=0) blocks.splice(existIdx, 1);
+    } else {
+      if (existIdx>=0) blocks[existIdx].options = selected;
+      else blocks.push({ date, options: selected });
+    }
+    persistData();
+    closeModal('blockMask');
+    renderAll();
+  };
+
+  openModal('blockMask');
+}
+
+/* basic/total Unblock 解除版 */
+function openUnblockModal(date){
+  const rules = rulesOf(date);
+  let hint;
+  if (rules.length === 0){
+    hint = '解除後即可正常線上預約。';
+  } else if (rules.length === 1){
+    hint = `解除後，套用於 <b>${zhDate(date)}</b> 的例外規則（「${escapeHtml(rules[0].name)}」）會自動恢復套用。`;
+  } else {
+    hint = `解除後，套用於 <b>${zhDate(date)}</b> 的 ${rules.length} 條例外規則會自動恢復套用。`;
+  }
+  document.getElementById('unblockBody').innerHTML = `要解除 <b>${zhDate(date)}</b> 的整日不可預約設定嗎？`;
+  document.getElementById('unblockHint').innerHTML = hint;
+
+  document.getElementById('unblockConfirm').onclick = ()=>{
+    const blocks = data().blocks;
+    const idx = blocks.findIndex(b=>b.date===date);
+    if (idx>=0) blocks.splice(idx, 1);
+    persistData();
+    closeModal('unblockMask');
+    renderAll();
+  };
+  openModal('unblockMask');
+}
+
+/* Delete Modal — 列出日期清單 */
+function askDelete(id){
+  const r = ruleById(id);
+  if (!r) return;
+  const dates = r.dates;
+  let body;
+  if (dates.length === 1){
+    body = `<p>確定要刪除例外規則「<b>${escapeHtml(r.name)}</b>」嗎？</p>
+            <p>此規則套用於 <b>${slashDate(dates[0])}</b>，刪除後將一併移除。</p>
+            <p class="warn"><b>此操作無法復原。</b></p>`;
+  } else {
+    body = `<p>確定要刪除例外規則「<b>${escapeHtml(r.name)}</b>」嗎？</p>
+            <p>此規則套用於以下日期，刪除後將一併移除：</p>
+            <ul class="del-date-list">${dates.map(d=>`<li>${slashDate(d)}</li>`).join('')}</ul>
+            <p class="warn"><b>此操作無法復原。</b></p>`;
+  }
+  document.getElementById('delBody').innerHTML = body;
+  document.getElementById('delConfirm').onclick = ()=>{
+    const rules = data().rules;
+    const idx = rules.findIndex(x=>x.id===id);
+    if (idx>=0) rules.splice(idx,1);
+    persistData();
+    closeModal('delMask');
+    renderAll();
+  };
+  openModal('delMask');
+}
+
+/* ---------- 7. Render all ---------- */
+function renderAll(){ renderCalendar(); renderDayPanel(); }
+
+/* ===== 設定關閉預約日：獨立子頁（Figma 7-2 4627:71195） ===== */
+let closureYear = null, closurePick = null;
+/* 掛在 L1 view 內部、把原本的 page-title/content 藏起來。
+   ⚠️ 選擇器一定要用 `div.view.view-l1`——body 本身就掛著 `view-l1` class
+   （用來控制哪個 view 顯示），`.view-l1` 會先命中 body，整頁會被塞到底部。 */
+function l1Parts(){ const r=document.querySelector('div.view.view-l1'); return [r.querySelector('.page-title'), r.querySelector('.content')]; }
+function openClosurePage(){
+  closureYear = ymd2d(state.selectedDate).getFullYear();
+  closurePick = new Set(data().blocks.map(b=>b.date));
+  l1Parts().forEach(e=>{ if(e) e.style.display='none'; });
+  let v = document.getElementById('viewClosure');
+  if (!v){ v = document.createElement('div'); v.id='viewClosure';
+    document.querySelector('div.view.view-l1').appendChild(v); }
+  v.style.display='block';
+  renderClosurePage();
+}
+function closeClosurePage(){
+  const v=document.getElementById('viewClosure'); if(v) v.style.display='none';
+  l1Parts().forEach(e=>{ if(e) e.style.display=''; });
+  renderAll();
+}
+function renderClosurePage(){
+  const v = document.getElementById('viewClosure');
+  v.innerHTML = `
+    <div class="page-title"><div>
+      <div class="crumb2"><a id="cbBack">例外預約規則</a><span>›</span><b>設定關閉預約日</b></div>
+      <h1>設定關閉預約日</h1></div><hr class="divider"/></div>
+    <div class="content"><div class="card">
+      <div class="yr-head">
+        <span class="sp"></span>
+        <button class="nav-btn" id="yrPrev"><svg viewBox="0 0 8 12" width="7" height="10"><path d="M7 1L2 6l5 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+        <span class="y">${closureYear}</span>
+        <button class="nav-btn" id="yrNext"><svg viewBox="0 0 8 12" width="7" height="10"><path d="M1 1l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+        <span class="sp"></span><span class="lg"><i></i>不可預約</span>
+      </div>
+      <div class="yr-grid">${Array.from({length:12},(_,i)=>miniMonth(closureYear,i)).join('')}</div>
+    </div>
+    <div class="card" style="margin-top:16px;display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn-md ghost" id="clCancel">取消</button>
+      <button class="btn-md primary" id="clSave">儲存</button>
+    </div></div>`;
+  v.querySelector('#cbBack').onclick = closeClosurePage;
+  v.querySelector('#clCancel').onclick = closeClosurePage;
+  v.querySelector('#yrPrev').onclick = ()=>{ closureYear--; renderClosurePage(); };
+  v.querySelector('#yrNext').onclick = ()=>{ closureYear++; renderClosurePage(); };
+  v.querySelectorAll('[data-cd]').forEach(b=>b.onclick=()=>{
+    const d=b.dataset.cd;
+    if (closurePick.has(d)) closurePick.delete(d); else closurePick.add(d);
+    renderClosurePage();
+  });
+  v.querySelector('#clSave').onclick = ()=>{
+    const d = data();
+    d.blocks = [...closurePick].sort().map(dt=>{ const ex=d.blocks.find(b=>b.date===dt); return ex||{date:dt}; });
+    persistData(); closeClosurePage(); toastLike('已儲存關閉預約日');
+  };
+}
+function miniMonth(y,m){
+  const first=new Date(y,m,1), start=new Date(first); start.setDate(1-first.getDay());
+  let cells='';
+  for(let i=0;i<42;i++){
+    const d=new Date(start); d.setDate(start.getDate()+i);
+    const inM=d.getMonth()===m, ymd=fmtDate(d);
+    if(!inM){ cells+=`<button class="out" disabled>${d.getDate()}</button>`; continue; }
+    cells+=`<button class="${closurePick.has(ymd)?'on':''}" data-cd="${ymd}">${d.getDate()}</button>`;
+  }
+  return `<div class="mini"><div class="mh">${m+1}月, ${y}</div>
+    <div class="mg">${['日','一','二','三','四','五','六'].map(w=>`<span>${w}</span>`).join('')}${cells}</div></div>`;
+}
+function toastLike(msg){
+  let t=document.getElementById('p1toast');
+  if(!t){ t=document.createElement('div'); t.id='p1toast'; document.body.appendChild(t);
+    t.style.cssText='position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:rgba(51,51,51,.92);color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;z-index:900;opacity:0;transition:opacity .2s'; }
+  t.textContent=msg; t.style.opacity='1'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.opacity='0',2000);
+}
+
+/* ---------- 8. Init ---------- */
+/* ============================================================
+   L2 Form 互動：calendar popup, time picker, dropdown,
+   radio card 切換, 自訂時間, preview pills, 進階設定 toggle
+   ============================================================ */
+const L2Form = (function(){
+  const INTERVAL_OPTIONS = [5,10,15,20,30,45,60,90,120];
+  const HOUR_OPTIONS = Array.from({length:24}, (_,i)=>i);
+  const MIN_OPTIONS = [0,5,10,15,20,25,30,35,40,45,50,55];
+
+  // ----- Default unit-tree (factory, 每次 load 重建新 instance) -----
+  function defaultUnitGroups(){
+    return [
+      { id:'G1', label:'群組 G1', enabled:true, mode:'all',
+        units:[{id:'A1',label:'A1',min:1,max:4},{id:'B1',label:'B1',min:1,max:4},{id:'C1',label:'C1',min:1,max:2},{id:'D1',label:'D1',min:1,max:2},{id:'E1',label:'E1',min:5,max:6}],
+        selected:new Set() },
+      { id:'G2', label:'群組 G2', enabled:true, mode:'custom',
+        units:[{id:'A2',label:'A2',min:1,max:4},{id:'B2',label:'B2',min:1,max:4},{id:'C2',label:'C2',min:1,max:2},{id:'D2',label:'D2',min:1,max:2},{id:'E2',label:'E2',min:5,max:6}],
+        selected:new Set(['B2','C2','D2']) },
+      { id:'G3', label:'群組 G3', enabled:false, mode:'all', units:[], selected:new Set() },
+      { id:'default', label:'預設群組', enabled:true, mode:'custom',
+        units:[{id:'Default',label:'Default',min:1,max:4}],
+        selected:new Set(['Default']) },
+    ];
+  }
+
+  // ----- Local form state -----
+  const f = {
+    dates: [],           // ['YYYY-MM-DD', ...]
+    timeMode: 'auto',    // 'auto' | 'custom'
+    timeStart: '11:00',
+    timeEnd: '21:00',
+    interval: 30,
+    customTimes: [],     // ['HH:MM', ...]
+    serviceHour: 1,
+    serviceMinute: 30,
+    capacityMode: 'custom', // 'all' | 'custom'
+    unitGroups: defaultUnitGroups(),
+  };
+
+  // ----- Date helpers -----
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function toYMD(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+  function fromYMD(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+  function fmtDisplay(s){ return s.replaceAll('-','/'); }
+  function sortedDates(arr){ return [...arr].sort((a,b)=>a.localeCompare(b)); }
+
+  // ----- Public: load preload -----
+  // 助手：給 .adv-row 設 on/off 並同步它的 .box
+  function setAdvRowOn(advName, isOn){
+    const row = document.querySelector(`.view-l2 .adv-row[data-adv="${advName}"]`);
+    if (!row) return;
+    row.classList.toggle('on', isOn);
+    const box = row.querySelector('.box');
+    if (box) box.classList.toggle('on', isOn);
+  }
+
+  function load(preload){
+    const isAdd = !!(preload && preload.isAdd);
+
+    // basic — 新增時 dates 留空，編輯/複製時回填
+    if (isAdd){
+      f.dates = [];
+    } else {
+      f.dates = preload.dates && preload.dates.length
+        ? sortedDates(preload.dates.map(d=>d.replaceAll('/','-')))
+        : [state.selectedDate];
+    }
+
+    // 從 preload.meta 回填（沒 meta 或新增就用預設）
+    const m = (preload && preload.meta) || {};
+    const t = m.time || {};
+    f.timeMode = t.mode || 'auto';
+    f.timeStart = isAdd ? '' : (t.start || '11:00');
+    f.timeEnd = isAdd ? '' : (t.end || '21:00');
+    f.interval = (typeof t.interval === 'number') ? t.interval : 30;
+    f.customTimes = Array.isArray(t.customTimes) ? [...t.customTimes] : [];
+    f.serviceHour = (typeof t.serviceHour === 'number') ? t.serviceHour : 1;
+    f.serviceMinute = (typeof t.serviceMinute === 'number') ? t.serviceMinute : 30;
+
+    // 預約承接量
+    f.capacityMode = isAdd ? 'all' : ((m.capacity && m.capacity.mode) || 'custom');
+    const defaults = defaultUnitGroups();
+    if (isAdd){
+      // 新增模式：自訂單位的預設選項清空（避免 sample 群組的 selected 殘留）
+      f.unitGroups = defaults.map(g => ({ ...g, mode: 'all', selected: new Set() }));
+    } else if (m.capacity && Array.isArray(m.capacity.groups)){
+      // 用 meta snapshot 覆蓋 defaults 的 enabled/mode/selected
+      f.unitGroups = defaults.map(g => {
+        const saved = m.capacity.groups.find(x => x.id === g.id);
+        if (!saved) return g;
+        return {
+          ...g,
+          enabled: !!saved.enabled,
+          mode: saved.mode || g.mode,
+          selected: new Set(Array.isArray(saved.selected) ? saved.selected : []),
+        };
+      });
+    } else {
+      f.unitGroups = defaults;
+    }
+
+    // render UI 元件
+    renderDatesText();
+    renderTimeRangeText();
+    renderIntervalText();
+    renderPreviewPills();
+    renderCustomTimeList();
+    renderRadioCard();
+    renderUnitTree();
+    document.getElementById('serviceHourInput').value = f.serviceHour;
+    document.getElementById('serviceMinuteInput').value = f.serviceMinute;
+
+    // 進階設定：limit / deposit / approval 勾選態（新增模式全部 off）
+    const hasLimitPeople = !isAdd && (m.limit && typeof m.limit.people === 'number' && m.limit.people > 0);
+    const hasLimitGroups = !isAdd && (m.limit && typeof m.limit.groups === 'number' && m.limit.groups > 0);
+    setAdvRowOn('limit-people', hasLimitPeople);
+    setAdvRowOn('limit-groups', hasLimitGroups);
+    setAdvRowOn('deposit', !isAdd && !!m.deposit);
+    setAdvRowOn('approval', !isAdd && m.approval === true);
+
+    // 限制人數/組數 input 值（預設 1）
+    const lpv = document.getElementById('limitPeopleVal');
+    if (lpv) lpv.value = hasLimitPeople ? m.limit.people : 1;
+    const lgv = document.getElementById('limitGroupsVal');
+    if (lgv) lgv.value = hasLimitGroups ? m.limit.groups : 1;
+
+    // 訂金 select + summary
+    const dr = document.getElementById('depositRule');
+    if (dr){
+      if (m.deposit && m.deposit.ruleKey) dr.value = m.deposit.ruleKey;
+      else dr.value = 'weekday';
+      // 觸發 change 更新 summary card
+      const ev = new Event('change');
+      dr.dispatchEvent(ev);
+    }
+
+    // 清除上次驗證殘留
+    clearErrors();
+  }
+
+  function getDates(){ return [...f.dates]; }
+
+  function computeSummary(){
+    // 簡短 summary：時段 + 可選的人數上限 + 訂金提示（L1 主要靠 icon line，這只是 fallback）
+    let s = f.timeMode === 'auto'
+      ? `${f.timeStart}–${f.timeEnd}、間隔 ${f.interval} 分鐘`
+      : (f.customTimes.length ? `自訂時段：${f.customTimes.join('、')}` : '自訂時段（未設定）');
+    const m = getMeta();
+    if (m.limit && m.limit.people) s += `、人數上限 ${m.limit.people}`;
+    if (m.deposit) s += '、需訂金';
+    if (m.approval) s += '、需審核';
+    return s;
+  }
+
+  // 取得完整 form meta（L1 list render + rule persistence 用）
+  function getMeta(){
+    const meta = {
+      time: {
+        mode: f.timeMode,
+        start: f.timeStart, end: f.timeEnd, interval: f.interval,
+        customTimes: [...f.customTimes],
+        serviceHour: f.serviceHour, serviceMinute: f.serviceMinute,
+      },
+      deposit: null,
+      approval: false,
+      limit: { people: null, groups: null },
+      capacity: {
+        mode: f.capacityMode,
+        groups: f.unitGroups.map(g => ({
+          id: g.id,
+          enabled: !!g.enabled,
+          mode: g.mode,
+          selected: [...g.selected],
+        })),
+      },
+    };
+
+    // 訂金
+    const depositRow = document.querySelector('.view-l2 .adv-row[data-adv="deposit"]');
+    if (depositRow && depositRow.classList.contains('on')){
+      const sel = document.getElementById('depositRule');
+      const v = sel ? sel.value : 'weekday';
+      const isCard = (v === 'weekend');
+      const labelText = (typeof DEPOSIT_DESC !== 'undefined' && DEPOSIT_DESC[v]) || (isCard ? '信用卡綁定' : '預先收款');
+      meta.deposit = { kind: isCard ? 'card' : 'cash', label: labelText, ruleKey: v };
+    }
+
+    // 需審核
+    const approvalRow = document.querySelector('.view-l2 .adv-row[data-adv="approval"]');
+    if (approvalRow && approvalRow.classList.contains('on')) meta.approval = true;
+
+    // 限制店內人數
+    const lpRow = document.querySelector('.view-l2 .adv-row[data-adv="limit-people"]');
+    if (lpRow && lpRow.classList.contains('on')){
+      const v = parseInt((document.getElementById('limitPeopleVal') || {}).value || '0', 10);
+      if (!isNaN(v) && v > 0) meta.limit.people = v;
+    }
+
+    // 限制店內組數
+    const lgRow = document.querySelector('.view-l2 .adv-row[data-adv="limit-groups"]');
+    if (lgRow && lgRow.classList.contains('on')){
+      const v = parseInt((document.getElementById('limitGroupsVal') || {}).value || '0', 10);
+      if (!isNaN(v) && v > 0) meta.limit.groups = v;
+    }
+
+    return meta;
+  }
+
+  // ----- Render: dates display -----
+  function renderDatesText(){
+    const el = document.getElementById('ruleDatesText');
+    if (!el) return;
+    if (!f.dates.length) { el.innerHTML = ''; el.textContent = '請選擇日期'; el.style.color = 'var(--text-muted)'; return; }
+    el.style.color = '';
+    const labels = f.dates.map(fmtDisplay);
+    if (labels.length <= 3) el.textContent = labels.join('、');
+    else el.innerHTML = `${escapeHtml(labels[0])}、${escapeHtml(labels[1])} … <span style="color:var(--primary-dark);font-weight:500;">共 ${labels.length} 天</span>`;
+  }
+
+  function renderTimeRangeText(){
+    const s = document.getElementById('timeStartText');
+    const e = document.getElementById('timeEndText');
+    if (s){
+      s.textContent = f.timeStart || '請選擇時間';
+      s.style.color = f.timeStart ? '' : 'var(--text-muted)';
+    }
+    if (e){
+      e.textContent = f.timeEnd || '請選擇時間';
+      e.style.color = f.timeEnd ? '' : 'var(--text-muted)';
+    }
+  }
+  function renderIntervalText(){
+    const el = document.getElementById('intervalText');
+    if (el) el.textContent = f.interval;
+  }
+
+  // ----- Render: preview pills -----
+  function renderPreviewPills(){
+    const pp = document.getElementById('previewPills');
+    if (!pp) return;
+    // Label + 下一列才放 chips
+    pp.innerHTML = `
+      <span class="label">線上預約可選時段預覽<span class="ico">i</span></span>
+      <div class="pills-row"></div>`;
+    const row = pp.querySelector('.pills-row');
+    let slots = [];
+    if (f.timeMode === 'auto'){
+      slots = autoSlots(f.timeStart, f.timeEnd, f.interval);
+    } else {
+      slots = [...f.customTimes].sort();
+    }
+    const MAX = 18;
+    const display = slots.length > MAX ? [...slots.slice(0,8), '…', ...slots.slice(-6)] : slots;
+    if (!display.length){
+      const s = document.createElement('span');
+      s.className='hint'; s.style.padding='0 4px';
+      s.textContent='（請先設定時段範圍或自訂時間）';
+      row.appendChild(s);
+      return;
+    }
+    for (const t of display){
+      const s = document.createElement('span');
+      s.className='p';
+      s.textContent = t;
+      row.appendChild(s);
+    }
+  }
+
+  function autoSlots(start, end, interval){
+    const [sh,sm] = start.split(':').map(Number);
+    const [eh,em] = end.split(':').map(Number);
+    const startMin = sh*60+sm, endMin = eh*60+em;
+    if (endMin <= startMin || interval <= 0) return [];
+    const out = [];
+    for (let m=startMin; m<=endMin; m+=interval){
+      out.push(`${pad(Math.floor(m/60))}:${pad(m%60)}`);
+    }
+    return out;
+  }
+
+  // ----- Render: custom time list -----
+  function renderCustomTimeList(){
+    const el = document.getElementById('customTimeList');
+    if (!el) return;
+    el.innerHTML = '';
+    if (!f.customTimes.length){
+      const empty = document.createElement('div');
+      empty.className='hint';
+      empty.style.padding='4px 0';
+      empty.textContent='尚未加入時間，按下「加入時間」開始。';
+      el.appendChild(empty);
+      return;
+    }
+    f.customTimes.forEach((t,i)=>{
+      const row = document.createElement('div');
+      row.className='custom-time-row';
+      row.innerHTML = `
+        <div class="input" data-idx="${i}">
+          <span>${t}</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        </div>
+        <button class="del" type="button" data-del="${i}" title="移除">
+          <svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
+        </button>`;
+      // open time picker
+      row.querySelector('.input').addEventListener('click', (e)=>{
+        const anchor = row.querySelector('.input');
+        openTimePicker(anchor, t, (newT)=>{
+          f.customTimes[i] = newT;
+          renderCustomTimeList();
+          renderPreviewPills();
+          hideOverlapError();
+        });
+      });
+      row.querySelector('.del').addEventListener('click', ()=>{
+        f.customTimes.splice(i,1);
+        renderCustomTimeList();
+        renderPreviewPills();
+        hideOverlapError();
+      });
+      el.appendChild(row);
+    });
+  }
+
+  // ----- Render: radio card (時段：auto/custom) -----
+  function renderRadioCard(){
+    // 預約時段
+    ['auto','custom'].forEach(kind=>{
+      const card = document.querySelector(`.view-l2 .radio-card[data-card="${kind}"]`);
+      if (!card) return;
+      const isOn = f.timeMode === kind;
+      card.classList.toggle('on', isOn);
+      const radio = card.querySelector(':scope > .head > .radio');
+      if (radio) radio.classList.toggle('on', isOn);
+    });
+    // 預約承接量：all-units vs custom-units
+    ['all-units','custom-units'].forEach(kind=>{
+      const card = document.querySelector(`.view-l2 .radio-card[data-card="${kind}"]`);
+      if (!card) return;
+      const isOn = (f.capacityMode==='all' && kind==='all-units') || (f.capacityMode==='custom' && kind==='custom-units');
+      card.classList.toggle('on', isOn);
+      const radio = card.querySelector(':scope > .head > .radio');
+      if (radio) radio.classList.toggle('on', isOn);
+    });
+  }
+
+  // ----- Render: unit-tree -----
+  function renderUnitTree(){
+    const tree = document.getElementById('unitTree');
+    if (!tree) return;
+    let html = '';
+    f.unitGroups.forEach(g=>{
+      const isDisabled = g.units.length === 0;
+      const enabled = g.enabled && !isDisabled;
+      const labelStyle = isDisabled ? ' style="color:var(--text-disabled);"' : '';
+      html += `<div class="grp" data-gid="${g.id}">
+        <div class="grp-head">
+          <span class="box${enabled ? ' on' : ''}" data-act="toggle-grp"${isDisabled?' style="opacity:.4;pointer-events:none;"':''}></span>
+          <span class="ck-label"${labelStyle}>${g.label} (${g.units.length})</span>
+        </div>`;
+      if (enabled){
+        html += `<div class="grp-radio">
+          <label class="check"><span class="radio${g.mode==='all'?' on':''}" data-act="grp-mode" data-mode="all"></span><span class="ck-label">套用全部</span></label>
+          <label class="check"><span class="radio${g.mode==='custom'?' on':''}" data-act="grp-mode" data-mode="custom"></span><span class="ck-label">選擇預約單位</span></label>
+        </div>`;
+        if (g.mode === 'custom'){
+          html += `<div class="units">`;
+          g.units.forEach(u=>{
+            const on = g.selected.has(u.id);
+            html += `<label class="check"><span class="box${on?' on':''}" data-act="toggle-unit" data-uid="${u.id}"></span><span class="ck-label">${u.label} (${u.min}-${u.max})</span></label>`;
+          });
+          html += `</div>`;
+        }
+      }
+      html += `</div>`;
+    });
+    tree.innerHTML = html;
+    renderUnitTotal();
+  }
+  function renderUnitTotal(){
+    let total = 0;
+    if (f.capacityMode === 'custom'){
+      f.unitGroups.forEach(g=>{
+        if (!g.enabled || g.units.length===0) return;
+        const eligible = g.mode === 'all' ? g.units : g.units.filter(u=>g.selected.has(u.id));
+        eligible.forEach(u=> total += u.max);
+      });
+    } else {
+      // all units regardless of group toggle
+      f.unitGroups.forEach(g=>{
+        g.units.forEach(u=> total += u.max);
+      });
+    }
+    const el = document.getElementById('unitTotalNum');
+    if (el) el.textContent = total;
+  }
+
+  // ----- Popup helpers -----
+  let activePopup = null;
+  function ensureMask(){
+    let m = document.getElementById('l2PopupMask');
+    if (!m){
+      m = document.createElement('div');
+      m.id = 'l2PopupMask';
+      m.className = 'popup-mask';
+      m.addEventListener('click', closePopup);
+      document.body.appendChild(m);
+    }
+    return m;
+  }
+  function openPopupNear(anchor, popup, opts){
+    opts = opts || {};
+    closePopup();
+    document.body.appendChild(popup);
+    popup.classList.add('popup');
+    const rect = anchor.getBoundingClientRect();
+    const pw = opts.width || popup.offsetWidth || 240;
+    let left = rect.left + window.scrollX;
+    let top = rect.bottom + window.scrollY + 4;
+    // Right-align if would overflow
+    if (left + pw > window.innerWidth - 8) left = Math.max(8, rect.right + window.scrollX - pw);
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+    popup.classList.add('show');
+    activePopup = popup;
+    ensureMask().classList.add('show');
+  }
+  function closePopup(){
+    if (activePopup){ activePopup.remove(); activePopup = null; }
+    const m = document.getElementById('l2PopupMask');
+    if (m) m.classList.remove('show');
+  }
+
+  // ----- Popup: 多日 Calendar (整年 1/1–12/31，可切年份，選日 toggle 不重畫) -----
+  function openDatePopup(anchor){
+    const popup = document.createElement('div');
+    popup.className = 'popup date-popup';
+    const baseDate = f.dates.length ? fromYMD(sortedDates(f.dates)[0]) : new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+    let viewYear = baseDate.getFullYear();
+    const localDates = new Set(f.dates);
+
+    function renderMonth(y, m){
+      const first = new Date(y, m, 1);
+      const last = new Date(y, m+1, 0);
+      const startOffset = first.getDay();
+      const totalDays = last.getDate();
+      let html = `<div class="dp-month" data-month="${y}-${pad(m+1)}"><div class="dp-month-label">${m+1} 月</div>`;
+      html += `<div class="dp-wd-row">${['日','一','二','三','四','五','六'].map(w=>`<span>${w}</span>`).join('')}</div>`;
+      html += `<div class="dp-day-grid">`;
+      for (let i=0;i<startOffset;i++) html += `<div class="dp-cell out"></div>`;
+      for (let d=1; d<=totalDays; d++){
+        const ymd = `${y}-${pad(m+1)}-${pad(d)}`;
+        const sel = localDates.has(ymd) ? ' sel' : '';
+        const today = ymd === toYMD(TODAY) ? ' today' : '';
+        html += `<div class="dp-cell${sel}${today}" data-ymd="${ymd}">${d}</div>`;
+      }
+      html += `</div></div>`;
+      return html;
+    }
+
+    function renderYearAll(){
+      const months = [];
+      for (let m=0; m<12; m++) months.push(renderMonth(viewYear, m));
+      return months.join('');
+    }
+    function updateCount(){
+      const c = popup.querySelector('.count strong');
+      if (c) c.textContent = localDates.size;
+    }
+    function scrollToYMD(ymd){
+      const parts = ymd.split('-');
+      const target = popup.querySelector(`.dp-month[data-month="${parts[0]}-${parts[1]}"]`);
+      const scroller = popup.querySelector('#dpScroll');
+      if (target && scroller) scroller.scrollTop = target.offsetTop - 8;
+    }
+    function rebuildYear(){
+      popup.querySelector('#dpYearTitle').textContent = `${viewYear} 年`;
+      popup.querySelector('#dpScroll').innerHTML = renderYearAll();
+    }
+
+    popup.innerHTML = `
+      <div class="dp-head">
+        <button class="yr-nav" data-yr="prev" type="button" title="上一年">‹</button>
+        <span class="title" id="dpYearTitle">${viewYear} 年</span>
+        <button class="yr-nav" data-yr="next" type="button" title="下一年">›</button>
+        <button class="today-btn" data-nav="today" type="button">今天</button>
+      </div>
+      <div class="dp-scroll" id="dpScroll">${renderYearAll()}</div>
+      <div class="dp-foot">
+        <span class="count">已選 <strong>${localDates.size}</strong> 天</span>
+        <div class="actions">
+          <button class="btn-md ghost" type="button" data-action="clear">清空</button>
+          <button class="btn-md primary" type="button" data-action="ok">確定</button>
+        </div>
+      </div>`;
+
+    // Cell click delegation
+    popup.querySelector('#dpScroll').addEventListener('click', (e)=>{
+      const cell = e.target.closest('.dp-cell[data-ymd]');
+      if (!cell || cell.classList.contains('out')) return;
+      const ymd = cell.dataset.ymd;
+      if (localDates.has(ymd)) { localDates.delete(ymd); cell.classList.remove('sel'); }
+      else { localDates.add(ymd); cell.classList.add('sel'); }
+      updateCount();
+    });
+    // Year switch
+    popup.querySelector('[data-yr="prev"]').addEventListener('click', ()=>{ viewYear--; rebuildYear(); });
+    popup.querySelector('[data-yr="next"]').addEventListener('click', ()=>{ viewYear++; rebuildYear(); });
+    // 今天 → 切到今年並 scroll 到今日 cell
+    popup.querySelector('[data-nav="today"]').addEventListener('click', ()=>{
+      if (viewYear !== TODAY.getFullYear()){ viewYear = TODAY.getFullYear(); rebuildYear(); }
+      scrollToYMD(toYMD(TODAY));
+    });
+    popup.querySelector('[data-action="clear"]').addEventListener('click', ()=>{
+      localDates.clear();
+      popup.querySelectorAll('.dp-cell.sel').forEach(c => c.classList.remove('sel'));
+      updateCount();
+    });
+    popup.querySelector('[data-action="ok"]').addEventListener('click', ()=>{
+      f.dates = sortedDates([...localDates]);
+      renderDatesText();
+      if (f.dates.length) clearErrorFor('dates');
+      hideOverlapError();
+      closePopup();
+    });
+
+    openPopupNear(anchor, popup, {width: 340});
+
+    // 預設定位：捲到今天 cell（如果有已選日期就停在最早選擇日所屬月份的同一日）
+    const targetYMD = f.dates.length ? sortedDates(f.dates)[0] : toYMD(TODAY);
+    scrollToYMD(targetYMD);
+  }
+
+  // ----- Popup: 時間間隔 dropdown -----
+  function openIntervalDropdown(anchor){
+    const popup = document.createElement('div');
+    popup.className = 'popup dropdown-menu';
+    INTERVAL_OPTIONS.forEach(v=>{
+      const it = document.createElement('div');
+      it.className = 'item' + (v === f.interval ? ' on' : '');
+      it.textContent = `${v} 分鐘`;
+      it.addEventListener('click', ()=>{
+        f.interval = v;
+        renderIntervalText();
+        renderPreviewPills();
+        closePopup();
+      });
+      popup.appendChild(it);
+    });
+    openPopupNear(anchor, popup, {width: 140});
+  }
+
+  // 時段範圍 picker 已拆成 timeStartField / timeEndField 兩個分別開 figma timepicker
+  // (舊的雙欄式 openTimeRangePicker 已移除)
+
+  // ----- Popup: 單一時間 picker (給自訂時間用) — 套 figma 3120:55536 桌機樣式 -----
+  function openTimePicker(anchor, currentValue, onPick){
+    const popup = document.createElement('div');
+    popup.className = 'popup figma-timepicker';
+    // 統一預設 00:00（直接 scroll 到最上面，user 自選）
+    let h = 0;
+    let m = 0;
+
+    function renderCells(){
+      const hourCells = HOUR_OPTIONS.map(v => `<div class="ft-cell${v===h?' on':''}" data-col="h" data-v="${v}">${pad(v)}</div>`).join('');
+      const minCells = MIN_OPTIONS.map(v => `<div class="ft-cell${v===m?' on':''}" data-col="m" data-v="${v}">${pad(v)}</div>`).join('');
+      popup.innerHTML = `
+        <div class="ft-cols">
+          <div class="ft-col" data-col="h">${hourCells}</div>
+          <div class="ft-divider"></div>
+          <div class="ft-col" data-col="m">${minCells}</div>
+        </div>
+        <div class="ft-foot">
+          <button class="ft-ok" type="button" data-action="ok">OK</button>
+        </div>`;
+      // Center scroll on selected cell
+      popup.querySelectorAll('.ft-col').forEach(col=>{
+        const sel = col.querySelector('.on');
+        if (sel) col.scrollTop = Math.max(0, sel.offsetTop - col.offsetHeight/2 + sel.offsetHeight/2);
+      });
+    }
+
+    renderCells();
+
+    popup.addEventListener('click', (e)=>{
+      const cell = e.target.closest('.ft-cell');
+      if (cell){
+        const col = cell.dataset.col;
+        const v = parseInt(cell.dataset.v);
+        if (col === 'h') h = v; else m = v;
+        popup.querySelectorAll(`.ft-cell[data-col="${col}"]`).forEach(c=>c.classList.remove('on'));
+        cell.classList.add('on');
+        return;
+      }
+      const act = e.target.closest('[data-action]');
+      if (!act) return;
+      if (act.dataset.action === 'ok'){
+        onPick(`${pad(h)}:${pad(m)}`);
+        closePopup();
+      }
+    });
+
+    openPopupNear(anchor, popup, {width: 112});
+  }
+
+  // ----- Init: bind events once -----
+  function init(){
+    // Dates field click → open calendar popup
+    const datesField = document.getElementById('ruleDatesField');
+    if (datesField) datesField.addEventListener('click', ()=> openDatePopup(datesField));
+
+    // Time start / end fields — 各自開 figma timepicker
+    const ts = document.getElementById('timeStartField');
+    if (ts) ts.addEventListener('click', ()=>{
+      openTimePicker(ts, f.timeStart || '11:00', (newT)=>{
+        // 防呆：start 不可晚於 end（任一空時跳過）
+        if (f.timeEnd && newT >= f.timeEnd){
+          alert('開始時間需早於結束時間');
+          return;
+        }
+        f.timeStart = newT;
+        renderTimeRangeText();
+        renderPreviewPills();
+        if (f.timeStart && f.timeEnd && f.timeStart < f.timeEnd) clearErrorFor('timeRange');
+        hideOverlapError();
+      });
+    });
+    const te = document.getElementById('timeEndField');
+    if (te) te.addEventListener('click', ()=>{
+      openTimePicker(te, f.timeEnd || '21:00', (newT)=>{
+        if (f.timeStart && newT <= f.timeStart){
+          alert('結束時間需晚於開始時間');
+          return;
+        }
+        f.timeEnd = newT;
+        renderTimeRangeText();
+        renderPreviewPills();
+        if (f.timeStart && f.timeEnd && f.timeStart < f.timeEnd) clearErrorFor('timeRange');
+        hideOverlapError();
+      });
+    });
+
+    // Interval dropdown
+    const iv = document.getElementById('intervalField');
+    if (iv) iv.addEventListener('click', ()=> openIntervalDropdown(iv));
+
+    // Radio card click → switch mode (時段：auto/custom，承接量：all-units/custom-units)
+    document.querySelectorAll('.view-l2 .radio-card[data-card]').forEach(card=>{
+      card.addEventListener('click', (e)=>{
+        // ignore inner controls click (input, button, popup trigger, unit-tree內元素)
+        if (e.target.closest('.input, .num-input, button, .popup, .body, .unit-tree')) return;
+        const kind = card.dataset.card;
+        if (kind === 'auto' || kind === 'custom'){
+          f.timeMode = kind;
+          renderRadioCard();
+          renderPreviewPills();
+          hideOverlapError();
+        } else if (kind === 'all-units' || kind === 'custom-units'){
+          f.capacityMode = kind === 'all-units' ? 'all' : 'custom';
+          renderRadioCard();
+          renderUnitTotal();
+        }
+      });
+    });
+
+    // Unit-tree event delegation
+    const tree = document.getElementById('unitTree');
+    if (tree) tree.addEventListener('click', (e)=>{
+      const target = e.target.closest('[data-act]');
+      if (!target) return;
+      e.preventDefault();
+      const grpEl = target.closest('.grp');
+      if (!grpEl) return;
+      const gid = grpEl.dataset.gid;
+      const g = f.unitGroups.find(x=>x.id===gid);
+      if (!g) return;
+      const act = target.dataset.act;
+      if (act === 'toggle-grp'){
+        g.enabled = !g.enabled;
+        renderUnitTree();
+      } else if (act === 'grp-mode'){
+        g.mode = target.dataset.mode;
+        renderUnitTree();
+      } else if (act === 'toggle-unit'){
+        const uid = target.dataset.uid;
+        if (g.selected.has(uid)) g.selected.delete(uid);
+        else g.selected.add(uid);
+        target.classList.toggle('on');
+        renderUnitTotal();
+      }
+      if (getSelectedUnitCount() > 0) clearErrorFor('capacity');
+    });
+
+    // Add custom time
+    const addBtn = document.getElementById('addCustomTimeBtn');
+    if (addBtn) addBtn.addEventListener('click', ()=>{
+      const anchor = addBtn;
+      openTimePicker(anchor, '12:00', (t)=>{
+        if (!f.customTimes.includes(t)) f.customTimes.push(t);
+        f.customTimes.sort();
+        renderCustomTimeList();
+        renderPreviewPills();
+        if (f.customTimes.length) clearErrorFor('customTimes');
+        hideOverlapError();
+      });
+    });
+
+    // Service time inputs
+    const sh = document.getElementById('serviceHourInput');
+    const sm = document.getElementById('serviceMinuteInput');
+    if (sh) sh.addEventListener('input', ()=>{
+      f.serviceHour = parseInt(sh.value)||0;
+      if (f.serviceHour > 0 || f.serviceMinute > 0) clearErrorFor('service');
+    });
+    if (sm) sm.addEventListener('input', ()=>{
+      f.serviceMinute = parseInt(sm.value)||0;
+      if (f.serviceHour > 0 || f.serviceMinute > 0) clearErrorFor('service');
+    });
+
+    // Close popup on Esc
+    document.addEventListener('keydown', e=>{ if (e.key==='Escape') closePopup(); });
+  }
+
+  // 給 validation 用：計算目前選到的 unit 總數（custom 模式才會算群組篩選；all 模式直接全部加總）
+  function getSelectedUnitCount(){
+    let count = 0;
+    if (f.capacityMode === 'all'){
+      f.unitGroups.forEach(g => count += g.units.length);
+      return count;
+    }
+    f.unitGroups.forEach(g=>{
+      if (!g.enabled || g.units.length===0) return;
+      const eligible = g.mode === 'all' ? g.units : g.units.filter(u=>g.selected.has(u.id));
+      count += eligible.length;
+    });
+    return count;
+  }
+
+  return { init, load, getDates, computeSummary, getMeta, getSelectedUnitCount };
+})();
+
+/* ---------- L2 防呆驗證 — 抄 figma 3120:57243 ---------- */
+let toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById('toastAlert');
+  if (!t) return;
+  if (msg) t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 3000);
+}
+function showErrorFor(key){
+  document.querySelectorAll(`[data-err="${key}"], [data-err-inline="${key}"]`).forEach(el=>{
+    el.classList.add('show');
+    const wrap = el.closest('.field, .extra-row, .radio-card');
+    if (wrap) wrap.classList.add('has-error');
+  });
+}
+function clearErrorFor(key){
+  document.querySelectorAll(`[data-err="${key}"], [data-err-inline="${key}"]`).forEach(el=>{
+    el.classList.remove('show');
+    const wrap = el.closest('.field, .extra-row, .radio-card');
+    if (wrap) wrap.classList.remove('has-error');
+  });
+}
+function clearErrors(){
+  document.querySelectorAll('.err-msg.show, .err-inline.show').forEach(el=>el.classList.remove('show'));
+  document.querySelectorAll('.has-error').forEach(el=>el.classList.remove('has-error'));
+  hideOverlapError();
+}
+
+/* ---------- 時段重疊檢查（同一天 + 同 optionId + 時段區段交集）---------- */
+function ruleTimeIntervals(meta){
+  // 回傳 [{kind:'range'|'point', start, end}] — range 是 auto 區段, point 是 custom 時段點 (start=end=t)
+  const t = (meta && meta.time) || {};
+  if (t.mode === 'auto'){
+    if (!t.start || !t.end) return [];
+    return [{ kind:'range', start:t.start, end:t.end }];
+  }
+  return (t.customTimes || []).map(x => ({ kind:'point', start:x, end:x }));
+}
+function intersectInterval(a, b){
+  const s = a.start > b.start ? a.start : b.start;
+  const e = a.end < b.end ? a.end : b.end;
+  if (s > e) return null;
+  if (s === e) return { kind:'point', start:s, end:s };
+  return { kind:'range', start:s, end:e };
+}
+function fmtInterval(iv){
+  return iv.kind === 'point' ? iv.start : `${iv.start}–${iv.end}`;
+}
+function findOverlaps(){
+  if (!state.l2) return {};
+  const isEdit = state.l2.mode === 'edit';
+  const currentId = state.l2.ruleId;
+
+  const myMeta = L2Form.getMeta();
+  const myDates = new Set(L2Form.getDates());
+  const myIntervals = ruleTimeIntervals(myMeta);
+  if (!myIntervals.length || !myDates.size) return {};
+
+  // 當前 option（hier/service 模式才比對；basic/total 全部視為同組）
+  let myOptionId = null;
+  if (hasOptions()){
+    const onOpt = document.querySelector('#optionList .opt.on');
+    myOptionId = onOpt ? onOpt.dataset.id : null;
+  }
+
+  const conflicts = {}; // date -> Set of overlap labels
+
+  data().rules.forEach(other => {
+    if (isEdit && other.id === currentId) return;
+    if (hasOptions() && other.optionId !== myOptionId) return;
+    const sharedDates = other.dates.filter(d => myDates.has(d));
+    if (!sharedDates.length) return;
+    const otherIntervals = ruleTimeIntervals(other.meta || {});
+    if (!otherIntervals.length) return;
+
+    const labels = new Set();
+    myIntervals.forEach(a => otherIntervals.forEach(b => {
+      const ov = intersectInterval(a, b);
+      if (ov) labels.add(fmtInterval(ov));
+    }));
+    if (!labels.size) return;
+
+    sharedDates.forEach(d => {
+      if (!conflicts[d]) conflicts[d] = new Set();
+      labels.forEach(l => conflicts[d].add(l));
+    });
+  });
+
+  return conflicts;
+}
+function renderOverlapError(conflicts){
+  const list = document.getElementById('overlapList');
+  const wrap = document.getElementById('overlapError');
+  if (!list || !wrap) return;
+  list.innerHTML = '';
+  Object.keys(conflicts).sort().forEach(d => {
+    const labels = [...conflicts[d]].sort();
+    const row = document.createElement('div');
+    row.className = 'oe-row';
+    row.innerHTML = `<span class="oe-date">${zhDate(d)}</span><span class="oe-sep">/</span><span class="oe-times">${labels.join('、')}</span>`;
+    list.appendChild(row);
+  });
+  wrap.classList.add('show');
+}
+function hideOverlapError(){
+  const wrap = document.getElementById('overlapError');
+  if (wrap) wrap.classList.remove('show');
+}
+function validateL2(){
+  clearErrors();
+  const errors = [];
+
+  const name = (document.getElementById('ruleName').value || '').trim();
+  if (!name){ errors.push('name'); showErrorFor('name'); }
+
+  if (L2Form.getDates().length === 0){ errors.push('dates'); showErrorFor('dates'); }
+
+  if (hasOptions()){
+    const sel = document.querySelector('#optionList .opt.on');
+    if (!sel){ errors.push('option'); showErrorFor('option'); }
+  }
+
+  const meta = L2Form.getMeta();
+  if (meta.time.mode === 'auto'){
+    if (!meta.time.start || !meta.time.end){
+      errors.push('timeRange'); showErrorFor('timeRange');
+    } else if (meta.time.start >= meta.time.end){
+      errors.push('timeRange'); showErrorFor('timeRange');
+    }
+  } else {
+    if (!meta.time.customTimes.length){ errors.push('customTimes'); showErrorFor('customTimes'); }
+  }
+
+  if ((meta.time.serviceHour||0) === 0 && (meta.time.serviceMinute||0) === 0){
+    errors.push('service'); showErrorFor('service');
+  }
+
+  // 預約承接量（total mode 沒 unit-tree，跳過）
+  if (state.mode !== 'total' && meta.capacity.mode === 'custom'){
+    if (L2Form.getSelectedUnitCount() === 0){
+      errors.push('capacity'); showErrorFor('capacity');
+    }
+  }
+
+  const lpRow = document.querySelector('.view-l2 .adv-row[data-adv="limit-people"]');
+  if (lpRow && lpRow.classList.contains('on')){
+    const v = parseInt((document.getElementById('limitPeopleVal')||{}).value, 10);
+    if (isNaN(v) || v < 1){ errors.push('limitPeople'); showErrorFor('limitPeople'); }
+  }
+
+  const lgRow = document.querySelector('.view-l2 .adv-row[data-adv="limit-groups"]');
+  if (lgRow && lgRow.classList.contains('on')){
+    const v = parseInt((document.getElementById('limitGroupsVal')||{}).value, 10);
+    if (isNaN(v) || v < 1){ errors.push('limitGroups'); showErrorFor('limitGroups'); }
+  }
+
+  return errors;
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  /* 套用模式 class */
+  document.body.classList.remove('mode-basic','mode-total','mode-service','mode-hier');
+  document.body.classList.add('mode-'+state.mode);
+
+  /* toolbar */
+  document.getElementById('toggleAnno').addEventListener('click', e=>{
+    document.body.classList.toggle('annotate');
+    const on = document.body.classList.contains('annotate');
+    e.target.textContent = '標註模式：' + (on?'開':'關');
+    e.target.classList.toggle('on', on);
+  });
+  document.getElementById('resetData').addEventListener('click', resetData);
+  document.getElementById('openModeModal').addEventListener('click', openModeModal);
+  document.getElementById('modeConfirm').addEventListener('click', ()=>setMode(selectedModeInModal()));
+  document.querySelector('#modeMask .btn-lg.ghost').addEventListener('click', ()=>closeModal('modeMask'));
+  /* opt-row 點擊切換選中 */
+  document.querySelectorAll('#modeList .opt-row').forEach(row=>{
+    row.addEventListener('click', e=>{
+      e.preventDefault();
+      document.querySelectorAll('#modeList .opt-row').forEach(r=>{r.classList.remove('on');const ra=r.querySelector('.radio');if(ra)ra.classList.remove('on');});
+      row.classList.add('on');
+      const ra = row.querySelector('.radio'); if (ra) ra.classList.add('on');
+    });
+  });
+  updateCurModeLabel();
+  document.getElementById('devSeg').addEventListener('click', e=>{
+    const btn = e.target.closest('button[data-dev]'); if (!btn) return;
+    document.body.classList.remove('dev-desktop','dev-mobile');
+    document.body.classList.add('dev-'+btn.dataset.dev);
+    document.querySelectorAll('#devSeg button').forEach(b=>b.classList.toggle('on', b===btn));
+    window.scrollTo(0,0);
+  });
+
+  /* 月份切換 */
+  document.getElementById('prevMonth').addEventListener('click', ()=>{ state.calMonth=new Date(state.calMonth.getFullYear(),state.calMonth.getMonth()-1,1); renderCalendar(); });
+  document.getElementById('nextMonth').addEventListener('click', ()=>{ state.calMonth=new Date(state.calMonth.getFullYear(),state.calMonth.getMonth()+1,1); renderCalendar(); });
+  document.getElementById('todayBtn').addEventListener('click', ()=>{ state.calMonth=new Date(TODAY.getFullYear(),TODAY.getMonth(),1); state.selectedDate=fmtDate(TODAY); renderAll(); });
+
+  /* E-1 按鈕 */
+  document.getElementById('blockBtn').addEventListener('click', openClosurePage);
+  document.getElementById('addBtn').addEventListener('click', ()=>openL2('add'));
+
+  /* L2 nav */
+  document.getElementById('backToL1').addEventListener('click', e=>{ e.preventDefault(); goL1(); });
+  document.getElementById('cancelBtn').addEventListener('click', goL1);
+  document.getElementById('saveBtn').addEventListener('click', saveL2);
+
+  /* L2 即時清除錯誤訊息 */
+  const nameInput = document.getElementById('ruleName');
+  if (nameInput) nameInput.addEventListener('input', ()=>{ if (nameInput.value.trim()) clearErrorFor('name'); });
+  const lpInput = document.getElementById('limitPeopleVal');
+  if (lpInput) lpInput.addEventListener('input', ()=>{ const v = parseInt(lpInput.value,10); if (!isNaN(v) && v >= 1) clearErrorFor('limitPeople'); });
+  const lgInput = document.getElementById('limitGroupsVal');
+  if (lgInput) lgInput.addEventListener('input', ()=>{ const v = parseInt(lgInput.value,10); if (!isNaN(v) && v >= 1) clearErrorFor('limitGroups'); });
+
+  /* Modal 按鈕：取消 / mask 不關 / Esc 不關 */
+  document.getElementById('blockCancel').addEventListener('click', ()=>closeModal('blockMask'));
+  document.querySelector('#unblockMask .btn-lg.ghost').addEventListener('click', ()=>closeModal('unblockMask'));
+  document.querySelector('#delMask .btn-lg.ghost').addEventListener('click', ()=>closeModal('delMask'));
+  /* 點 mask 背景：不關閉（吸收事件）*/
+  document.querySelectorAll('.modal-mask').forEach(m=>{
+    m.addEventListener('click', e=>{ if (e.target===m){ e.stopPropagation(); /* 不做事 */ } });
+  });
+  /* Esc：不關閉 */
+  document.addEventListener('keydown', e=>{
+    if (e.key==='Escape' && anyModalOpen()){ e.preventDefault(); e.stopPropagation(); }
+  });
+
+  /* lr-tools 動作（事件委派）*/
+  document.getElementById('dayPanel').addEventListener('click', e=>{
+    const btn = e.target.closest('.icon-btn[data-action]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const id = parseInt(btn.dataset.id, 10);
+    if (action==='edit') openL2('edit', id);
+    else if (action==='duplicate') openL2('duplicate', id);
+    else if (action==='delete') askDelete(id);
+  });
+
+  /* Radio card 切換（L2 線上預約時段 / 預約單位）*/
+  document.body.addEventListener('click', e=>{
+    const card = e.target.closest('.radio-card');
+    if (card){
+      const parent = card.parentElement;
+      parent.querySelectorAll('.radio-card').forEach(c=>{c.classList.remove('on');const r=c.querySelector('.head .radio');if(r)r.classList.remove('on');});
+      card.classList.add('on'); const r=card.querySelector('.head .radio'); if(r)r.classList.add('on');
+    }
+    const tg = e.target.closest('.toggle'); if (tg){ tg.classList.toggle('on'); return; }
+  });
+
+  /* L2 進階設定 row 展開 */
+  document.querySelectorAll('.adv-row[data-adv]').forEach(row=>{
+    row.addEventListener('click', e=>{
+      if (e.target.closest('.adv-extra')) return;
+      const box = row.querySelector('.box'); if (!box) return;
+      box.classList.toggle('on');
+      const isOn = box.classList.contains('on');
+      row.classList.toggle('on', isOn);
+      // 切到 on 時補 default 值（user 要求：勾起來預設 1）
+      if (isOn){
+        const adv = row.dataset.adv;
+        if (adv === 'limit-people'){
+          const v = document.getElementById('limitPeopleVal');
+          if (v && (!v.value || parseInt(v.value,10) < 1)) v.value = 1;
+          clearErrorFor('limitPeople');
+        } else if (adv === 'limit-groups'){
+          const v = document.getElementById('limitGroupsVal');
+          if (v && (!v.value || parseInt(v.value,10) < 1)) v.value = 1;
+          clearErrorFor('limitGroups');
+        }
+      } else {
+        // 切到 off：把對應錯誤清掉
+        const adv = row.dataset.adv;
+        if (adv === 'limit-people') clearErrorFor('limitPeople');
+        else if (adv === 'limit-groups') clearErrorFor('limitGroups');
+      }
+    });
+  });
+  document.querySelectorAll('[data-limit-people],[data-limit-groups]').forEach(r=>{
+    r.addEventListener('click', ()=>{
+      const key = r.hasAttribute('data-limit-people') ? 'data-limit-people' : 'data-limit-groups';
+      document.querySelectorAll('['+key+']').forEach(x=>x.classList.remove('on'));
+      r.classList.add('on');
+    });
+  });
+  const deposit = document.getElementById('depositRule');
+  const depositSummary = document.getElementById('depositSummary');
+  if (deposit) deposit.addEventListener('change', ()=>{
+    const v = deposit.value;
+    const ruleName = deposit.options[deposit.selectedIndex].text;
+    const t = depositSummary.querySelector('.title');
+    const d = depositSummary.querySelector('.desc');
+    if (t) t.textContent = ruleName;
+    if (d) d.textContent = DEPOSIT_DESC[v] || '';
+  });
+
+  renderAll();
+
+  // 初始化 L2 表單互動（events 註冊一次即可，state 由 L2Form.load 在 openL2 時填入）
+  L2Form.init();
+
+  // URL hash 支援：#l2 自動進 L2 view（方便直接打開 demo）
+  if (location.hash === '#l2') {
+    openL2('add', null);
+  }
+});
+</script>
+<div style="position:fixed;right:18px;bottom:18px;z-index:9990;display:flex;gap:8px">
+<a href="sim.html" style="font-family:'PingFang TC',sans-serif;font-size:13px;border:1px solid #d5d5d5;background:#fff;border-radius:8px;padding:8px 12px;cursor:pointer;text-decoration:none;color:#333;box-shadow:0 2px 10px rgba(0,0,0,.15)">← 回後台模擬器</a>
+</div>
+</body>
+</html>
